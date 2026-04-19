@@ -1802,7 +1802,18 @@ function renderDrawerList(filter){
   }).join('');
 }
 function filterDrawer(){renderDrawerList($('drawerSearch').value.toLowerCase());}
-function selectFromDrawer(i){curIdx=i;closeDrawer();renderAll();}
+function selectFromDrawer(i){
+  curIdx=i;closeDrawer();
+  if(mTab==='prizes'){
+    switchMobileTab('play');
+    const track=$('playTab');
+    track.style.transition='none';
+    track.style.transform=`translateX(-${curIdx*100}%)`;
+    renderMobileTopBar();
+  } else {
+    renderAll();
+  }
+}
 
 /* ══ DIAL ══ */
 function toggleDial(){$('dialPanel').classList.toggle('on');}
@@ -1981,7 +1992,11 @@ function renderDtSheetList(){
 }
 
 function dtFilterSheets(){renderDtSheetList();}
-function dtSelectSheet(i){curIdx=i;dtGroupStart=Math.floor(i/3)*3;renderDesktop();}
+function dtSelectSheet(i){
+  curIdx=i;dtGroupStart=Math.floor(i/3)*3;
+  if(dtTab==='prizes') switchDtTab('play');
+  else renderDesktop();
+}
 
 function renderDtHeader(){
   const title=$('dtSheetTitle'),badge=$('dtTitleBadge');

@@ -101,6 +101,27 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
   border-radius:10px;font-size:11px;font-weight:600;margin-bottom:6px}
 .status-badge.active{background:#E8F5E9;color:#2E7D32}
 .status-badge.ended{background:var(--sv);color:var(--on-sv)}
+.status-badge.pending{background:#FFF3E0;color:#E65100;animation:pulse 1.5s ease-in-out infinite}
+.status-badge.approved{background:#E8F5E9;color:#2E7D32}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── REQUESTS ── */
+.req-item{background:var(--surface);border-radius:14px;padding:14px 16px;
+  margin-bottom:10px;box-shadow:var(--shadow)}
+.req-item.pending-req{border-left:4px solid #E65100}
+.req-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.req-info{flex:1}
+.req-name{font-size:15px;font-weight:700;margin-bottom:2px}
+.req-meta{font-size:12px;color:var(--on-sv)}
+.req-id{font-size:11px;color:var(--on-sv);font-family:monospace;margin-top:4px}
+.btn-approve{background:var(--primary);color:#fff;border:none;border-radius:10px;
+  padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-approve:disabled{opacity:.5;cursor:not-allowed}
+.req-approved-code{background:var(--primary-c);border-radius:8px;padding:8px 12px;
+  font-size:13px;color:var(--primary);font-weight:700;font-family:monospace;letter-spacing:2px}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;
+  background:#E65100;color:#fff;border-radius:10px;font-size:10px;font-weight:700;
+  min-width:16px;height:16px;padding:0 4px;margin-left:4px;vertical-align:middle}
 
 .empty-list{text-align:center;padding:32px 16px;color:var(--on-sv);opacity:.6}
 .empty-list-icon{font-size:40px;margin-bottom:8px}
@@ -138,12 +159,31 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">Sessions</button>
+    <button class="tab-btn active" id="tabBtnRequests" onclick="switchTab('requests')">Requests <span id="reqBadge" class="tab-badge" style="display:none">0</span></button>
+    <button class="tab-btn" id="tabBtnSessions" onclick="switchTab('sessions')">Sessions</button>
     <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">Settings</button>
   </div>
 
+  <!-- ── REQUESTS TAB ── -->
+  <div class="tab-content" id="tabRequests">
+    <div class="sessions-header">
+      <div class="sessions-title">Payment Requests</div>
+      <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
+    </div>
+    <div id="requestsList">
+      <div class="empty-list"><div class="empty-list-icon">📨</div><div>No requests yet</div></div>
+    </div>
+    <!-- Approved code popup inside this tab -->
+    <div class="code-result" id="approveResult">
+      <div class="code-result-label">Approved — Code for Player</div>
+      <div class="code-big" id="approveCodBig"></div>
+      <div class="code-meta" id="approveCodeMeta"></div>
+      <button class="code-copy-btn" onclick="copyApproveCode()" id="copyApproveBtn">📋 Copy Code</button>
+    </div>
+  </div>
+
   <!-- ── SESSIONS TAB ── -->
-  <div class="tab-content" id="tabSessions">
+  <div class="tab-content" id="tabSessions" style="display:none;">
     <!-- Create Code -->
     <div class="card">
       <div class="card-title">➕ Generate Session Code</div>
@@ -237,7 +277,10 @@ function bootAdmin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'flex';
   loadConfig();
+  loadRequests();
   loadSessions();
+  // auto-refresh requests every 15s
+  setInterval(loadRequests, 15000);
 }
 
 function logout() {
@@ -249,10 +292,13 @@ function logout() {
 }
 
 function switchTab(tab) {
-  document.getElementById('tabSessions').style.display = tab === 'sessions' ? 'block' : 'none';
-  document.getElementById('tabSettings').style.display = tab === 'settings' ? 'block' : 'none';
-  document.getElementById('tabBtnSessions').classList.toggle('active', tab === 'sessions');
-  document.getElementById('tabBtnSettings').classList.toggle('active', tab === 'settings');
+  ['requests','sessions','settings'].forEach(t => {
+    document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+    const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'requests') loadRequests();
+  if (tab === 'sessions') loadSessions();
 }
 
 async function loadConfig() {
@@ -384,6 +430,81 @@ function timeAgo(ms) {
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadRequests() {
+  try {
+    const r = await fetch(`/api/requests?password=${encodeURIComponent(adminPwd)}`);
+    if (!r.ok) return;
+    renderRequests(await r.json());
+  } catch(e) {}
+}
+
+function renderRequests(list) {
+  const el = document.getElementById('requestsList');
+  const pending = list.filter(r => r.status === 'pending');
+
+  // Update badge
+  const badge = document.getElementById('reqBadge');
+  if (pending.length > 0) {
+    badge.textContent = pending.length;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">📨</div><div>No requests yet</div></div>';
+    return;
+  }
+
+  el.innerHTML = list.map(req => `
+    <div class="req-item ${req.status === 'pending' ? 'pending-req' : ''}">
+      <div class="req-top">
+        <div class="req-info">
+          <div class="req-name">${esc(req.playerName)}</div>
+          <div class="req-meta">${req.sheetCount} sheet${req.sheetCount > 1 ? 's' : ''} · ₹${req.amount} · ${timeAgo(req.createdAt)}</div>
+          <div class="req-id">ID: ${req.reqId}</div>
+        </div>
+        ${req.status === 'pending'
+          ? `<button class="btn-approve" id="appBtn_${req.reqId}" onclick="approveRequest('${req.reqId}',this)">✓ Approve</button>`
+          : `<span class="status-badge ${req.status}">${req.status === 'approved' ? '✓ Approved' : req.status}</span>`
+        }
+      </div>
+      ${req.status === 'approved' && req.code
+        ? `<div class="req-approved-code">Code: ${req.code}</div>`
+        : ''}
+    </div>`).join('');
+}
+
+async function approveRequest(reqId, btn) {
+  btn.disabled = true; btn.textContent = 'Approving…';
+  try {
+    const r = await fetch('/api/approve-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, reqId })
+    });
+    const data = await r.json();
+    if (!r.ok) { alert(data.error || 'Failed'); btn.disabled = false; btn.textContent = '✓ Approve'; return; }
+
+    // Show the generated code prominently
+    document.getElementById('approveCodBig').textContent = data.code;
+    document.getElementById('approveCodeMeta').textContent =
+      `${data.playerName} · ${data.amount ? '₹' + data.amount : ''} — player's app will update automatically`;
+    document.getElementById('approveResult').style.display = 'block';
+    document.getElementById('approveResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    loadRequests();
+  } catch(e) { btn.disabled = false; btn.textContent = '✓ Approve'; }
+}
+
+function copyApproveCode() {
+  const code = document.getElementById('approveCodBig').textContent;
+  navigator.clipboard.writeText(code).catch(() => {});
+  const btn = document.getElementById('copyApproveBtn');
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
 }
 </script>
 </body>

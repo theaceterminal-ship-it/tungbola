@@ -602,10 +602,10 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .pay-upi-id{font-size:15px;font-weight:600}
 .pay-copy{border:none;background:transparent;color:var(--primary);cursor:pointer;
   font-size:20px;padding:2px;line-height:1;font-family:'Material Icons Round'}
-.pay-wa-btn{width:100%;padding:13px;background:#25D366;color:#fff;border:none;
-  border-radius:16px;font-size:14px;font-weight:600;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
-.pay-wa-btn:disabled{opacity:.45;cursor:not-allowed}
+.pay-req-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;
+  border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px}
+.pay-req-btn:disabled{opacity:.5;cursor:not-allowed}
 .pay-divider{display:flex;align-items:center;gap:10px;width:100%;max-width:340px;
   margin:4px 0 10px;color:var(--on-surface-variant);font-size:12px}
 .pay-divider::before,.pay-divider::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.4}
@@ -628,6 +628,19 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   border:none;border-radius:14px;font-size:15px;font-weight:700;
   cursor:pointer;font-family:inherit;margin-top:4px}
 .pay-verify-btn:disabled{opacity:.5;cursor:not-allowed}
+/* waiting screen */
+#payWaiting{display:none;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;padding:32px 24px;text-align:center}
+.wait-spinner{width:64px;height:64px;border:5px solid var(--primary-container);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin .9s linear infinite;margin:0 auto 24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wait-title{font-size:22px;font-weight:700;color:var(--on-surface);margin-bottom:8px}
+.wait-sub{font-size:14px;color:var(--on-surface-variant);line-height:1.6;margin-bottom:20px}
+.wait-reqid{background:var(--primary-container);color:var(--primary);font-size:13px;
+  font-weight:700;padding:8px 16px;border-radius:10px;letter-spacing:1px;margin-bottom:24px}
+.wait-cancel{background:none;border:none;color:var(--on-surface-variant);font-size:13px;
+  cursor:pointer;text-decoration:underline;font-family:inherit}
 
 /* ── END GAME BUTTON ── */
 .end-game-wrap{padding:8px 0 4px;display:flex;justify-content:center}
@@ -702,31 +715,45 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 
 <!-- ══ PAYMENT ══ -->
 <div id="payment" class="off">
-  <div class="pay-title">Tungbola</div>
-  <div class="pay-sub">Complete payment to start playing</div>
-  <div class="pay-card">
-    <div class="pay-amount" id="payAmount">₹0</div>
-    <div class="pay-sheets-lbl" id="paySheetLbl">0 sheets</div>
-    <div class="pay-qr-wrap" id="payQrWrap"></div>
-    <div class="pay-upi-row" id="payUpiRow">
-      <span class="pay-upi-id" id="payUpiId">Loading…</span>
-      <button class="pay-copy mir" onclick="copyUpi()" title="Copy UPI ID">content_copy</button>
+  <!-- Payment form view -->
+  <div id="payForm" style="display:flex;flex-direction:column;align-items:center;width:100%;padding:8px 16px 24px">
+    <div class="pay-title">Tungbola</div>
+    <div class="pay-sub">Complete payment to start playing</div>
+    <div class="pay-card">
+      <div class="pay-amount" id="payAmount">₹0</div>
+      <div class="pay-sheets-lbl" id="paySheetLbl">0 sheets</div>
+      <div class="pay-qr-wrap" id="payQrWrap"></div>
+      <div class="pay-upi-row" id="payUpiRow">
+        <span class="pay-upi-id" id="payUpiId">Loading…</span>
+        <button class="pay-copy mir" onclick="copyUpi()" title="Copy UPI ID">content_copy</button>
+      </div>
     </div>
-    <button class="pay-wa-btn" id="payWaBtn" disabled>
-      <span>📱</span> Send Screenshot on WhatsApp
-    </button>
+    <div class="pay-code-card" style="margin-bottom:14px">
+      <div class="pay-section-lbl">Your Name</div>
+      <input type="text" class="pay-name-input" id="payName" placeholder="Enter your name">
+      <div class="pay-error" id="payReqError"></div>
+      <button class="pay-req-btn" onclick="requestSession()">
+        <span class="mir">send</span> I've Paid — Request Session
+      </button>
+    </div>
+    <div class="pay-divider">already have a code?</div>
+    <div class="pay-code-card">
+      <div class="pay-section-lbl">Enter Session Code</div>
+      <input type="text" class="pay-code-input" id="payCodeInput"
+        placeholder="ABC123" maxlength="6"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <div class="pay-error" id="payError"></div>
+      <button class="pay-verify-btn" onclick="verifyCode()">Verify &amp; Start Game →</button>
+    </div>
   </div>
-  <div class="pay-divider">enter code from host</div>
-  <div class="pay-code-card">
-    <div class="pay-section-lbl">Your Name</div>
-    <input type="text" class="pay-name-input" id="payName"
-      placeholder="Enter your name" oninput="updateWaLink()">
-    <div class="pay-section-lbl">Session Code</div>
-    <input type="text" class="pay-code-input" id="payCodeInput"
-      placeholder="ABC123" maxlength="6"
-      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-    <div class="pay-error" id="payError"></div>
-    <button class="pay-verify-btn" onclick="verifyCode()">Verify &amp; Start Game →</button>
+  <!-- Waiting for approval view -->
+  <div id="payWaiting">
+    <div class="wait-spinner"></div>
+    <div class="wait-title">Waiting for Host</div>
+    <div class="wait-sub">Your request has been sent.<br>The host will verify your payment and approve your session shortly.</div>
+    <div class="wait-reqid" id="waitReqId"></div>
+    <div style="font-size:13px;color:var(--on-surface-variant);margin-bottom:20px">Checking automatically every few seconds…</div>
+    <button class="wait-cancel" onclick="cancelWaiting()">Cancel request</button>
   </div>
 </div>
 
@@ -1033,8 +1060,19 @@ let currentWin=null;
 let redoStack=[],dtGroupStart=0,lpTimer=null;
 let appConfig={pricePerSheet:5,upiId:'',whatsappNumber:''};
 let gameSession=null;
+let pendingReqId=null,pollTimer=null;
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
+
+function getDeviceId(){
+  let did=localStorage.getItem('tb_did');
+  if(!did){
+    did=([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>
+      (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+    localStorage.setItem('tb_did',did);
+  }
+  return did;
+}
 
 /* ══ STORAGE ══ */
 function save(){
@@ -1256,6 +1294,17 @@ function showPayment(){
   $('setup').classList.add('off');
   $('game').classList.add('off');
   $('payment').classList.remove('off');
+  // Check if there's already a pending request
+  const savedReq=localStorage.getItem('tb_req');
+  if(savedReq){
+    try{const r=JSON.parse(savedReq);if(r.reqId){pendingReqId=r.reqId;showWaiting(r.reqId);return;}}catch(e){}
+  }
+  showPayForm();
+}
+function showPayForm(){
+  stopPolling();
+  $('payForm').style.display='flex';
+  $('payWaiting').style.display='none';
   const price=appConfig.pricePerSheet||5;
   const count=sheets.length;
   const amount=price*count;
@@ -1272,28 +1321,89 @@ function showPayment(){
     qrWrap.innerHTML='<div class="pay-no-upi">Contact host for payment details</div>';
     $('payUpiRow').style.display='none';
   }
-  updateWaLink();
 }
-function updateWaLink(){
-  const name=($('payName').value||'').trim()||'Player';
-  const price=appConfig.pricePerSheet||5;
-  const count=sheets.length;
-  const amount=price*count;
-  const wa=appConfig.whatsappNumber||'';
-  const btn=$('payWaBtn');
-  if(wa){
-    btn.disabled=false;
-    const msg=encodeURIComponent(`Hi! I've paid ₹${amount} for Tungbola (${count} sheet${count>1?'s':''}). Please send me the session code.\nName: ${name}`);
-    btn.onclick=()=>window.open(`https://wa.me/${wa}?text=${msg}`,'_blank');
-  }else{
-    btn.disabled=true;
-    btn.onclick=null;
-  }
+function showWaiting(reqId){
+  $('payForm').style.display='none';
+  $('payWaiting').style.display='flex';
+  $('waitReqId').textContent=`Request ID: ${reqId}`;
+  startPolling(reqId);
 }
 function copyUpi(){
   const id=appConfig.upiId;if(!id)return;
   navigator.clipboard.writeText(id).catch(()=>{});
   toast('UPI ID copied');
+}
+
+/* ══ REQUEST SESSION ══ */
+async function requestSession(){
+  const name=($('payName').value||'').trim();
+  const errEl=$('payReqError');
+  const btn=document.querySelector('.pay-req-btn');
+  errEl.style.display='none';
+  if(!name){errEl.textContent='Enter your name first';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  try{
+    const r=await fetch('/api/request-session',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({playerName:name,sheetCount:sheets.length,deviceId:getDeviceId()})
+    });
+    const data=await r.json();
+    if(!r.ok){
+      errEl.textContent=data.error||'Failed to send request';
+      errEl.style.display='block';
+      btn.disabled=false;btn.innerHTML='<span class="mir">send</span> I\'ve Paid — Request Session';
+      return;
+    }
+    pendingReqId=data.reqId;
+    localStorage.setItem('tb_req',JSON.stringify({reqId:data.reqId}));
+    showWaiting(data.reqId);
+  }catch(e){
+    errEl.textContent='Network error. Check connection.';
+    errEl.style.display='block';
+    btn.disabled=false;btn.innerHTML='<span class="mir">send</span> I\'ve Paid — Request Session';
+  }
+}
+
+/* ══ POLL FOR APPROVAL ══ */
+function startPolling(reqId){
+  stopPolling();
+  pollTimer=setInterval(()=>checkApproval(reqId),5000);
+}
+function stopPolling(){
+  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+}
+async function checkApproval(reqId){
+  try{
+    const r=await fetch(`/api/check-request?id=${encodeURIComponent(reqId)}&deviceId=${encodeURIComponent(getDeviceId())}`);
+    if(!r.ok) return;
+    const data=await r.json();
+    if(data.status==='approved'&&data.code){
+      stopPolling();
+      localStorage.removeItem('tb_req');
+      // auto-verify the code
+      await activateCode(data.code);
+    }
+  }catch(e){}
+}
+async function activateCode(code){
+  try{
+    const r=await fetch('/api/verify-code',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,deviceId:getDeviceId()})
+    });
+    const data=await r.json();
+    if(!r.ok) return;
+    gameSession={code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
+    localStorage.setItem('tb_pay',JSON.stringify(gameSession));
+    $('payment').classList.add('off');
+    showSetup();
+  }catch(e){}
+}
+function cancelWaiting(){
+  stopPolling();
+  localStorage.removeItem('tb_req');
+  pendingReqId=null;
+  showPayForm();
 }
 
 /* ══ PAYMENT VERIFY ══ */
@@ -1307,7 +1417,7 @@ async function verifyCode(){
   try{
     const r=await fetch('/api/verify-code',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code})
+      body:JSON.stringify({code,deviceId:getDeviceId()})
     });
     const data=await r.json();
     if(!r.ok){
@@ -1338,7 +1448,8 @@ async function endGame(){
       });
     }catch(e){}
   }
-  ['tb_pay','tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
+  stopPolling();
+  ['tb_pay','tb_req','tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
   gameSession=null;sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
   active=new Set(PRIZES.map(p=>p.key));claimed={};redoStack=[];
   $('allDoneBanner').classList.remove('on');

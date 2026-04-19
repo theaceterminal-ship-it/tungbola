@@ -552,35 +552,63 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .spl-dot:nth-child(3){animation-delay:.36s}
 @keyframes dotBounce{0%,80%,100%{transform:scale(1);background:rgba(255,255,255,.25)}
 /* ══ INSTALL PROMPT ══ */
+/* ══ INSTALL PROMPT ══ */
 #installPrompt{position:fixed;inset:0;z-index:9000;
-  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
   display:flex;align-items:flex-end;justify-content:center;
-  padding:0 0 env(safe-area-inset-bottom,0) 0;
-  animation:ipFadeIn .3s ease}
-@keyframes ipFadeIn{from{opacity:0}to{opacity:1}}
-.ip-card{background:#fff;border-radius:28px 28px 0 0;padding:28px 24px 36px;
-  width:100%;max-width:480px;text-align:center;
-  animation:ipSlideUp .35s cubic-bezier(.34,1.2,.64,1)}
-@keyframes ipSlideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.ip-icon{width:72px;height:72px;border-radius:18px;margin:0 auto 16px;
-  background:linear-gradient(135deg,#2D0B6B,#6750A4);
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 16px rgba(103,80,164,.35)}
-.ip-icon svg{width:44px;height:44px}
-.ip-title{font-size:20px;font-weight:700;color:#1C1B1F;margin-bottom:6px}
-.ip-sub{font-size:14px;color:#49454F;line-height:1.5;margin-bottom:20px}
-.ip-ios{background:#F3EFF9;border-radius:12px;padding:12px 16px;
-  font-size:13px;color:#4A4458;line-height:1.6;margin-bottom:20px;text-align:left}
-.ip-ios b{color:#6750A4}
-.ip-ios .ip-share{display:inline-flex;align-items:center;gap:4px;
-  vertical-align:middle;background:#6750A4;color:#fff;
-  padding:1px 6px;border-radius:6px;font-size:12px;font-weight:600}
-.ip-btn{width:100%;padding:14px;border:none;border-radius:50px;
-  background:#6750A4;color:#fff;font-size:16px;font-weight:700;
-  cursor:pointer;margin-bottom:10px;letter-spacing:.3px}
-.ip-btn:active{opacity:.85}
-.ip-later{background:none;border:none;color:#6750A4;font-size:14px;
-  font-weight:500;cursor:pointer;padding:6px;width:100%}
+  animation:ipBgIn .4s ease forwards}
+@keyframes ipBgIn{from{background:rgba(0,0,0,0)}to{background:rgba(0,0,0,.6)}}
+.ip-card{background:#fff;border-radius:32px 32px 0 0;
+  padding:0 0 calc(24px + env(safe-area-inset-bottom,0)) 0;
+  width:100%;max-width:500px;text-align:center;overflow:hidden;
+  animation:ipSlideUp .42s cubic-bezier(.22,1,.36,1)}
+@keyframes ipSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ip-header{background:linear-gradient(145deg,#1A0550 0%,#6750A4 60%,#9C4FD4 100%);
+  padding:36px 24px 28px;position:relative;overflow:hidden}
+.ip-header::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 70% 20%,rgba(255,255,255,.12) 0%,transparent 60%)}
+.ip-stars{position:absolute;inset:0;pointer-events:none}
+.ip-star{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;
+  animation:twinkle 2s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:.9;transform:scale(1.5)}}
+.ip-icon{width:80px;height:80px;border-radius:22px;margin:0 auto 18px;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 32px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.2);
+  position:relative;z-index:1}
+.ip-icon svg{width:52px;height:52px}
+.ip-header-title{font-size:24px;font-weight:900;color:#fff;
+  letter-spacing:.5px;margin-bottom:6px;position:relative;z-index:1}
+.ip-header-sub{font-size:13px;color:rgba(255,255,255,.75);
+  position:relative;z-index:1;line-height:1.4}
+.ip-chips{display:flex;gap:8px;justify-content:center;margin-top:16px;
+  flex-wrap:wrap;position:relative;z-index:1}
+.ip-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;
+  display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px)}
+.ip-body{padding:24px 24px 20px}
+.ip-ios-steps{background:linear-gradient(135deg,#F3EFF9,#EDE7F6);
+  border-radius:16px;padding:14px 16px;margin-bottom:20px;text-align:left;
+  border:1px solid rgba(103,80,164,.12)}
+.ip-ios-steps .step{display:flex;align-items:center;gap:10px;
+  font-size:13px;color:#3D1A78;font-weight:500;padding:5px 0}
+.ip-ios-steps .step:not(:last-child){border-bottom:1px solid rgba(103,80,164,.1)}
+.ip-ios-steps .step-num{width:22px;height:22px;border-radius:50%;
+  background:#6750A4;color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ip-ios-steps .step b{color:#6750A4}
+.ip-share-badge{display:inline-flex;align-items:center;gap:3px;
+  background:#6750A4;color:#fff;padding:2px 7px;border-radius:6px;
+  font-size:11px;font-weight:700;vertical-align:middle}
+.ip-btn{width:100%;padding:16px;border:none;border-radius:18px;
+  background:linear-gradient(135deg,#6750A4,#8B5CF6);
+  color:#fff;font-size:16px;font-weight:700;cursor:pointer;
+  letter-spacing:.3px;font-family:inherit;
+  box-shadow:0 4px 20px rgba(103,80,164,.4);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .15s,box-shadow .15s;margin-bottom:12px}
+.ip-btn:active{transform:scale(.97);box-shadow:0 2px 10px rgba(103,80,164,.3)}
+.ip-later{background:none;border:none;color:var(--on-surface-variant);
+  font-size:14px;font-weight:500;cursor:pointer;padding:8px;
+  width:100%;font-family:inherit;opacity:.7}
   40%{transform:scale(1.5);background:rgba(255,255,255,.85)}}
 
 /* ══ PAYMENT SCREEN ══ */
@@ -683,22 +711,47 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 <!-- ══ INSTALL PROMPT ══ -->
 <div id="installPrompt" class="hidden">
   <div class="ip-card">
-    <div class="ip-icon">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="256" cy="256" r="220" fill="white"/>
-        <rect x="36" y="190" width="440" height="132" fill="#6750A4" clip-path="url(#bc)"/>
-        <clipPath id="bc"><circle cx="256" cy="256" r="220"/></clipPath>
-        <text x="256" y="281" font-family="Arial Black,sans-serif" font-weight="900"
-          font-size="120" fill="white" text-anchor="middle" dominant-baseline="middle">T</text>
-      </svg>
+    <!-- Gradient header with stars -->
+    <div class="ip-header">
+      <div class="ip-stars" id="ipStars"></div>
+      <div class="ip-icon">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="256" cy="256" r="220" fill="white"/>
+          <rect x="36" y="190" width="440" height="132" fill="#6750A4" clip-path="url(#bci)"/>
+          <clipPath id="bci"><circle cx="256" cy="256" r="220"/></clipPath>
+          <text x="256" y="281" font-family="Arial Black,sans-serif" font-weight="900"
+            font-size="120" fill="white" text-anchor="middle" dominant-baseline="middle">T</text>
+        </svg>
+      </div>
+      <div class="ip-header-title">Install Tungbola</div>
+      <div class="ip-header-sub">Play like a native app — no browser bar</div>
+      <div class="ip-chips">
+        <div class="ip-chip"><span class="mir" style="font-size:14px">bolt</span> Instant load</div>
+        <div class="ip-chip"><span class="mir" style="font-size:14px">fullscreen</span> Full screen</div>
+        <div class="ip-chip"><span class="mir" style="font-size:14px">wifi_off</span> Works offline</div>
+      </div>
     </div>
-    <div class="ip-title">Install Tungbola</div>
-    <div class="ip-sub">Add to your home screen for a full-screen app experience — no browser bar, loads instantly.</div>
-    <div id="ipIosSteps" class="ip-ios hidden">
-      Tap <span class="ip-share"><span class="mir" style="font-size:14px">ios_share</span> Share</span> at the bottom of Safari, then tap <b>Add to Home Screen</b> and hit <b>Add</b>.
+    <!-- Body -->
+    <div class="ip-body">
+      <div id="ipIosSteps" class="ip-ios-steps hidden">
+        <div class="step">
+          <div class="step-num">1</div>
+          <span>Tap <span class="ip-share-badge"><span class="mir" style="font-size:12px">ios_share</span> Share</span> at the bottom</span>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <span>Tap <b>Add to Home Screen</b></span>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <span>Tap <b>Add</b> — done!</span>
+        </div>
+      </div>
+      <button class="ip-btn" id="ipInstallBtn" onclick="doInstall()">
+        <span class="mir">download</span> Install App
+      </button>
+      <button class="ip-later" onclick="dismissInstall(true)">Maybe later</button>
     </div>
-    <button class="ip-btn" id="ipInstallBtn" onclick="doInstall()">Install App</button>
-    <button class="ip-later" onclick="dismissInstall(true)">Not now</button>
   </div>
 </div>
 
@@ -1215,12 +1268,24 @@ function isRunningStandalone(){
 function isIOS(){
   return /iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
 }
+function spawnStars(){
+  const c=$('ipStars');if(!c)return;c.innerHTML='';
+  for(let i=0;i<18;i++){
+    const s=document.createElement('div');s.className='ip-star';
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;
+      animation-delay:${(Math.random()*2).toFixed(2)}s;
+      animation-duration:${(1.5+Math.random()*2).toFixed(2)}s;
+      width:${Math.random()>0.6?4:2}px;height:${Math.random()>0.6?4:2}px`;
+    c.appendChild(s);
+  }
+}
 function maybeShowInstall(){
   if(isRunningStandalone()) return;
   const d=localStorage.getItem('tb_nodl');
   if(d&&Date.now()-Number(d)<7*864e5) return;
   const el=$('installPrompt');
   el.classList.remove('hidden');
+  spawnStars();
   if(isIOS()){
     $('ipIosSteps').classList.remove('hidden');
     $('ipInstallBtn').textContent='Got it!';

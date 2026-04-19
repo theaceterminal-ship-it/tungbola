@@ -1454,6 +1454,7 @@ async function endGame(){
   active=new Set(PRIZES.map(p=>p.key));claimed={};redoStack=[];
   $('allDoneBanner').classList.remove('on');
   $('game').classList.add('off');$('setup').classList.add('off');$('payment').classList.add('off');
+  $('btnContinue').classList.add('off');
   $('welcome').classList.remove('off');
   toast('Game ended. Thanks for playing!');
 }

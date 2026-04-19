@@ -258,6 +258,7 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
 <script>
 let adminPwd = sessionStorage.getItem('tb_admin_pwd') || '';
 let cfg = {};
+let refreshInterval = null;
 
 // Auto-login if session has password
 if (adminPwd) bootAdmin();
@@ -267,15 +268,17 @@ function login() {
   if (!pwd) return;
   document.getElementById('loginError').style.display = 'none';
   fetch(`/api/sessions?password=${encodeURIComponent(pwd)}`)
-    .then(r => {
-      if (!r.ok) { document.getElementById('loginError').style.display = 'block'; return; }
+    .then(async r => {
+      const errEl = document.getElementById('loginError');
+      if (r.status === 429) { errEl.textContent = 'Too many attempts — wait a few minutes and try again.'; errEl.style.display = 'block'; return; }
+      if (!r.ok) { errEl.textContent = 'Wrong password. Try again.'; errEl.style.display = 'block'; return; }
       adminPwd = pwd;
       sessionStorage.setItem('tb_admin_pwd', pwd);
       bootAdmin();
-      return r.json();
+      const data = await r.json();
+      if (data) renderSessions(data);
     })
-    .then(data => { if (data) renderSessions(data); })
-    .catch(() => { document.getElementById('loginError').style.display = 'block'; });
+    .catch(() => { const e = document.getElementById('loginError'); e.textContent = 'Network error — check connection.'; e.style.display = 'block'; });
 }
 
 function bootAdmin() {
@@ -284,11 +287,12 @@ function bootAdmin() {
   loadConfig();
   loadRequests();
   loadSessions();
-  // auto-refresh requests every 5s
-  setInterval(loadRequests, 5000);
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(loadRequests, 5000);
 }
 
 function logout() {
+  if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
   sessionStorage.removeItem('tb_admin_pwd');
   adminPwd = '';
   document.getElementById('loginScreen').style.display = 'flex';

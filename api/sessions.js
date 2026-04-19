@@ -7,7 +7,7 @@ module.exports = async function(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).end();
 
-  if (await rateLimit(req, 'sessions', 30, 3600))
+  if (await rateLimit(req, 'sessions', 120, 3600))
     return res.status(429).json({ error: 'Too many requests' });
 
   const { password } = req.query;

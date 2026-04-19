@@ -1,4 +1,5 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+const kv = Redis.fromEnv();
 
 module.exports = async function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

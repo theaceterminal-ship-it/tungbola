@@ -1588,7 +1588,7 @@ function buildTicketCard(t,sh,ti){
   }
 
   const cardCls=t.hasWin?'won-card':getHotInfo(t,sh)?.needed===1?'hot-card':'';
-  return `<div class="ticket-card ${cardCls}">
+  return `<div class="ticket-card ${cardCls}" id="tkt-${sh.name}-${t.id}">
     <div class="ticket-header">
       <span class="ticket-id">Ticket ${t.id}</span>
       <span class="ticket-progress">${cnt}/15 marked</span>
@@ -1944,11 +1944,39 @@ function dismissWin(){
   setTimeout(()=>{if(winQ.length)showNextWin();else winShowing=false;},320);
 }
 function goToWinSheet(){
-  if(currentWin){
-    const idx=sheets.findIndex(s=>s.name===currentWin.sheet);
-    if(idx!==-1){curIdx=idx;renderAll();}
-  }
+  if(!currentWin){dismissWin();return;}
+  const idx=sheets.findIndex(s=>s.name===currentWin.sheet);
+  if(idx===-1){dismissWin();return;}
+  const sheetName=currentWin.sheet;
+  const ticketId=currentWin.ticket;
+  const tktElId='tkt-'+sheetName+'-'+ticketId;
+  curIdx=idx;
   dismissWin();
+  if(isDesktop()){
+    dtGroupStart=Math.floor(idx/3)*3;
+    if(dtTab!=='play') switchDtTab('play'); else renderDesktop();
+    setTimeout(()=>{
+      const el=document.getElementById(tktElId);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+    },80);
+  } else {
+    if(mTab!=='play'){
+      switchMobileTab('play');
+      const track=$('playTab');
+      track.style.transition='none';
+      track.style.transform=`translateX(-${curIdx*100}%)`;
+      renderMobileTopBar();
+    } else {
+      const track=$('playTab');
+      track.style.transition='transform .3s cubic-bezier(.4,0,.2,1)';
+      track.style.transform=`translateX(-${curIdx*100}%)`;
+      renderMobileTopBar();
+    }
+    setTimeout(()=>{
+      const el=document.getElementById(tktElId);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+    },350);
+  }
 }
 
 /* ══ DESKTOP RENDER ══ */

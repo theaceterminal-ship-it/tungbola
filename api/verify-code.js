@@ -1,15 +1,25 @@
 const { Redis } = require('@upstash/redis');
+const { secureHeaders, rateLimit } = require('./_security');
 const kv = Redis.fromEnv();
 
 module.exports = async function(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  secureHeaders(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { code } = req.body || {};
-  if (!code) return res.status(400).json({ error: 'Code required' });
+  // Strict rate limit: 8 attempts per IP per 15 minutes
+  if (await rateLimit(req, 'verify', 8, 900))
+    return res.status(429).json({ error: 'Too many attempts. Wait 15 minutes and try again.' });
 
-  const session = await kv.get(`tb:code:${code.toUpperCase().trim()}`);
+  const { code } = req.body || {};
+  if (!code || typeof code !== 'string')
+    return res.status(400).json({ error: 'Code required' });
+
+  const clean = code.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+  if (clean.length !== 6)
+    return res.status(400).json({ error: 'Invalid code format' });
+
+  const session = await kv.get(`tb:code:${clean}`);
 
   if (!session)
     return res.status(404).json({ error: 'Code not found. Check with your host.' });

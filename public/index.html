@@ -550,6 +550,36 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .spl-dot:nth-child(2){animation-delay:.18s}
 .spl-dot:nth-child(3){animation-delay:.36s}
 @keyframes dotBounce{0%,80%,100%{transform:scale(1);background:rgba(255,255,255,.25)}
+/* ══ INSTALL PROMPT ══ */
+#installPrompt{position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:0 0 env(safe-area-inset-bottom,0) 0;
+  animation:ipFadeIn .3s ease}
+@keyframes ipFadeIn{from{opacity:0}to{opacity:1}}
+.ip-card{background:#fff;border-radius:28px 28px 0 0;padding:28px 24px 36px;
+  width:100%;max-width:480px;text-align:center;
+  animation:ipSlideUp .35s cubic-bezier(.34,1.2,.64,1)}
+@keyframes ipSlideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.ip-icon{width:72px;height:72px;border-radius:18px;margin:0 auto 16px;
+  background:linear-gradient(135deg,#2D0B6B,#6750A4);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(103,80,164,.35)}
+.ip-icon svg{width:44px;height:44px}
+.ip-title{font-size:20px;font-weight:700;color:#1C1B1F;margin-bottom:6px}
+.ip-sub{font-size:14px;color:#49454F;line-height:1.5;margin-bottom:20px}
+.ip-ios{background:#F3EFF9;border-radius:12px;padding:12px 16px;
+  font-size:13px;color:#4A4458;line-height:1.6;margin-bottom:20px;text-align:left}
+.ip-ios b{color:#6750A4}
+.ip-ios .ip-share{display:inline-flex;align-items:center;gap:4px;
+  vertical-align:middle;background:#6750A4;color:#fff;
+  padding:1px 6px;border-radius:6px;font-size:12px;font-weight:600}
+.ip-btn{width:100%;padding:14px;border:none;border-radius:50px;
+  background:#6750A4;color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;margin-bottom:10px;letter-spacing:.3px}
+.ip-btn:active{opacity:.85}
+.ip-later{background:none;border:none;color:#6750A4;font-size:14px;
+  font-weight:500;cursor:pointer;padding:6px;width:100%}
   40%{transform:scale(1.5);background:rgba(255,255,255,.85)}}
 
 /* ══ PAYMENT SCREEN ══ */
@@ -633,6 +663,28 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="spl-tag">Your Game Companion</div>
   <div class="spl-dots">
     <div class="spl-dot"></div><div class="spl-dot"></div><div class="spl-dot"></div>
+  </div>
+</div>
+
+<!-- ══ INSTALL PROMPT ══ -->
+<div id="installPrompt" class="hidden">
+  <div class="ip-card">
+    <div class="ip-icon">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="256" cy="256" r="220" fill="white"/>
+        <rect x="36" y="190" width="440" height="132" fill="#6750A4" clip-path="url(#bc)"/>
+        <clipPath id="bc"><circle cx="256" cy="256" r="220"/></clipPath>
+        <text x="256" y="281" font-family="Arial Black,sans-serif" font-weight="900"
+          font-size="120" fill="white" text-anchor="middle" dominant-baseline="middle">T</text>
+      </svg>
+    </div>
+    <div class="ip-title">Install Tungbola</div>
+    <div class="ip-sub">Add to your home screen for a full-screen app experience — no browser bar, loads instantly.</div>
+    <div id="ipIosSteps" class="ip-ios hidden">
+      Tap <span class="ip-share"><span class="mir" style="font-size:14px">ios_share</span> Share</span> at the bottom of Safari, then tap <b>Add to Home Screen</b> and hit <b>Add</b>.
+    </div>
+    <button class="ip-btn" id="ipInstallBtn" onclick="doInstall()">Install App</button>
+    <button class="ip-later" onclick="dismissInstall(true)">Not now</button>
   </div>
 </div>
 
@@ -981,6 +1033,8 @@ let currentWin=null;
 let redoStack=[],dtGroupStart=0,lpTimer=null;
 let appConfig={pricePerSheet:5,upiId:'',whatsappNumber:''};
 let gameSession=null;
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
 
 /* ══ STORAGE ══ */
 function save(){
@@ -1112,6 +1166,43 @@ function init(){
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   }
+  // Show install prompt after splash clears
+  setTimeout(maybeShowInstall, 2700);
+}
+
+function isRunningStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+}
+function isIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
+}
+function maybeShowInstall(){
+  if(isRunningStandalone()) return;
+  const d=localStorage.getItem('tb_nodl');
+  if(d&&Date.now()-Number(d)<7*864e5) return;
+  const el=$('installPrompt');
+  el.classList.remove('hidden');
+  if(isIOS()){
+    $('ipIosSteps').classList.remove('hidden');
+    $('ipInstallBtn').textContent='Got it!';
+  } else if(!deferredInstallPrompt){
+    // Chrome but prompt not available (already installed or not eligible)
+    el.classList.add('hidden');
+  }
+}
+function dismissInstall(snooze){
+  if(snooze) localStorage.setItem('tb_nodl',Date.now());
+  $('installPrompt').classList.add('hidden');
+}
+async function doInstall(){
+  if(isIOS()){dismissInstall(true);return;}
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    const{outcome}=await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt=null;
+    if(outcome==='accepted') localStorage.setItem('tb_nodl',Date.now()*100);
+  }
+  $('installPrompt').classList.add('hidden');
 }
 
 async function loadAppConfig(){

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="38%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#9575CD"/>
+      <stop offset="100%" stop-color="#3D1A78"/>
+    </radialGradient>
+    <clipPath id="ballClip">
+      <circle cx="256" cy="256" r="196"/>
+    </clipPath>
+  </defs>
+
+  <!-- Full bleed background (maskable safe) -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- White ball -->
+  <circle cx="256" cy="256" r="196" fill="white"/>
+
+  <!-- Purple band across middle (classic bingo ball) -->
+  <rect x="56" y="188" width="400" height="136" fill="#6750A4" clip-path="url(#ballClip)"/>
+
+  <!-- T letter in band -->
+  <text x="256" y="283"
+    font-family="Arial Black, Impact, sans-serif"
+    font-weight="900"
+    font-size="108"
+    fill="white"
+    text-anchor="middle"
+    dominant-baseline="middle">T</text>
+
+  <!-- Subtle shine on ball -->
+  <ellipse cx="200" cy="170" rx="60" ry="36"
+    fill="white" opacity="0.18" transform="rotate(-20,200,170)"/>
+</svg>

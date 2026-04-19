@@ -966,6 +966,8 @@ const PRIZES=[
   {key:'TICKET CORNERS',lbl:'Ticket Corners',ico:'dashboard'},
   {key:'SHEET CORNERS', lbl:'Sheet Corners', ico:'border_outer'},
   {key:'FULL HOUSE',    lbl:'Full House',    ico:'home'},
+  {key:'2ND FULL HOUSE',lbl:'2nd Full House',ico:'home'},
+  {key:'3RD FULL HOUSE',lbl:'3rd Full House',ico:'home'},
 ];
 const PRIZE_LBL=Object.fromEntries(PRIZES.map(p=>[p.key,p.lbl]));
 const ROWS=[[0,1,2,3,4,5,6,7,8],[9,10,11,12,13,14,15,16,17],[18,19,20,21,22,23,24,25,26]];
@@ -1051,7 +1053,11 @@ function getHotInfoAll(ticket,sheet){
     const mkd=ROWS[r].filter(i=>ticket.marked[i]).length;
     upd(p,nums.length-mkd);
   }
-  if(!ticket.fullHouseClaimed) upd('FULL HOUSE',15-cnt);
+  if(!ticket.fullHouseClaimed){
+    for(const fhk of ['FULL HOUSE','2ND FULL HOUSE','3RD FULL HOUSE']){
+      if(active.has(fhk)&&!claimed[fhk]){upd(fhk,15-cnt);break;}
+    }
+  }
   if(!ticket.ticketCornersClaimed) upd('TICKET CORNERS',ticketCornersLeft(ticket));
   if(!claimed['SHEET CORNERS']&&sheet) upd('SHEET CORNERS',sheetCornersLeft(sheet));
   return hits.sort((a,b)=>a.needed-b.needed);
@@ -1072,7 +1078,11 @@ function getHotInfo(ticket,sheet){
     const mkd=ROWS[r].filter(i=>ticket.marked[i]).length;
     upd(p,nums.length-mkd);
   }
-  if(!ticket.fullHouseClaimed) upd('FULL HOUSE',15-cnt);
+  if(!ticket.fullHouseClaimed){
+    for(const fhk of ['FULL HOUSE','2ND FULL HOUSE','3RD FULL HOUSE']){
+      if(active.has(fhk)&&!claimed[fhk]){upd(fhk,15-cnt);break;}
+    }
+  }
   if(!ticket.ticketCornersClaimed) upd('TICKET CORNERS',ticketCornersLeft(ticket));
   if(!claimed['SHEET CORNERS']&&sheet) upd('SHEET CORNERS',sheetCornersLeft(sheet));
   return bN<=3?{needed:bN,prize:bP}:null;
@@ -1616,8 +1626,10 @@ function nextWin(t,sh){
   }
   if(active.has('TICKET CORNERS')&&!claimed['TICKET CORNERS']&&!t.ticketCornersClaimed)
     {if(ticketCornersLeft(t)===0){t.ticketCornersClaimed=true;return'TICKET CORNERS';}}
-  if(active.has('FULL HOUSE')&&!claimed['FULL HOUSE']&&cnt===15&&!t.fullHouseClaimed)
-    {t.fullHouseClaimed=true;return'FULL HOUSE';}
+  for(const fhk of ['FULL HOUSE','2ND FULL HOUSE','3RD FULL HOUSE']){
+    if(active.has(fhk)&&!claimed[fhk]&&cnt===15&&!t.fullHouseClaimed)
+      {t.fullHouseClaimed=true;return fhk;}
+  }
   return null;
 }
 

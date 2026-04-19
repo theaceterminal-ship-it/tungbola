@@ -23,15 +23,10 @@ module.exports = async function(req, res) {
     s.status !== 'ended' || (now - (s.endedAt || s.createdAt)) < fiveHours
   );
 
-  // Only show last 5 active sessions + any recent ended ones that survived the cut
-  const active = cleaned.filter(s => s.status !== 'ended').slice(0, 5);
-  const recentEnded = cleaned.filter(s => s.status === 'ended');
-  const list = [...active, ...recentEnded];
-
   // Persist cleaned list back if anything was removed
   if (cleaned.length < raw.length) {
     await kv.set('tb:sessions', cleaned.slice(0, 300));
   }
 
-  res.json(list);
+  res.json(cleaned);
 };

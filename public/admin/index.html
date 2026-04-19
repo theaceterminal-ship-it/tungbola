@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Tungbola Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#6750A4;--primary-c:#EADDFF;--error:#B3261E;--error-c:#F9DEDC;
+  --success:#4CAF50;--surface:#FFFFFF;--bg:#FFFBFE;--sv:#E7E0EC;
+  --on-s:#1C1B1F;--on-sv:#49454F;--outline:#79747E;
+  --shadow:0 1px 3px rgba(0,0,0,.12);--shadow-lg:0 4px 12px rgba(0,0,0,.15)
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-height:100vh}
+
+/* ── LOGIN ── */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%)}
+.login-card{background:#fff;border-radius:28px;padding:32px 28px;width:100%;max-width:360px;
+  box-shadow:var(--shadow-lg);text-align:center}
+.login-logo{font-size:40px;font-weight:900;color:var(--primary);margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--on-sv);margin-bottom:28px}
+.field{width:100%;padding:14px 16px;border:2px solid var(--outline);border-radius:14px;
+  font-size:16px;font-family:inherit;outline:none;background:var(--bg);margin-bottom:12px}
+.field:focus{border-color:var(--primary)}
+.btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;border:none;
+  border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-primary:active{opacity:.85}
+.login-error{color:var(--error);font-size:13px;margin-top:8px;font-weight:500;display:none}
+
+/* ── MAIN ── */
+#mainScreen{display:none;flex-direction:column;min-height:100vh}
+
+.admin-header{background:var(--primary);color:#fff;padding:16px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(103,80,164,.3)}
+.header-title{font-size:20px;font-weight:700}
+.header-sub{font-size:12px;opacity:.8;margin-top:1px}
+.logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;
+  padding:8px 14px;border-radius:20px;font-size:13px;font-weight:500;
+  cursor:pointer;font-family:inherit}
+
+.tab-bar{background:var(--surface);display:flex;border-bottom:1px solid var(--sv);
+  padding:0 16px;gap:4px}
+.tab-btn{flex:1;padding:14px 8px;border:none;background:transparent;
+  font-size:14px;font-weight:500;color:var(--on-sv);cursor:pointer;
+  border-bottom:3px solid transparent;font-family:inherit;transition:all .2s}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+.tab-content{flex:1;padding:16px;max-width:600px;width:100%;margin:0 auto}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border-radius:20px;padding:20px;
+  box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px}
+.field-label{font-size:12px;font-weight:700;color:var(--on-sv);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.field-wrap{margin-bottom:14px}
+.btn-sec{padding:12px 20px;background:var(--primary-c);color:var(--primary);
+  border:none;border-radius:12px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-sec:hover{background:#DDD6F3}
+.btn-full{width:100%}
+.btn-danger{background:var(--error-c);color:var(--error);padding:8px 14px;
+  border:none;border-radius:10px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit}
+
+/* ── CODE DISPLAY ── */
+.code-result{background:linear-gradient(135deg,var(--primary) 0%,#8B5CF6 100%);
+  border-radius:20px;padding:24px;text-align:center;margin-bottom:16px;display:none}
+.code-result-label{font-size:12px;color:rgba(255,255,255,.75);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.code-big{font-size:48px;font-weight:900;color:#fff;letter-spacing:8px;
+  font-family:monospace;margin-bottom:8px}
+.code-meta{font-size:14px;color:rgba(255,255,255,.85);margin-bottom:16px}
+.code-copy-btn{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.5);
+  color:#fff;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit}
+.code-copy-btn:active{background:rgba(255,255,255,.35)}
+
+/* ── SESSION LIST ── */
+.sessions-header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px}
+.sessions-title{font-size:15px;font-weight:700}
+.refresh-btn{background:transparent;border:1px solid var(--outline);color:var(--on-sv);
+  padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit}
+
+.session-item{background:var(--surface);border-radius:14px;padding:14px 16px;
+  margin-bottom:8px;box-shadow:var(--shadow);display:flex;
+  align-items:flex-start;justify-content:space-between;gap:10px}
+.session-item.ended{opacity:.55}
+.session-info{flex:1;min-width:0}
+.session-name{font-size:15px;font-weight:600;margin-bottom:2px}
+.session-code{font-size:18px;font-weight:900;color:var(--primary);
+  letter-spacing:3px;font-family:monospace;margin-bottom:4px}
+.session-meta{font-size:12px;color:var(--on-sv)}
+.status-badge{display:inline-flex;align-items:center;padding:3px 8px;
+  border-radius:10px;font-size:11px;font-weight:600;margin-bottom:6px}
+.status-badge.active{background:#E8F5E9;color:#2E7D32}
+.status-badge.ended{background:var(--sv);color:var(--on-sv)}
+
+.empty-list{text-align:center;padding:32px 16px;color:var(--on-sv);opacity:.6}
+.empty-list-icon{font-size:40px;margin-bottom:8px}
+
+.save-msg{font-size:13px;color:var(--success);font-weight:500;margin-top:8px;
+  text-align:center;display:none}
+.error-msg{font-size:13px;color:var(--error);font-weight:500;margin-top:8px;
+  text-align:center;display:none}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🎯 Tungbola</div>
+    <div class="login-sub">Admin Panel</div>
+    <div class="field-wrap">
+      <input class="field" type="password" id="pwdInput" placeholder="Admin password"
+        onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <button class="btn-primary" onclick="login()">Login</button>
+    <div class="login-error" id="loginError">Wrong password. Try again.</div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="mainScreen">
+  <div class="admin-header">
+    <div>
+      <div class="header-title">🎯 Tungbola Admin</div>
+      <div class="header-sub" id="headerSub">Loading config…</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">Sessions</button>
+    <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">Settings</button>
+  </div>
+
+  <!-- ── SESSIONS TAB ── -->
+  <div class="tab-content" id="tabSessions">
+    <!-- Create Code -->
+    <div class="card">
+      <div class="card-title">➕ Generate Session Code</div>
+      <div class="field-wrap">
+        <div class="field-label">Player Name</div>
+        <input class="field" id="newName" placeholder="e.g. Rahul" type="text">
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Number of Sheets</div>
+        <input class="field" id="newSheets" type="number" min="1" max="50" value="1">
+      </div>
+      <button class="btn-sec btn-full" onclick="createCode()">Generate Code →</button>
+      <div class="error-msg" id="createError"></div>
+    </div>
+
+    <!-- Code Result -->
+    <div class="code-result" id="codeResult">
+      <div class="code-result-label">Session Code — Read this to the player</div>
+      <div class="code-big" id="codeBig"></div>
+      <div class="code-meta" id="codeMeta"></div>
+      <button class="code-copy-btn" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="sessions-header">
+      <div class="sessions-title">All Sessions</div>
+      <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
+    </div>
+    <div id="sessionsList">
+      <div class="empty-list">
+        <div class="empty-list-icon">📋</div>
+        <div>No sessions yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS TAB ── -->
+  <div class="tab-content" id="tabSettings" style="display:none">
+    <div class="card">
+      <div class="card-title">⚙️ Game Settings</div>
+      <div class="field-wrap">
+        <div class="field-label">Price per Sheet (₹)</div>
+        <input class="field" id="cfgPrice" type="number" min="1" placeholder="5">
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">UPI ID</div>
+        <input class="field" id="cfgUpi" placeholder="yourname@paytm" type="text">
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">WhatsApp Number (with country code, no +)</div>
+        <input class="field" id="cfgWa" placeholder="919876543210" type="tel">
+      </div>
+      <button class="btn-sec btn-full" onclick="saveConfig()">Save Settings</button>
+      <div class="save-msg" id="saveMsg">✓ Settings saved!</div>
+      <div class="error-msg" id="settingsError"></div>
+    </div>
+    <div class="card" style="background:#FFF3E0">
+      <div style="font-size:13px;color:#E65100;font-weight:600;margin-bottom:6px">⚠️ How to set Admin Password</div>
+      <div style="font-size:12px;color:#6D4C41;line-height:1.6">
+        Go to your Vercel project → Settings → Environment Variables →
+        Add variable named <strong>ADMIN_PASSWORD</strong> with your chosen password → Redeploy.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let adminPwd = sessionStorage.getItem('tb_admin_pwd') || '';
+let cfg = {};
+
+// Auto-login if session has password
+if (adminPwd) bootAdmin();
+
+function login() {
+  const pwd = document.getElementById('pwdInput').value.trim();
+  if (!pwd) return;
+  document.getElementById('loginError').style.display = 'none';
+  fetch(`/api/sessions?password=${encodeURIComponent(pwd)}`)
+    .then(r => {
+      if (!r.ok) { document.getElementById('loginError').style.display = 'block'; return; }
+      adminPwd = pwd;
+      sessionStorage.setItem('tb_admin_pwd', pwd);
+      bootAdmin();
+      return r.json();
+    })
+    .then(data => { if (data) renderSessions(data); })
+    .catch(() => { document.getElementById('loginError').style.display = 'block'; });
+}
+
+function bootAdmin() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'flex';
+  loadConfig();
+  loadSessions();
+}
+
+function logout() {
+  sessionStorage.removeItem('tb_admin_pwd');
+  adminPwd = '';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainScreen').style.display = 'none';
+  document.getElementById('pwdInput').value = '';
+}
+
+function switchTab(tab) {
+  document.getElementById('tabSessions').style.display = tab === 'sessions' ? 'block' : 'none';
+  document.getElementById('tabSettings').style.display = tab === 'settings' ? 'block' : 'none';
+  document.getElementById('tabBtnSessions').classList.toggle('active', tab === 'sessions');
+  document.getElementById('tabBtnSettings').classList.toggle('active', tab === 'settings');
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    cfg = await r.json();
+    document.getElementById('cfgPrice').value = cfg.pricePerSheet || 5;
+    document.getElementById('cfgUpi').value = cfg.upiId || '';
+    document.getElementById('cfgWa').value = cfg.whatsappNumber || '';
+    document.getElementById('headerSub').textContent =
+      `₹${cfg.pricePerSheet || 5}/sheet · ${cfg.upiId || 'UPI not set'}`;
+  } catch(e) {}
+}
+
+async function saveConfig() {
+  const price = document.getElementById('cfgPrice').value;
+  const upi = document.getElementById('cfgUpi').value.trim();
+  const wa = document.getElementById('cfgWa').value.trim();
+  const errEl = document.getElementById('settingsError');
+  const msgEl = document.getElementById('saveMsg');
+  errEl.style.display = 'none'; msgEl.style.display = 'none';
+  try {
+    const r = await fetch('/api/save-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, pricePerSheet: Number(price), upiId: upi, whatsappNumber: wa })
+    });
+    if (!r.ok) { const d = await r.json(); errEl.textContent = d.error; errEl.style.display = 'block'; return; }
+    cfg = { pricePerSheet: Number(price), upiId: upi, whatsappNumber: wa };
+    msgEl.style.display = 'block';
+    document.getElementById('headerSub').textContent = `₹${price}/sheet · ${upi || 'UPI not set'}`;
+    setTimeout(() => msgEl.style.display = 'none', 3000);
+  } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+}
+
+async function createCode() {
+  const name = document.getElementById('newName').value.trim();
+  const sheets = parseInt(document.getElementById('newSheets').value) || 1;
+  const errEl = document.getElementById('createError');
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Enter player name'; errEl.style.display = 'block'; return; }
+
+  try {
+    const r = await fetch('/api/create-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, playerName: name, sheetCount: sheets })
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+
+    // Show code result prominently
+    document.getElementById('codeBig').textContent = data.code;
+    document.getElementById('codeMeta').textContent =
+      `${name} · ${sheets} sheet${sheets > 1 ? 's' : ''} · ₹${data.amount}`;
+    document.getElementById('codeResult').style.display = 'block';
+    document.getElementById('codeResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Clear form
+    document.getElementById('newName').value = '';
+    document.getElementById('newSheets').value = '1';
+
+    // Refresh list
+    loadSessions();
+  } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+}
+
+function copyCode() {
+  const code = document.getElementById('codeBig').textContent;
+  navigator.clipboard.writeText(code).catch(() => {});
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
+}
+
+async function loadSessions() {
+  try {
+    const r = await fetch(`/api/sessions?password=${encodeURIComponent(adminPwd)}`);
+    if (!r.ok) return;
+    renderSessions(await r.json());
+  } catch(e) {}
+}
+
+function renderSessions(list) {
+  const el = document.getElementById('sessionsList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">📋</div><div>No sessions yet</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(s => `
+    <div class="session-item ${s.status === 'ended' ? 'ended' : ''}">
+      <div class="session-info">
+        <div class="session-name">${esc(s.playerName)}</div>
+        <div class="session-code">${s.code}</div>
+        <div class="status-badge ${s.status}">${s.status === 'active' ? '● Active' : '■ Ended'}</div>
+        <div class="session-meta">
+          ${s.sheetCount} sheet${s.sheetCount > 1 ? 's' : ''} · ₹${s.amount}
+          &nbsp;·&nbsp; ${timeAgo(s.createdAt)}
+          ${s.endedAt ? ` · ended ${timeAgo(s.endedAt)}` : ''}
+        </div>
+      </div>
+      ${s.status === 'active' ? `<button class="btn-danger" onclick="endSession('${s.code}',this)">End</button>` : ''}
+    </div>`).join('');
+}
+
+async function endSession(code, btn) {
+  if (!confirm(`End session for code ${code}?`)) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fetch('/api/end-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, password: adminPwd })
+    });
+    loadSessions();
+  } catch(e) { btn.disabled = false; btn.textContent = 'End'; }
+}
+
+function timeAgo(ms) {
+  const diff = Date.now() - ms;
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d ago`;
+  if (h > 0) return `${h}h ago`;
+  if (m > 0) return `${m}m ago`;
+  return 'just now';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

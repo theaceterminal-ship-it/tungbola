@@ -49,6 +49,7 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
   font-size:14px;font-weight:500;color:var(--on-sv);cursor:pointer;
   border-bottom:3px solid transparent;font-family:inherit;transition:all .2s}
 .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+@keyframes reqPulse{0%,100%{background:transparent}50%{background:var(--primary-c)}}
 
 .tab-content{flex:1;padding:16px;max-width:600px;width:100%;margin:0 auto}
 
@@ -169,8 +170,11 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
   <div class="tab-content" id="tabRequests">
     <div class="sessions-header">
       <div class="sessions-title">Payment Requests</div>
-      <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
+      <button class="refresh-btn" id="reqRefreshBtn" onclick="loadRequests()">↻ Refresh</button>
     </div>
+    <div id="reqLastUpdated" style="font-size:11px;color:var(--on-sv);opacity:.6;margin-bottom:8px"></div>
+    <div id="reqError" style="font-size:13px;color:var(--error);background:var(--error-c);
+      padding:10px 14px;border-radius:10px;margin-bottom:10px;display:none"></div>
     <div id="requestsList">
       <div class="empty-list"><div class="empty-list-icon">📨</div><div>No requests yet</div></div>
     </div>
@@ -280,8 +284,8 @@ function bootAdmin() {
   loadConfig();
   loadRequests();
   loadSessions();
-  // auto-refresh requests every 15s
-  setInterval(loadRequests, 15000);
+  // auto-refresh requests every 5s
+  setInterval(loadRequests, 5000);
 }
 
 function logout() {
@@ -433,12 +437,29 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+let prevPendingCount = 0;
+
 async function loadRequests() {
+  const errEl = document.getElementById('reqError');
+  const btn = document.getElementById('reqRefreshBtn');
+  if (btn) { btn.textContent = '↻ …'; btn.disabled = true; }
   try {
     const r = await fetch(`/api/requests?password=${encodeURIComponent(adminPwd)}`);
-    if (!r.ok) return;
-    renderRequests(await r.json());
-  } catch(e) {}
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      if (errEl) { errEl.textContent = `Error loading requests: ${d.error || r.status}`; errEl.style.display = 'block'; }
+      return;
+    }
+    if (errEl) errEl.style.display = 'none';
+    const list = await r.json();
+    renderRequests(list);
+    const ts = document.getElementById('reqLastUpdated');
+    if (ts) ts.textContent = `Last checked: ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    if (errEl) { errEl.textContent = `Network error — check your connection`; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
+  }
 }
 
 function renderRequests(list) {
@@ -450,9 +471,16 @@ function renderRequests(list) {
   if (pending.length > 0) {
     badge.textContent = pending.length;
     badge.style.display = '';
+    // flash the tab button if new requests arrived
+    if (pending.length > prevPendingCount) {
+      const tabBtn = document.getElementById('tabBtnRequests');
+      tabBtn.style.animation = 'none';
+      setTimeout(() => tabBtn.style.animation = 'reqPulse .5s ease 3', 10);
+    }
   } else {
     badge.style.display = 'none';
   }
+  prevPendingCount = pending.length;
 
   if (!list.length) {
     el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">📨</div><div>No requests yet</div></div>';

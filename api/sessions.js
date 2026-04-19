@@ -14,6 +14,24 @@ module.exports = async function(req, res) {
   if (!checkPassword(password, process.env.ADMIN_PASSWORD))
     return res.status(401).json({ error: 'Wrong password' });
 
-  const list = await kv.get('tb:sessions') || [];
+  const raw = await kv.get('tb:sessions') || [];
+  const fiveHours = 5 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  // Drop ended sessions older than 5 hours
+  const cleaned = raw.filter(s =>
+    s.status !== 'ended' || (now - (s.endedAt || s.createdAt)) < fiveHours
+  );
+
+  // Only show last 5 active sessions + any recent ended ones that survived the cut
+  const active = cleaned.filter(s => s.status !== 'ended').slice(0, 5);
+  const recentEnded = cleaned.filter(s => s.status === 'ended');
+  const list = [...active, ...recentEnded];
+
+  // Persist cleaned list back if anything was removed
+  if (cleaned.length < raw.length) {
+    await kv.set('tb:sessions', cleaned.slice(0, 300));
+  }
+
   res.json(list);
 };

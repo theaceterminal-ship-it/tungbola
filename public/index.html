@@ -2194,6 +2194,12 @@ async function handleUpload(e){
     toast(errs.length?`Could not read: ${errs[0]}`:'No tickets found');
     return;
   }
+  const MAX_SHEETS=150;
+  if(sheets.length>MAX_SHEETS){
+    sheets=sheets.slice(0,MAX_SHEETS);
+    total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
+    toast(`Limit: only first ${MAX_SHEETS} sheets loaded for best performance`);
+  }
   save();
   if(gameSession) showSetup(); else showActivation();
   if(errs.length) toast(`Loaded ${total} tickets (${errs.length} failed)`);

@@ -204,6 +204,22 @@ select.field{cursor:pointer}
   cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-reset:hover{background:#DDD6F3}
 
+/* ── REQUEST CARDS ── */
+.req-card{background:#fff;border-radius:16px;padding:16px;
+  box-shadow:var(--shadow);margin-bottom:10px;border-left:4px solid var(--primary)}
+.req-card.approved{border-left-color:var(--success);opacity:.7}
+.req-row1{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.req-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#9C27B0);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;flex-shrink:0}
+.req-name{font-size:15px;font-weight:700}
+.req-time{font-size:11px;color:var(--on-sv);margin-top:2px}
+.req-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.btn-approve{background:#E8F5E9;color:#2E7D32;border:none;
+  border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s;width:100%}
+.btn-approve:hover{background:#4CAF50;color:#fff}
+.btn-approve:disabled{opacity:.5;cursor:not-allowed}
 /* ── SETTINGS TAB ── */
 .settings-wrap{max-width:520px}
 .settings-card{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow-md);margin-bottom:16px}
@@ -277,8 +293,25 @@ select.field{cursor:pointer}
         </div>
       </div>
 
-      <!-- Right: List -->
+      <!-- Right: Lists -->
       <div class="list-panel">
+
+        <!-- Pending requests -->
+        <div class="list-hdr">
+          <div class="list-hdr-left">
+            <div class="list-hdr-title">Pending Requests</div>
+            <div class="list-count" id="reqCount">0</div>
+          </div>
+          <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
+        </div>
+        <div class="list-body" id="requestsList" style="margin-bottom:24px">
+          <div class="empty">
+            <div class="empty-ico">📥</div>
+            <div class="empty-txt">No pending requests</div>
+          </div>
+        </div>
+
+        <!-- Active passes -->
         <div class="list-hdr">
           <div class="list-hdr-left">
             <div class="list-hdr-title">Day Passes</div>
@@ -292,6 +325,7 @@ select.field{cursor:pointer}
             <div class="empty-txt">No day passes yet</div>
           </div>
         </div>
+
       </div>
 
     </div>
@@ -414,6 +448,8 @@ function bootAdmin() {
   document.getElementById('mainScreen').style.display = 'flex';
   loadConfig();
   loadSessions();
+  loadRequests();
+  reqRefreshTimer = setInterval(() => loadRequests(), 8000);
 }
 
 function logout() {
@@ -425,13 +461,18 @@ function logout() {
 }
 
 /* ── TABS ── */
+let reqRefreshTimer = null;
 function switchTab(tab) {
   ['sessions','subscriptions','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
     if (el) { el.classList.toggle('active', t === tab); }
   });
-  if (tab === 'sessions') loadSessions();
+  clearInterval(reqRefreshTimer); reqRefreshTimer = null;
+  if (tab === 'sessions') {
+    loadSessions(); loadRequests();
+    reqRefreshTimer = setInterval(() => loadRequests(), 8000);
+  }
   if (tab === 'subscriptions') loadSubscriptions();
 }
 
@@ -466,6 +507,63 @@ async function saveConfig() {
     document.getElementById('headerSub').textContent = `₹${price}/sheet · ${upi || 'UPI not set'}`;
     setTimeout(() => msgEl.style.display = 'none', 3000);
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+}
+
+/* ── PAYMENT REQUESTS ── */
+async function loadRequests() {
+  try {
+    const r = await fetch(`/api/payment?password=${encodeURIComponent(adminPwd)}`);
+    if (!r.ok) return;
+    renderRequests(await r.json());
+  } catch(e) {}
+}
+
+function renderRequests(list) {
+  const el = document.getElementById('requestsList');
+  const countEl = document.getElementById('reqCount');
+  const pending = list.filter(r => r.status === 'pending');
+  if (!pending.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">📥</div><div class="empty-txt">No pending requests</div></div>';
+    countEl.textContent = '0'; countEl.className = 'list-count';
+    return;
+  }
+  countEl.textContent = `${pending.length} pending`;
+  countEl.className = 'list-count has-active';
+  el.innerHTML = pending.map(r => {
+    const init = (r.playerName || '?')[0].toUpperCase();
+    return `
+    <div class="req-card" id="req-${r.reqId}">
+      <div class="req-row1">
+        <div class="req-avatar">${init}</div>
+        <div>
+          <div class="req-name">${esc(r.playerName)}</div>
+          <div class="req-time">Requested ${timeAgo(r.createdAt)}</div>
+        </div>
+      </div>
+      <div class="req-chips">
+        <span class="chip sheets">📄 ${r.sheetCount} sheet${r.sheetCount > 1 ? 's' : ''}</span>
+        <span class="chip amount">₹${r.amount}</span>
+        <span class="chip time">⏱ expires ${timeUntil(r.createdAt + 7200000)}</span>
+      </div>
+      <button class="btn-approve" onclick="approveRequest('${r.reqId}',this)">✓ Approve & Grant Day Pass</button>
+    </div>`;
+  }).join('');
+}
+
+async function approveRequest(reqId, btn) {
+  btn.disabled = true; btn.textContent = 'Approving…';
+  try {
+    const r = await fetch('/api/payment', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'approve', password: adminPwd, reqId })
+    });
+    const data = await r.json();
+    if (!r.ok) { btn.disabled = false; btn.textContent = '✓ Approve & Grant Day Pass'; alert(data.error); return; }
+    const card = document.getElementById('req-' + reqId);
+    if (card) card.remove();
+    loadSessions();
+    loadRequests();
+  } catch(e) { btn.disabled = false; btn.textContent = '✓ Approve & Grant Day Pass'; }
 }
 
 /* ── DAY PASS ── */

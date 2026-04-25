@@ -640,6 +640,36 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   color:var(--on-surface-variant);font-size:12px;margin:0 0 14px}
 .act-or::before,.act-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
 
+/* ── DAY PASS FLOW ── */
+.act-btn-ghost{width:100%;padding:11px;background:transparent;color:var(--primary);
+  border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
+  margin-top:4px;border-radius:14px}
+.act-btn-ghost:active{background:var(--primary-container)}
+.dp-summary{background:var(--primary-container);border-radius:12px;
+  padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--primary)}
+.dp-qr-wrap{display:flex;flex-direction:column;align-items:center;
+  gap:6px;margin:12px 0}
+.dp-qr-wrap canvas{border-radius:12px;border:3px solid var(--primary-container)}
+.dp-upi-hint{font-size:12px;color:var(--on-surface-variant);text-align:center}
+/* ── WAITING SCREEN ── */
+#dpWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;gap:0}
+.wait-logo{font-size:56px;margin-bottom:16px}
+.wait-title{font-size:24px;font-weight:900;color:var(--primary);margin-bottom:8px}
+.wait-sub{font-size:14px;color:var(--on-surface-variant);margin-bottom:8px;text-align:center}
+.wait-dots{display:flex;gap:8px;margin:20px 0 24px}
+.wait-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);
+  animation:wdot 1.4s ease-in-out infinite}
+.wait-dot:nth-child(1){animation-delay:0s}
+.wait-dot:nth-child(2){animation-delay:.2s}
+.wait-dot:nth-child(3){animation-delay:.4s}
+@keyframes wdot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1.1);opacity:1}}
+.wait-info{font-size:13px;color:var(--on-surface-variant);margin-bottom:24px;text-align:center;
+  background:#fff;border-radius:12px;padding:10px 16px;max-width:280px}
+.wait-cancel{background:transparent;border:2px solid var(--outline);color:var(--on-surface-variant);
+  border-radius:14px;padding:11px 28px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit}
 /* ── SUBSCRIPTION STATUS BAR ── */
 .sub-status-bar{display:flex;align-items:center;gap:8px;background:#E8F5E9;
   color:#2E7D32;border-radius:16px;padding:10px 16px;font-size:13px;font-weight:600;
@@ -775,15 +805,49 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
       <span class="act-card-icon">🎟️</span>
       <div>
         <div class="act-card-title">Day Pass</div>
-        <div class="act-card-desc">Single session · 6-character code from host</div>
+        <div class="act-card-desc" id="dpDesc">Single session · pay per sheet</div>
       </div>
     </div>
-    <input type="text" class="act-input code" id="payCodeInput"
-      placeholder="ABC123" maxlength="6"
-      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-    <div class="act-error" id="payError"></div>
-    <button class="act-btn" onclick="verifyCode()">Enter Game →</button>
+
+    <!-- Step 1: pick sheets -->
+    <div id="dp-s1">
+      <input type="file" id="dpFileInput" accept=".pdf,.txt,.json" multiple
+        style="display:none" onchange="dpHandleFiles(event)">
+      <button class="act-btn" id="dpPickBtn" onclick="document.getElementById('dpFileInput').click()">
+        📁 Select PDF Sheets
+      </button>
+    </div>
+
+    <!-- Step 2: payment details (shown after PDF parsed) -->
+    <div id="dp-s2" style="display:none">
+      <div class="dp-summary" id="dpSummary"></div>
+      <input type="text" class="act-input" id="dpName" placeholder="Your name"
+        maxlength="50" style="margin-bottom:10px">
+      <div class="dp-qr-wrap">
+        <canvas id="dpQrCanvas" width="180" height="180"></canvas>
+        <div class="dp-upi-hint" id="dpUpiHint"></div>
+      </div>
+      <div class="act-error" id="dpError"></div>
+      <button class="act-btn" id="dpSubmitBtn" onclick="dpSubmitRequest()">
+        I've Paid — Request Approval →
+      </button>
+      <button class="act-btn-ghost" onclick="dpReset()">← Change Sheets</button>
+    </div>
   </div>
+</div>
+
+<!-- ══ DAY PASS WAITING ══ -->
+<div id="dpWaiting" class="off">
+  <div class="wait-logo">⏳</div>
+  <div class="wait-title">Waiting for Approval</div>
+  <div class="wait-sub">Admin is reviewing your payment</div>
+  <div class="wait-dots">
+    <div class="wait-dot"></div>
+    <div class="wait-dot"></div>
+    <div class="wait-dot"></div>
+  </div>
+  <div class="wait-info" id="dpWaitInfo"></div>
+  <button class="wait-cancel" onclick="dpCancelRequest()">Cancel</button>
 </div>
 
 <!-- ══ SETUP ══ -->
@@ -1091,6 +1155,7 @@ let redoStack=[],dtGroupStart=0,lpTimer=null;
 let appConfig={pricePerSheet:5,upiId:'',whatsappNumber:''};
 let gameSession=null;
 let subscriptionKey=null;
+let dpReqId=null,dpPollTimer=null;
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
 
@@ -1315,10 +1380,11 @@ function buildBalls(){
 }
 
 /* ══ SCREEN TRANSITIONS ══ */
+function hideAll(){
+  ['welcome','game','activation','setup','dpWaiting'].forEach(id=>$( id)?.classList.add('off'));
+}
 function showSetup(){
-  $('welcome').classList.add('off');
-  $('game').classList.add('off');
-  $('activation').classList.add('off');
+  hideAll();
   $('setup').classList.remove('off');
   buildPrizeGrid();
 }
@@ -1329,23 +1395,140 @@ function startGame(){
   renderAll();
 }
 function showGame(){
-  $('welcome').classList.add('off');
-  $('setup').classList.add('off');
-  $('activation').classList.add('off');
+  hideAll();
   curIdx=0;
   $('game').classList.remove('off');
   renderAll();
 }
 function showActivation(){
-  $('welcome').classList.add('off');
-  $('setup').classList.add('off');
-  $('game').classList.add('off');
+  hideAll();
   $('activation').classList.remove('off');
-  // Clear inputs
-  const si=$('subKeyInput'),ci=$('payCodeInput');
-  if(si) si.value=''; if(ci) ci.value='';
-  const se=$('subError'),pe=$('payError');
-  if(se) se.style.display='none'; if(pe) pe.style.display='none';
+  const si=$('subKeyInput');if(si) si.value='';
+  const se=$('subError');if(se) se.style.display='none';
+  dpReset();
+}
+
+/* ══ DAY PASS FLOW ══ */
+function dpReset(){
+  $('dp-s1').style.display='';
+  $('dp-s2').style.display='none';
+  const ne=$('dpName');if(ne) ne.value='';
+  const er=$('dpError');if(er) er.style.display='none';
+  $('dpFileInput').value='';
+  $('dpDesc').textContent='Single session · pay per sheet';
+}
+
+async function dpHandleFiles(e){
+  const files=Array.from(e.target.files);
+  if(!files.length) return;
+  e.target.value='';
+  const pickBtn=$('dpPickBtn');
+  pickBtn.disabled=true; pickBtn.textContent='Reading…';
+  $('loadingOv').classList.remove('off');
+  clearGame(); sheets=[];
+  let total=0,errs=[];
+  for(let fi=0;fi<files.length;fi++){
+    const f=files[fi];
+    $('loadMsg').textContent=files.length>1?`Reading ${fi+1}/${files.length}: ${f.name}`:`Reading ${f.name}…`;
+    try{
+      const nm=f.name.toLowerCase();
+      const txt=nm.endsWith('.pdf')?await pdfToText(f):await f.text();
+      const fb=f.name.replace(/\.[^/.]+$/,'');
+      const ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
+      if(!ns.length){errs.push(f.name);continue;}
+      ns.forEach(s=>{
+        const i=sheets.findIndex(x=>x.name===s.name);
+        if(i>=0)sheets[i]=s;else sheets.push(s);
+      });
+      total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
+    }catch(err){console.error(f.name,err);errs.push(f.name);}
+  }
+  const MAX_SHEETS=150;
+  if(sheets.length>MAX_SHEETS){sheets=sheets.slice(0,MAX_SHEETS);total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);}
+  $('loadingOv').classList.add('off');
+  pickBtn.disabled=false; pickBtn.textContent='📁 Select PDF Sheets';
+  if(!total){toast(errs.length?`Could not read: ${errs[0]}`:'No tickets found');return;}
+  save();
+  // Show step 2
+  const count=sheets.length;
+  const price=appConfig.pricePerSheet||5;
+  const amount=price*count;
+  $('dpSummary').textContent=`${count} sheet${count>1?'s':''} loaded · ₹${amount} total`;
+  $('dpDesc').textContent=`${count} sheet${count>1?'s':''} · ₹${amount} to pay`;
+  dpDrawQR(appConfig.upiId||'',amount);
+  $('dp-s1').style.display='none';
+  $('dp-s2').style.display='';
+}
+
+function dpDrawQR(upiId,amount){
+  const canvas=$('dpQrCanvas');
+  const hint=$('dpUpiHint');
+  if(!upiId){hint.textContent='UPI not configured – contact admin';return;}
+  const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Day+Pass`;
+  hint.textContent=`Pay ₹${amount} to ${upiId}`;
+  // Clear canvas first
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  try{
+    new QRCode(canvas,{text:upiStr,width:180,height:180,colorDark:'#1C1B1F',colorLight:'#FFFFFF',
+      correctLevel:QRCode.CorrectLevel.M});
+  }catch(ex){hint.textContent=`Pay ₹${amount} to UPI: ${upiId}`;}
+}
+
+async function dpSubmitRequest(){
+  const name=($('dpName').value||'').trim();
+  const errEl=$('dpError');
+  errEl.style.display='none';
+  if(!name){errEl.textContent='Enter your name';errEl.style.display='block';return;}
+  const btn=$('dpSubmitBtn');
+  btn.disabled=true; btn.textContent='Submitting…';
+  try{
+    const r=await fetch('/api/payment',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'request',playerName:name,sheetCount:sheets.length})
+    });
+    const data=await r.json();
+    if(!r.ok){errEl.textContent=data.error||'Failed to submit';errEl.style.display='block';btn.disabled=false;btn.textContent='I\'ve Paid — Request Approval →';return;}
+    dpReqId=data.reqId;
+    $('dpWaitInfo').textContent=`${name} · ${sheets.length} sheet${sheets.length>1?'s':''} · ₹${data.amount}`;
+    hideAll();
+    $('dpWaiting').classList.remove('off');
+    dpStartPolling();
+  }catch(e){
+    errEl.textContent='Network error. Check connection.';errEl.style.display='block';
+    btn.disabled=false; btn.textContent='I\'ve Paid — Request Approval →';
+  }
+}
+
+function dpStartPolling(){
+  dpStopPolling();
+  dpPollTimer=setInterval(dpPoll,5000);
+}
+function dpStopPolling(){
+  if(dpPollTimer){clearInterval(dpPollTimer);dpPollTimer=null;}
+}
+async function dpPoll(){
+  if(!dpReqId) return;
+  try{
+    const r=await fetch('/api/payment',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'check',reqId:dpReqId})
+    });
+    if(r.status===404){dpStopPolling();toast('Request expired. Please try again.');showActivation();return;}
+    const data=await r.json();
+    if(data.status==='approved'&&data.code){
+      dpStopPolling();
+      dpReqId=null;
+      gameSession={type:'daypass',code:data.code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
+      localStorage.setItem('tb_pay',JSON.stringify(gameSession));
+      $('dpWaiting').classList.add('off');
+      showSetup();
+    }
+  }catch(e){}
+}
+function dpCancelRequest(){
+  dpStopPolling();
+  dpReqId=null;
+  showActivation();
 }
 
 /* ══ SUBSCRIPTION ══ */
@@ -1428,36 +1611,6 @@ function updateSubStatusBar(){
 }
 
 /* ══ DAY PASS VERIFY ══ */
-async function verifyCode(){
-  const code=$('payCodeInput').value.trim().toUpperCase();
-  const errEl=$('payError');
-  const btn=document.querySelector('[onclick="verifyCode()"]');
-  if(code.length!==6){errEl.textContent='Enter a 6-character code';errEl.style.display='block';return;}
-  errEl.style.display='none';
-  btn.disabled=true;btn.textContent='Verifying…';
-  try{
-    const r=await fetch('/api/verify-code',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code,deviceId:getDeviceId()})
-    });
-    const data=await r.json();
-    if(!r.ok){
-      errEl.textContent=data.error||'Verification failed';
-      errEl.style.display='block';
-      btn.disabled=false;btn.textContent='Enter Game →';
-      return;
-    }
-    gameSession={type:'daypass',code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
-    localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-    $('activation').classList.add('off');
-    showSetup();
-  }catch(e){
-    errEl.textContent='Network error. Check connection.';
-    errEl.style.display='block';
-    btn.disabled=false;btn.textContent='Enter Game →';
-  }
-}
-
 /* ══ END GAME ══ */
 async function endGame(){
   if(!confirm('End this game session? This cannot be undone.')) return;
@@ -1475,7 +1628,8 @@ async function endGame(){
   sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
   active=new Set(PRIZES.map(p=>p.key));claimed={};redoStack=[];
   $('allDoneBanner').classList.remove('on');
-  $('game').classList.add('off');$('setup').classList.add('off');$('payment').classList.add('off');
+  dpStopPolling();dpReqId=null;
+  hideAll();
   $('btnContinue').classList.add('off');
   $('welcome').classList.remove('off');
   updateSubStatusBar();

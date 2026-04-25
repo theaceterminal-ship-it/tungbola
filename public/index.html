@@ -1514,9 +1514,9 @@ async function verifySubscription(){
   if(!key||key.length<10){errEl.textContent='Enter a valid subscription key';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Verifying…';
   try{
-    const r=await fetch('/api/verify-subscription',{
+    const r=await fetch('/api/subscription',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({key,deviceId:getDeviceId()})
+      body:JSON.stringify({action:'verify',key,deviceId:getDeviceId()})
     });
     const data=await r.json();
     if(!r.ok){
@@ -1542,9 +1542,9 @@ async function verifySubscription(){
 async function silentVerifySubscription(){
   if(!subscriptionKey) return;
   try{
-    const r=await fetch('/api/verify-subscription',{
+    const r=await fetch('/api/subscription',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({key:subscriptionKey,deviceId:getDeviceId()})
+      body:JSON.stringify({action:'verify',key:subscriptionKey,deviceId:getDeviceId()})
     });
     if(!r.ok){
       localStorage.removeItem('tb_sub');

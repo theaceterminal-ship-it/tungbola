@@ -592,9 +592,9 @@ async function createSubscription() {
   const btn = document.querySelector('[onclick="createSubscription()"]');
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
-    const r = await fetch('/api/create-subscription', {
+    const r = await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, playerName: name, plan, maxDevices: devices })
+      body: JSON.stringify({ action: 'create', password: adminPwd, playerName: name, plan, maxDevices: devices })
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
@@ -622,7 +622,7 @@ function copySubKey() {
 
 async function loadSubscriptions() {
   try {
-    const r = await fetch(`/api/subscriptions?password=${encodeURIComponent(adminPwd)}`);
+    const r = await fetch(`/api/subscription?password=${encodeURIComponent(adminPwd)}`);
     if (!r.ok) return;
     renderSubscriptions(await r.json());
   } catch(e) {}
@@ -666,9 +666,9 @@ async function revokeSubscription(key, btn) {
   if (!confirm(`Revoke subscription ${key}? Player will lose access.`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
-    await fetch('/api/end-subscription', {
+    await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, key })
+      body: JSON.stringify({ action: 'end', password: adminPwd, key })
     });
     loadSubscriptions();
   } catch(e) { btn.disabled = false; btn.textContent = 'Revoke'; }
@@ -678,9 +678,9 @@ async function resetSubDevices(key, btn) {
   if (!confirm(`Reset device slots for ${key}? All registered devices will be removed.`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
-    await fetch('/api/end-subscription', {
+    await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, key, resetDevices: true })
+      body: JSON.stringify({ action: 'reset-devices', password: adminPwd, key })
     });
     loadSubscriptions();
   } catch(e) { btn.disabled = false; btn.textContent = 'Reset Devices'; }

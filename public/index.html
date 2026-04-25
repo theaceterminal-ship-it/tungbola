@@ -772,8 +772,13 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     <span class="mir">verified_user</span>
     <span id="subStatusTxt"></span>
   </div>
+  <!-- shown when no session -->
+  <button class="btn-fill" id="btnGetStarted" onclick="showActivation()">
+    <span class="mir">login</span> Get Started
+  </button>
+  <!-- shown when session active -->
   <input type="file" id="fi1" accept=".pdf,.txt,.json" multiple style="display:none" onchange="handleUpload(event)">
-  <button class="btn-fill" onclick="fi1.click()">
+  <button class="btn-fill off" id="btnLoad" onclick="fi1.click()">
     <span class="mir">upload_file</span> Load Ticket Sheets
   </button>
   <button class="btn-outline off" id="btnContinue" onclick="showGame()">Continue Last Game</button>
@@ -1304,6 +1309,7 @@ function init(){
   try{const s=localStorage.getItem('tb_pay');if(s)gameSession=JSON.parse(s);}catch(e){}
   try{const s=localStorage.getItem('tb_sub');if(s)subscriptionKey=JSON.parse(s).key;}catch(e){}
   updateSubStatusBar();
+  updateWelcomeButtons();
   if(sheets.length>0&&gameSession) $('btnContinue').classList.remove('off');
   if(gameSession?.type==='subscription') silentVerifySubscription();
   // Hide splash after 2s
@@ -1582,8 +1588,11 @@ async function verifySubscription(){
     gameSession={type:'subscription',key,playerName:data.playerName,
       plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-    $('activation').classList.add('off');
-    showSetup();
+    updateSubStatusBar();
+    updateWelcomeButtons();
+    hideAll();
+    $('welcome').classList.remove('off');
+    toast(`Welcome, ${data.playerName}! Now load your ticket sheets.`);
   }catch(e){
     errEl.textContent='Network error. Check connection.';
     errEl.style.display='block';
@@ -1617,6 +1626,12 @@ async function silentVerifySubscription(){
     if(data.daysLeft<=7)
       setTimeout(()=>toast(`⚠️ Subscription expires in ${data.daysLeft} day${data.daysLeft===1?'':'s'}`),3500);
   }catch(e){}
+}
+
+function updateWelcomeButtons(){
+  const hasSession=!!gameSession;
+  $('btnGetStarted').classList.toggle('off',hasSession);
+  $('btnLoad').classList.toggle('off',!hasSession);
 }
 
 function updateSubStatusBar(){
@@ -1659,6 +1674,7 @@ async function endGame(){
   $('btnContinue').classList.add('off');
   $('welcome').classList.remove('off');
   updateSubStatusBar();
+  updateWelcomeButtons();
   toast(isSub?'Game ended. Load new tickets to play again!':'Game ended. Thanks for playing!');
 }
 
@@ -2381,7 +2397,7 @@ async function handleUpload(e){
     toast(`Limit: only first ${MAX_SHEETS} sheets loaded for best performance`);
   }
   save();
-  if(gameSession) showSetup(); else showActivation();
+  showSetup();
   if(errs.length) toast(`Loaded ${total} tickets (${errs.length} failed)`);
 }
 

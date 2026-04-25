@@ -611,78 +611,40 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   width:100%;font-family:inherit;opacity:.7}
   40%{transform:scale(1.5);background:rgba(255,255,255,.85)}}
 
-/* ══ PAYMENT SCREEN ══ */
-#payment{height:100vh;height:100dvh;overflow-y:auto;
+/* ══ ACTIVATION SCREEN ══ */
+#activation{height:100vh;height:100dvh;overflow-y:auto;
   background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
-  display:flex;flex-direction:column;align-items:center;padding:24px 20px 32px}
-.pay-title{font-size:36px;font-weight:900;color:var(--primary);margin-bottom:4px;margin-top:8px}
-.pay-sub{font-size:14px;color:var(--on-surface-variant);margin-bottom:18px}
-.pay-card{background:#fff;border-radius:24px;padding:20px;width:100%;max-width:340px;
-  box-shadow:var(--shadow-lg);margin-bottom:14px}
-.pay-amount{font-size:52px;font-weight:900;color:var(--primary);text-align:center;
-  line-height:1;margin-bottom:4px}
-.pay-sheets-lbl{font-size:14px;color:var(--on-surface-variant);text-align:center;margin-bottom:16px}
-.pay-qr-wrap{display:flex;justify-content:center;margin-bottom:12px}
-.pay-qr-wrap canvas,.pay-qr-wrap img{border-radius:12px}
-.pay-no-upi{text-align:center;padding:20px;color:var(--on-surface-variant);
-  font-size:13px;background:var(--surface-variant);border-radius:12px;margin-bottom:12px}
-.pay-upi-row{display:flex;align-items:center;justify-content:center;gap:8px;
-  background:var(--surface-variant);border-radius:12px;padding:10px 14px;margin-bottom:12px}
-.pay-upi-id{font-size:15px;font-weight:600}
-.pay-copy{border:none;background:transparent;color:var(--primary);cursor:pointer;
-  font-size:20px;padding:2px;line-height:1;font-family:'Material Icons Round'}
-.pay-req-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;
-  border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
-  display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px}
-.pay-req-btn:disabled{opacity:.5;cursor:not-allowed}
-.pay-divider{display:flex;align-items:center;gap:10px;width:100%;max-width:340px;
-  margin:4px 0 10px;color:var(--on-surface-variant);font-size:12px}
-.pay-divider::before,.pay-divider::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.4}
-.pay-code-card{background:#fff;border-radius:24px;padding:20px;width:100%;
-  max-width:340px;box-shadow:var(--shadow-lg)}
-.pay-section-lbl{font-size:12px;font-weight:700;color:var(--on-surface-variant);
-  text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
-.pay-name-input{width:100%;padding:14px 16px;border:2px solid var(--outline);
+  display:flex;flex-direction:column;align-items:center;padding:28px 20px 40px}
+.act-logo{font-size:38px;font-weight:900;color:var(--primary);margin-bottom:4px}
+.act-tagline{font-size:14px;color:var(--on-surface-variant);margin-bottom:24px}
+.act-card{background:#fff;border-radius:24px;padding:22px 20px;
+  width:100%;max-width:340px;box-shadow:var(--shadow-lg);margin-bottom:14px}
+.act-card-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.act-card-icon{font-size:30px;line-height:1}
+.act-card-title{font-size:17px;font-weight:700}
+.act-card-desc{font-size:12px;color:var(--on-surface-variant);margin-top:2px}
+.act-input{width:100%;padding:13px 16px;border:2px solid var(--outline);
   border-radius:14px;font-size:15px;font-family:inherit;outline:none;
   background:var(--bg);margin-bottom:10px;transition:border-color .2s}
-.pay-name-input:focus{border-color:var(--primary)}
-.pay-code-input{width:100%;padding:14px 16px;border:2px solid var(--outline);
-  border-radius:14px;font-size:28px;font-weight:700;font-family:monospace;
-  text-transform:uppercase;text-align:center;letter-spacing:6px;
-  outline:none;background:var(--bg);margin-bottom:10px;transition:border-color .2s}
-.pay-code-input:focus{border-color:var(--primary)}
-.pay-error{color:var(--error);font-size:13px;text-align:center;
-  padding:6px 0;font-weight:500;display:none}
-.pay-verify-btn{width:100%;padding:16px;background:var(--primary);color:var(--on-primary);
-  border:none;border-radius:14px;font-size:15px;font-weight:700;
-  cursor:pointer;font-family:inherit;margin-top:4px}
-.pay-verify-btn:disabled{opacity:.5;cursor:not-allowed}
-/* waiting screen */
-#payWaiting{display:none;flex-direction:column;align-items:center;justify-content:center;
-  flex:1;padding:32px 24px;text-align:center}
-.wait-spinner{width:64px;height:64px;border:5px solid var(--primary-container);
-  border-top-color:var(--primary);border-radius:50%;
-  animation:spin .9s linear infinite;margin:0 auto 24px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.wait-title{font-size:22px;font-weight:700;color:var(--on-surface);margin-bottom:8px}
-.wait-sub{font-size:14px;color:var(--on-surface-variant);line-height:1.6;margin-bottom:20px}
-.wait-reqid{background:var(--primary-container);color:var(--primary);font-size:13px;
-  font-weight:700;padding:8px 16px;border-radius:10px;letter-spacing:1px;margin-bottom:24px}
-.wait-cancel{background:none;border:none;color:var(--on-surface-variant);font-size:13px;
-  cursor:pointer;text-decoration:underline;font-family:inherit}
+.act-input:focus{border-color:var(--primary)}
+.act-input.code{font-size:28px;font-weight:700;font-family:monospace;
+  text-transform:uppercase;text-align:center;letter-spacing:6px}
+.act-input.subkey{font-size:16px;font-weight:700;font-family:monospace;
+  text-transform:uppercase;text-align:center;letter-spacing:2px}
+.act-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;
+  border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.act-btn:disabled{opacity:.5;cursor:not-allowed}
+.act-error{color:var(--error);font-size:13px;text-align:center;
+  padding:4px 0;font-weight:500;display:none;margin-bottom:4px}
+.act-or{display:flex;align-items:center;gap:10px;width:100%;max-width:340px;
+  color:var(--on-surface-variant);font-size:12px;margin:0 0 14px}
+.act-or::before,.act-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
 
 /* ── SUBSCRIPTION STATUS BAR ── */
 .sub-status-bar{display:flex;align-items:center;gap:8px;background:#E8F5E9;
   color:#2E7D32;border-radius:16px;padding:10px 16px;font-size:13px;font-weight:600;
   margin-bottom:16px;max-width:290px}
 .sub-status-bar .mir{font-size:18px}
-
-/* ── SUBSCRIPTION KEY INPUT ── */
-.pay-sub-input{width:100%;padding:12px 14px;border:2px solid var(--outline);
-  border-radius:14px;font-size:18px;font-weight:700;font-family:monospace;
-  text-transform:uppercase;text-align:center;letter-spacing:3px;
-  outline:none;background:var(--bg);margin-bottom:10px;transition:border-color .2s}
-.pay-sub-input:focus{border-color:var(--primary)}
 
 /* ── END GAME BUTTON ── */
 .end-game-wrap{padding:8px 0 4px;display:flex;justify-content:center}
@@ -784,56 +746,43 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <button class="btn-outline off" id="btnContinue" onclick="showGame()">Continue Last Game</button>
 </div>
 
-<!-- ══ PAYMENT ══ -->
-<div id="payment" class="off">
-  <!-- Payment form view -->
-  <div id="payForm" style="display:flex;flex-direction:column;align-items:center;width:100%;padding:8px 16px 24px">
-    <div class="pay-title">Tungbola</div>
-    <div class="pay-sub">Complete payment to start playing</div>
-    <div class="pay-card">
-      <div class="pay-amount" id="payAmount">₹0</div>
-      <div class="pay-sheets-lbl" id="paySheetLbl">0 sheets</div>
-      <div class="pay-qr-wrap" id="payQrWrap"></div>
-      <div class="pay-upi-row" id="payUpiRow">
-        <span class="pay-upi-id" id="payUpiId">Loading…</span>
-        <button class="pay-copy mir" onclick="copyUpi()" title="Copy UPI ID">content_copy</button>
+<!-- ══ ACTIVATION ══ -->
+<div id="activation" class="off">
+  <div class="act-logo">Tungbola</div>
+  <div class="act-tagline">Enter your access to start playing</div>
+
+  <!-- Subscription -->
+  <div class="act-card">
+    <div class="act-card-head">
+      <span class="act-card-icon">🎫</span>
+      <div>
+        <div class="act-card-title">Subscription</div>
+        <div class="act-card-desc">Monthly or yearly · stays active across games</div>
       </div>
     </div>
-    <div class="pay-code-card" style="margin-bottom:14px">
-      <div class="pay-section-lbl">Your Name</div>
-      <input type="text" class="pay-name-input" id="payName" placeholder="Enter your name">
-      <div class="pay-error" id="payReqError"></div>
-      <button class="pay-req-btn" onclick="requestSession()">
-        <span class="mir">send</span> I've Paid — Request Session
-      </button>
-    </div>
-    <div class="pay-divider">have a subscription?</div>
-    <div class="pay-code-card" style="margin-bottom:14px">
-      <div class="pay-section-lbl">Subscription Key</div>
-      <input type="text" class="pay-sub-input" id="subKeyInput"
-        placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
-      <div class="pay-error" id="subError"></div>
-      <button class="pay-verify-btn" onclick="verifySubscription()">Activate Subscription →</button>
-    </div>
-    <div class="pay-divider">already have a code?</div>
-    <div class="pay-code-card">
-      <div class="pay-section-lbl">Enter Session Code</div>
-      <input type="text" class="pay-code-input" id="payCodeInput"
-        placeholder="ABC123" maxlength="6"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-      <div class="pay-error" id="payError"></div>
-      <button class="pay-verify-btn" onclick="verifyCode()">Verify &amp; Start Game →</button>
-    </div>
+    <input type="text" class="act-input subkey" id="subKeyInput"
+      placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+    <div class="act-error" id="subError"></div>
+    <button class="act-btn" onclick="verifySubscription()">Activate Subscription →</button>
   </div>
-  <!-- Waiting for approval view -->
-  <div id="payWaiting">
-    <div class="wait-spinner"></div>
-    <div class="wait-title">Waiting for Host</div>
-    <div class="wait-sub">Your request has been sent.<br>The host will verify your payment and approve your session shortly.</div>
-    <div class="wait-reqid" id="waitReqId"></div>
-    <div style="font-size:13px;color:var(--on-surface-variant);margin-bottom:20px">Checking automatically every few seconds…</div>
-    <button class="wait-cancel" onclick="cancelWaiting()">Cancel request</button>
+
+  <div class="act-or">or</div>
+
+  <!-- Day Pass -->
+  <div class="act-card">
+    <div class="act-card-head">
+      <span class="act-card-icon">🎟️</span>
+      <div>
+        <div class="act-card-title">Day Pass</div>
+        <div class="act-card-desc">Single session · 6-character code from host</div>
+      </div>
+    </div>
+    <input type="text" class="act-input code" id="payCodeInput"
+      placeholder="ABC123" maxlength="6"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+    <div class="act-error" id="payError"></div>
+    <button class="act-btn" onclick="verifyCode()">Enter Game →</button>
   </div>
 </div>
 
@@ -1142,7 +1091,6 @@ let redoStack=[],dtGroupStart=0,lpTimer=null;
 let appConfig={pricePerSheet:5,upiId:'',whatsappNumber:''};
 let gameSession=null;
 let subscriptionKey=null;
-let pendingReqId=null,pollTimer=null;
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
 
@@ -1370,7 +1318,7 @@ function buildBalls(){
 function showSetup(){
   $('welcome').classList.add('off');
   $('game').classList.add('off');
-  $('payment').classList.add('off');
+  $('activation').classList.add('off');
   $('setup').classList.remove('off');
   buildPrizeGrid();
 }
@@ -1383,126 +1331,21 @@ function startGame(){
 function showGame(){
   $('welcome').classList.add('off');
   $('setup').classList.add('off');
-  $('payment').classList.add('off');
+  $('activation').classList.add('off');
   curIdx=0;
   $('game').classList.remove('off');
   renderAll();
 }
-function showPayment(){
+function showActivation(){
   $('welcome').classList.add('off');
   $('setup').classList.add('off');
   $('game').classList.add('off');
-  $('payment').classList.remove('off');
-  // Check if there's already a pending request
-  const savedReq=localStorage.getItem('tb_req');
-  if(savedReq){
-    try{const r=JSON.parse(savedReq);if(r.reqId){pendingReqId=r.reqId;showWaiting(r.reqId);return;}}catch(e){}
-  }
-  showPayForm();
-}
-function showPayForm(){
-  stopPolling();
-  $('payForm').style.display='flex';
-  $('payWaiting').style.display='none';
-  const price=appConfig.pricePerSheet||5;
-  const count=sheets.length;
-  const amount=price*count;
-  $('payAmount').textContent=`₹${amount}`;
-  $('paySheetLbl').textContent=`${count} sheet${count>1?'s':''} × ₹${price} each`;
-  const qrWrap=$('payQrWrap');
-  qrWrap.innerHTML='';
-  if(appConfig.upiId){
-    const upiLink=`upi://pay?pa=${encodeURIComponent(appConfig.upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Game`;
-    try{new QRCode(qrWrap,{text:upiLink,width:190,height:190,colorDark:'#6750A4',colorLight:'#ffffff'});}catch(e){}
-    $('payUpiId').textContent=appConfig.upiId;
-    $('payUpiRow').style.display='';
-  }else{
-    qrWrap.innerHTML='<div class="pay-no-upi">Contact host for payment details</div>';
-    $('payUpiRow').style.display='none';
-  }
-}
-function showWaiting(reqId){
-  $('payForm').style.display='none';
-  $('payWaiting').style.display='flex';
-  $('waitReqId').textContent=`Request ID: ${reqId}`;
-  startPolling(reqId);
-}
-function copyUpi(){
-  const id=appConfig.upiId;if(!id)return;
-  navigator.clipboard.writeText(id).catch(()=>{});
-  toast('UPI ID copied');
-}
-
-/* ══ REQUEST SESSION ══ */
-async function requestSession(){
-  const name=($('payName').value||'').trim();
-  const errEl=$('payReqError');
-  const btn=document.querySelector('.pay-req-btn');
-  errEl.style.display='none';
-  if(!name){errEl.textContent='Enter your name first';errEl.style.display='block';return;}
-  btn.disabled=true;btn.textContent='Sending…';
-  try{
-    const r=await fetch('/api/request-session',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({playerName:name,sheetCount:sheets.length,deviceId:getDeviceId()})
-    });
-    const data=await r.json();
-    if(!r.ok){
-      errEl.textContent=data.error||'Failed to send request';
-      errEl.style.display='block';
-      btn.disabled=false;btn.innerHTML='<span class="mir">send</span> I\'ve Paid — Request Session';
-      return;
-    }
-    pendingReqId=data.reqId;
-    localStorage.setItem('tb_req',JSON.stringify({reqId:data.reqId}));
-    showWaiting(data.reqId);
-  }catch(e){
-    errEl.textContent='Network error. Check connection.';
-    errEl.style.display='block';
-    btn.disabled=false;btn.innerHTML='<span class="mir">send</span> I\'ve Paid — Request Session';
-  }
-}
-
-/* ══ POLL FOR APPROVAL ══ */
-function startPolling(reqId){
-  stopPolling();
-  pollTimer=setInterval(()=>checkApproval(reqId),5000);
-}
-function stopPolling(){
-  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
-}
-async function checkApproval(reqId){
-  try{
-    const r=await fetch(`/api/check-request?id=${encodeURIComponent(reqId)}&deviceId=${encodeURIComponent(getDeviceId())}`);
-    if(!r.ok) return;
-    const data=await r.json();
-    if(data.status==='approved'&&data.code){
-      stopPolling();
-      localStorage.removeItem('tb_req');
-      // auto-verify the code
-      await activateCode(data.code);
-    }
-  }catch(e){}
-}
-async function activateCode(code){
-  try{
-    const r=await fetch('/api/verify-code',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code,deviceId:getDeviceId()})
-    });
-    const data=await r.json();
-    if(!r.ok) return;
-    gameSession={code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
-    localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-    $('payment').classList.add('off');
-    showSetup();
-  }catch(e){}
-}
-function cancelWaiting(){
-  stopPolling();
-  localStorage.removeItem('tb_req');
-  pendingReqId=null;
-  showPayForm();
+  $('activation').classList.remove('off');
+  // Clear inputs
+  const si=$('subKeyInput'),ci=$('payCodeInput');
+  if(si) si.value=''; if(ci) ci.value='';
+  const se=$('subError'),pe=$('payError');
+  if(se) se.style.display='none'; if(pe) pe.style.display='none';
 }
 
 /* ══ SUBSCRIPTION ══ */
@@ -1530,7 +1373,7 @@ async function verifySubscription(){
     gameSession={type:'subscription',key,playerName:data.playerName,
       plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-    $('payment').classList.add('off');
+    $('activation').classList.add('off');
     showSetup();
   }catch(e){
     errEl.textContent='Network error. Check connection.';
@@ -1584,11 +1427,11 @@ function updateSubStatusBar(){
   }
 }
 
-/* ══ PAYMENT VERIFY ══ */
+/* ══ DAY PASS VERIFY ══ */
 async function verifyCode(){
   const code=$('payCodeInput').value.trim().toUpperCase();
   const errEl=$('payError');
-  const btn=document.querySelector('.pay-verify-btn');
+  const btn=document.querySelector('[onclick="verifyCode()"]');
   if(code.length!==6){errEl.textContent='Enter a 6-character code';errEl.style.display='block';return;}
   errEl.style.display='none';
   btn.disabled=true;btn.textContent='Verifying…';
@@ -1601,17 +1444,17 @@ async function verifyCode(){
     if(!r.ok){
       errEl.textContent=data.error||'Verification failed';
       errEl.style.display='block';
-      btn.disabled=false;btn.textContent='Verify & Start Game →';
+      btn.disabled=false;btn.textContent='Enter Game →';
       return;
     }
-    gameSession={code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
+    gameSession={type:'daypass',code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-    $('payment').classList.add('off');
+    $('activation').classList.add('off');
     showSetup();
   }catch(e){
     errEl.textContent='Network error. Check connection.';
     errEl.style.display='block';
-    btn.disabled=false;btn.textContent='Verify & Start Game →';
+    btn.disabled=false;btn.textContent='Enter Game →';
   }
 }
 
@@ -1627,8 +1470,7 @@ async function endGame(){
       });
     }catch(e){}
   }
-  stopPolling();
-  ['tb_req','tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
+  ['tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
   if(!isSub){localStorage.removeItem('tb_pay');gameSession=null;}
   sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
   active=new Set(PRIZES.map(p=>p.key));claimed={};redoStack=[];
@@ -2353,7 +2195,7 @@ async function handleUpload(e){
     return;
   }
   save();
-  if(gameSession) showSetup(); else showPayment();
+  if(gameSession) showSetup(); else showActivation();
   if(errs.length) toast(`Loaded ${total} tickets (${errs.length} failed)`);
 }
 

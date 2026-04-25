@@ -31,8 +31,8 @@ module.exports = async function(req, res) {
   do { code = genCode(); tries++; }
   while (await kv.exists(`tb:code:${code}`) && tries < 10);
 
-  const session = { code, playerName: name, sheetCount: count, amount, createdAt: Date.now(), status: 'active' };
-  await kv.set(`tb:code:${code}`, session);
+  const session = { code, playerName: name, sheetCount: count, amount, createdAt: Date.now(), status: 'active', type: 'daypass' };
+  await kv.set(`tb:code:${code}`, session, { ex: 86400 }); // 24h TTL
 
   const list = await kv.get('tb:sessions') || [];
   list.unshift(session);

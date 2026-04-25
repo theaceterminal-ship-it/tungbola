@@ -161,38 +161,16 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtnRequests" onclick="switchTab('requests')">Requests <span id="reqBadge" class="tab-badge" style="display:none">0</span></button>
-    <button class="tab-btn" id="tabBtnSessions" onclick="switchTab('sessions')">Sessions</button>
+    <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">Day Pass</button>
     <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">Subscriptions</button>
     <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">Settings</button>
   </div>
 
-  <!-- ── REQUESTS TAB ── -->
-  <div class="tab-content" id="tabRequests">
-    <div class="sessions-header">
-      <div class="sessions-title">Payment Requests</div>
-      <button class="refresh-btn" id="reqRefreshBtn" onclick="loadRequests()">↻ Refresh</button>
-    </div>
-    <div id="reqLastUpdated" style="font-size:11px;color:var(--on-sv);opacity:.6;margin-bottom:8px"></div>
-    <div id="reqError" style="font-size:13px;color:var(--error);background:var(--error-c);
-      padding:10px 14px;border-radius:10px;margin-bottom:10px;display:none"></div>
-    <div id="requestsList">
-      <div class="empty-list"><div class="empty-list-icon">📨</div><div>No requests yet</div></div>
-    </div>
-    <!-- Approved code popup inside this tab -->
-    <div class="code-result" id="approveResult">
-      <div class="code-result-label">Approved — Code for Player</div>
-      <div class="code-big" id="approveCodBig"></div>
-      <div class="code-meta" id="approveCodeMeta"></div>
-      <button class="code-copy-btn" onclick="copyApproveCode()" id="copyApproveBtn">📋 Copy Code</button>
-    </div>
-  </div>
-
-  <!-- ── SESSIONS TAB ── -->
-  <div class="tab-content" id="tabSessions" style="display:none;">
+  <!-- ── DAY PASS TAB ── -->
+  <div class="tab-content" id="tabSessions">
     <!-- Create Code -->
     <div class="card">
-      <div class="card-title">➕ Generate Session Code</div>
+      <div class="card-title">🎟️ Generate Day Pass Code</div>
       <div class="field-wrap">
         <div class="field-label">Player Name</div>
         <input class="field" id="newName" placeholder="e.g. Rahul" type="text">
@@ -213,15 +191,15 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
       <button class="code-copy-btn" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
     </div>
 
-    <!-- Sessions List -->
+    <!-- Day Pass List -->
     <div class="sessions-header">
-      <div class="sessions-title">All Sessions</div>
+      <div class="sessions-title">Active Day Passes</div>
       <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
     </div>
     <div id="sessionsList">
       <div class="empty-list">
-        <div class="empty-list-icon">📋</div>
-        <div>No sessions yet</div>
+        <div class="empty-list-icon">🎟️</div>
+        <div>No day passes yet</div>
       </div>
     </div>
   </div>
@@ -298,7 +276,6 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
 <script>
 let adminPwd = sessionStorage.getItem('tb_admin_pwd') || '';
 let cfg = {};
-let refreshInterval = null;
 
 // Auto-login if session has password
 if (adminPwd) bootAdmin();
@@ -325,14 +302,10 @@ function bootAdmin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'flex';
   loadConfig();
-  loadRequests();
   loadSessions();
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(loadRequests, 5000);
 }
 
 function logout() {
-  if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
   sessionStorage.removeItem('tb_admin_pwd');
   adminPwd = '';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -341,12 +314,11 @@ function logout() {
 }
 
 function switchTab(tab) {
-  ['requests','sessions','subscriptions','settings'].forEach(t => {
+  ['sessions','subscriptions','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
     if (el) el.style.display = t === tab ? 'block' : 'none';
   });
-  if (tab === 'requests') loadRequests();
   if (tab === 'sessions') loadSessions();
   if (tab === 'subscriptions') loadSubscriptions();
 }
@@ -482,104 +454,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-let prevPendingCount = 0;
-
-async function loadRequests() {
-  const errEl = document.getElementById('reqError');
-  const btn = document.getElementById('reqRefreshBtn');
-  if (btn) { btn.textContent = '↻ …'; btn.disabled = true; }
-  try {
-    const r = await fetch(`/api/requests?password=${encodeURIComponent(adminPwd)}`);
-    if (!r.ok) {
-      const d = await r.json().catch(() => ({}));
-      if (errEl) { errEl.textContent = `Error loading requests: ${d.error || r.status}`; errEl.style.display = 'block'; }
-      return;
-    }
-    if (errEl) errEl.style.display = 'none';
-    const list = await r.json();
-    renderRequests(list);
-    const ts = document.getElementById('reqLastUpdated');
-    if (ts) ts.textContent = `Last checked: ${new Date().toLocaleTimeString()}`;
-  } catch(e) {
-    if (errEl) { errEl.textContent = `Network error — check your connection`; errEl.style.display = 'block'; }
-  } finally {
-    if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
-  }
-}
-
-function renderRequests(list) {
-  const el = document.getElementById('requestsList');
-  const pending = list.filter(r => r.status === 'pending');
-
-  // Update badge
-  const badge = document.getElementById('reqBadge');
-  if (pending.length > 0) {
-    badge.textContent = pending.length;
-    badge.style.display = '';
-    // flash the tab button if new requests arrived
-    if (pending.length > prevPendingCount) {
-      const tabBtn = document.getElementById('tabBtnRequests');
-      tabBtn.style.animation = 'none';
-      setTimeout(() => tabBtn.style.animation = 'reqPulse .5s ease 3', 10);
-    }
-  } else {
-    badge.style.display = 'none';
-  }
-  prevPendingCount = pending.length;
-
-  if (!list.length) {
-    el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">📨</div><div>No requests yet</div></div>';
-    return;
-  }
-
-  el.innerHTML = list.map(req => `
-    <div class="req-item ${req.status === 'pending' ? 'pending-req' : ''}">
-      <div class="req-top">
-        <div class="req-info">
-          <div class="req-name">${esc(req.playerName)}</div>
-          <div class="req-meta">${req.sheetCount} sheet${req.sheetCount > 1 ? 's' : ''} · ₹${req.amount} · ${timeAgo(req.createdAt)}</div>
-          <div class="req-id">ID: ${req.reqId}</div>
-        </div>
-        ${req.status === 'pending'
-          ? `<button class="btn-approve" id="appBtn_${req.reqId}" onclick="approveRequest('${req.reqId}',this)">✓ Approve</button>`
-          : `<span class="status-badge ${req.status}">${req.status === 'approved' ? '✓ Approved' : req.status}</span>`
-        }
-      </div>
-      ${req.status === 'approved' && req.code
-        ? `<div class="req-approved-code">Code: ${req.code}</div>`
-        : ''}
-    </div>`).join('');
-}
-
-async function approveRequest(reqId, btn) {
-  btn.disabled = true; btn.textContent = 'Approving…';
-  try {
-    const r = await fetch('/api/approve-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, reqId })
-    });
-    const data = await r.json();
-    if (!r.ok) { alert(data.error || 'Failed'); btn.disabled = false; btn.textContent = '✓ Approve'; return; }
-
-    // Show the generated code prominently
-    document.getElementById('approveCodBig').textContent = data.code;
-    document.getElementById('approveCodeMeta').textContent =
-      `${data.playerName} · ${data.amount ? '₹' + data.amount : ''} — player's app will update automatically`;
-    document.getElementById('approveResult').style.display = 'block';
-    document.getElementById('approveResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    loadRequests();
-  } catch(e) { btn.disabled = false; btn.textContent = '✓ Approve'; }
-}
-
-function copyApproveCode() {
-  const code = document.getElementById('approveCodBig').textContent;
-  navigator.clipboard.writeText(code).catch(() => {});
-  const btn = document.getElementById('copyApproveBtn');
-  btn.textContent = '✓ Copied!';
-  setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
-}
 
 async function createSubscription() {
   const name = document.getElementById('subName').value.trim();

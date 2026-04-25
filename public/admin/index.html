@@ -414,6 +414,15 @@ select.field{cursor:pointer}
           Add <strong>ADMIN_PASSWORD</strong> → Redeploy.
         </div>
       </div>
+      <div class="settings-card">
+        <div class="settings-title" style="justify-content:space-between">
+          <span>🐛 PDF Parse Errors</span>
+          <button class="refresh-btn" onclick="loadParseErrors()" style="font-size:12px">↻ Refresh</button>
+        </div>
+        <div id="parseErrorsList">
+          <div style="font-size:13px;color:var(--on-sv)">Loading…</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -450,6 +459,7 @@ function bootAdmin() {
   loadSessions();
   loadRequests();
   reqRefreshTimer = setInterval(() => loadRequests(), 8000);
+  loadParseErrors();
 }
 
 function logout() {
@@ -474,6 +484,7 @@ function switchTab(tab) {
     reqRefreshTimer = setInterval(() => loadRequests(), 8000);
   }
   if (tab === 'subscriptions') loadSubscriptions();
+  if (tab === 'settings') loadParseErrors();
 }
 
 /* ── CONFIG ── */
@@ -804,6 +815,29 @@ function copyToClip(text, btn) {
   const orig = btn.textContent;
   btn.textContent = '✓';
   setTimeout(() => btn.textContent = orig, 1800);
+}
+
+/* ── PARSE ERRORS ── */
+async function loadParseErrors() {
+  const el = document.getElementById('parseErrorsList');
+  try {
+    const r = await fetch(`/api/payment?password=${encodeURIComponent(adminPwd)}&type=errors`);
+    if (!r.ok) return;
+    const logs = await r.json();
+    if (!logs.parseErrors || !logs.parseErrors.length) {
+      el.innerHTML = '<div style="font-size:13px;color:var(--on-sv)">No parse errors reported yet ✓</div>';
+      return;
+    }
+    el.innerHTML = logs.parseErrors.map(log => {
+      const d = new Date(log.reportedAt);
+      return `<div style="background:#FFF3E0;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px">
+        <div style="font-weight:700;color:#E65100;margin-bottom:4px">${d.toLocaleString('en-IN')} — ${log.errors.length} ticket(s)</div>
+        ${log.errors.map(e=>`<div style="color:#5D4037">• Sheet <b>${esc(e.sheetName)}</b> Ticket <b>#${esc(e.ticketId)}</b> — ${e.rows}/3 rows, ${e.count}/15 numbers | Found: ${e.nums.sort((a,b)=>a-b).join(', ')}</div>`).join('')}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--error)">Could not load</div>';
+  }
 }
 
 /* ── HELPERS ── */

@@ -654,6 +654,25 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .dp-support-link{font-size:13px;color:var(--primary);text-decoration:none;font-weight:600}
 .dp-support-link:active{opacity:.7}
 .dp-upi-hint{font-size:12px;color:var(--on-surface-variant);text-align:center}
+/* ── PARSE WARNING OVERLAY ── */
+#parseWarn{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;
+  display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom)}
+#parseWarn.off{display:none!important}
+.pw-card{background:#fff;border-radius:28px 28px 0 0;padding:24px 20px 28px;
+  width:100%;max-width:440px;max-height:80vh;overflow-y:auto}
+.pw-title{font-size:18px;font-weight:900;color:#E65100;margin-bottom:6px}
+.pw-sub{font-size:13px;color:var(--on-surface-variant);margin-bottom:16px;line-height:1.5}
+.pw-ticket-row{display:flex;align-items:center;justify-content:space-between;
+  background:#FFF3E0;border-radius:12px;padding:10px 14px;margin-bottom:8px;gap:8px}
+.pw-ticket-info{flex:1}
+.pw-ticket-id{font-size:15px;font-weight:700;color:#E65100}
+.pw-ticket-detail{font-size:12px;color:var(--on-surface-variant);margin-top:2px}
+.pw-print-btn{background:#FF6D00;color:#fff;border:none;border-radius:10px;
+  padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.pw-hint{font-size:12px;color:var(--on-surface-variant);background:var(--primary-container);
+  border-radius:12px;padding:10px 14px;margin:14px 0;line-height:1.6}
+.pw-continue{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;
+  border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
 /* ── WAITING SCREEN ── */
 #dpWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -865,6 +884,20 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     class="dp-support-link" style="margin-top:14px;display:none">
     💬 Taking too long? Contact on WhatsApp
   </a>
+</div>
+
+<!-- ══ PARSE WARNING OVERLAY ══ -->
+<div id="parseWarn" class="off">
+  <div class="pw-card">
+    <div class="pw-title">⚠️ Some tickets couldn't be loaded</div>
+    <div class="pw-sub">These tickets had incomplete or corrupted data and were removed to prevent game errors:</div>
+    <div id="pwList"></div>
+    <div class="pw-hint">
+      💡 <strong>For these tickets, use a physical sheet.</strong> You can print the numbers below and play manually.
+      The issue has been reported to the admin.
+    </div>
+    <button class="pw-continue" onclick="dismissParseWarn()">Continue Without These Tickets</button>
+  </div>
 </div>
 
 <!-- ══ SETUP ══ -->
@@ -1464,11 +1497,14 @@ async function dpHandleFiles(e){
     }catch(err){console.error(f.name,err);errs.push(f.name);}
   }
   const MAX_SHEETS=150;
-  if(sheets.length>MAX_SHEETS){sheets=sheets.slice(0,MAX_SHEETS);total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);}
+  if(sheets.length>MAX_SHEETS) sheets=sheets.slice(0,MAX_SHEETS);
+  const badTickets=validateSheets(sheets);
+  total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
   $('loadingOv').classList.add('off');
   pickBtn.disabled=false; pickBtn.textContent='📁 Select PDF Sheets';
-  if(!total){toast(errs.length?`Could not read: ${errs[0]}`:'No tickets found');return;}
+  if(!total){toast(errs.length?`Could not read: ${errs[0]}`:'No valid tickets found');return;}
   save();
+  if(badTickets.length) reportParseErrors(badTickets); // report silently, don't block the payment flow
   // Show step 2
   const count=sheets.length;
   const price=appConfig.pricePerSheet||5;
@@ -2360,6 +2396,88 @@ window.addEventListener('resize',()=>{
   },100);
 });
 
+/* ══ TICKET VALIDATION ══ */
+function ticketRowCount(t){
+  return Array.from({length:3},(_,ri)=>
+    Array.from({length:9},(_,ci)=>t.numbers[ri*9+ci]).some(n=>n!==null)
+  ).filter(Boolean).length;
+}
+function ticketNumCount(t){return t.numbers.filter(n=>n!==null).length;}
+function isTicketValid(t){return ticketRowCount(t)===3&&ticketNumCount(t)===15;}
+
+function validateSheets(sheetList){
+  const bad=[];
+  sheetList.forEach(sheet=>{
+    const keep=[],remove=[];
+    sheet.tickets.forEach(t=>{
+      if(isTicketValid(t)) keep.push(t);
+      else remove.push({sheetName:sheet.name,ticketId:t.id,
+        nums:t.numbers.filter(n=>n!==null),
+        rows:ticketRowCount(t),count:ticketNumCount(t)});
+    });
+    sheet.tickets=keep;
+    bad.push(...remove);
+  });
+  return bad;
+}
+
+let _parseWarnNext=null; // callback to run after user dismisses warning
+
+function showParseWarning(badTickets, onContinue){
+  _parseWarnNext=onContinue;
+  $('pwList').innerHTML=badTickets.map(b=>`
+    <div class="pw-ticket-row">
+      <div class="pw-ticket-info">
+        <div class="pw-ticket-id">Ticket #${b.ticketId} (Sheet ${b.sheetName})</div>
+        <div class="pw-ticket-detail">${b.rows}/3 rows · ${b.count}/15 numbers found</div>
+      </div>
+      <button class="pw-print-btn" onclick='printBadTicket(${JSON.stringify(b)})'>Print</button>
+    </div>`).join('');
+  $('parseWarn').classList.remove('off');
+  reportParseErrors(badTickets);
+}
+
+function dismissParseWarn(){
+  $('parseWarn').classList.add('off');
+  if(_parseWarnNext){_parseWarnNext();_parseWarnNext=null;}
+}
+
+function printBadTicket(b){
+  const rows=[];
+  for(let ri=0;ri<3;ri++){
+    const row=[];
+    for(let ci=0;ci<9;ci++){const n=b.nums.find(n=>n2col(n)===ci&&!rows.flat().includes(n));if(n)row.push(n);}
+    rows.push(row);
+  }
+  const numsSorted=[...b.nums].sort((a,z)=>a-z);
+  const win=window.open('','_blank','width=420,height=320');
+  win.document.write(`<!DOCTYPE html><html><head><title>Ticket #${b.ticketId}</title>
+  <style>body{font-family:sans-serif;padding:20px}h2{margin-bottom:8px}
+  .grid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin:12px 0}
+  .cell{border:1px solid #999;text-align:center;padding:6px 2px;font-size:13px;font-weight:600;min-height:28px}
+  .cell.empty{background:#f5f5f5;color:#ccc}
+  p{font-size:12px;color:#666}</style></head><body>
+  <h2>Ticket #${b.ticketId} — Sheet ${b.sheetName}</h2>
+  <p>⚠️ This ticket could not be loaded in the app (${b.rows}/3 rows, ${b.count}/15 numbers). Play manually.</p>
+  <p><strong>Numbers found:</strong> ${numsSorted.join(', ')}</p>
+  <button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#6750A4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">🖨 Print</button>
+  </body></html>`);
+  win.document.close();
+}
+
+async function reportParseErrors(badTickets){
+  if(!badTickets.length) return;
+  try{
+    await fetch('/api/payment',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'report',errors:badTickets.map(b=>({
+        sheetName:b.sheetName,ticketId:b.ticketId,rows:b.rows,count:b.count,
+        nums:b.nums,reportedAt:Date.now()
+      }))})
+    });
+  }catch(e){}
+}
+
 /* ══ FILE UPLOAD ══ */
 async function handleUpload(e){
   const files=Array.from(e.target.files);if(!files.length)return;
@@ -2393,12 +2511,15 @@ async function handleUpload(e){
   const MAX_SHEETS=150;
   if(sheets.length>MAX_SHEETS){
     sheets=sheets.slice(0,MAX_SHEETS);
-    total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
     toast(`Limit: only first ${MAX_SHEETS} sheets loaded for best performance`);
   }
+  const badTickets=validateSheets(sheets);
+  total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
+  if(!total){toast('No valid tickets found after validation');return;}
   save();
-  showSetup();
-  if(errs.length) toast(`Loaded ${total} tickets (${errs.length} failed)`);
+  if(errs.length) toast(`Loaded ${total} tickets (${errs.length} files failed)`);
+  if(badTickets.length) showParseWarning(badTickets,showSetup);
+  else showSetup();
 }
 
 /* ══ PDF → TEXT ══ */

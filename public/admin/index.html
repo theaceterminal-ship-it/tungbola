@@ -163,6 +163,7 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
   <div class="tab-bar">
     <button class="tab-btn active" id="tabBtnRequests" onclick="switchTab('requests')">Requests <span id="reqBadge" class="tab-badge" style="display:none">0</span></button>
     <button class="tab-btn" id="tabBtnSessions" onclick="switchTab('sessions')">Sessions</button>
+    <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">Subscriptions</button>
     <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">Settings</button>
   </div>
 
@@ -222,6 +223,45 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
         <div class="empty-list-icon">📋</div>
         <div>No sessions yet</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── SUBSCRIPTIONS TAB ── -->
+  <div class="tab-content" id="tabSubscriptions" style="display:none">
+    <div class="card">
+      <div class="card-title">🎫 New Subscription</div>
+      <div class="field-wrap">
+        <div class="field-label">Player Name</div>
+        <input class="field" id="subName" placeholder="e.g. Rahul" type="text">
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Plan</div>
+        <select class="field" id="subPlan" style="cursor:pointer">
+          <option value="monthly">Monthly (30 days)</option>
+          <option value="yearly">Yearly (365 days)</option>
+        </select>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Max Devices (1–5)</div>
+        <input class="field" id="subDevices" type="number" min="1" max="5" value="3">
+      </div>
+      <button class="btn-sec btn-full" onclick="createSubscription()">Create Subscription →</button>
+      <div class="error-msg" id="subCreateError"></div>
+    </div>
+
+    <div class="code-result" id="subKeyResult">
+      <div class="code-result-label">Subscription Key — Share with player</div>
+      <div class="code-big" id="subKeyBig" style="font-size:22px;letter-spacing:4px;word-break:break-all"></div>
+      <div class="code-meta" id="subKeyMeta"></div>
+      <button class="code-copy-btn" onclick="copySubKey()" id="copySubKeyBtn">📋 Copy Key</button>
+    </div>
+
+    <div class="sessions-header">
+      <div class="sessions-title">All Subscriptions</div>
+      <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
+    </div>
+    <div id="subscriptionsList">
+      <div class="empty-list"><div class="empty-list-icon">🎫</div><div>No subscriptions yet</div></div>
     </div>
   </div>
 
@@ -301,13 +341,14 @@ function logout() {
 }
 
 function switchTab(tab) {
-  ['requests','sessions','settings'].forEach(t => {
+  ['requests','sessions','subscriptions','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
     if (el) el.style.display = t === tab ? 'block' : 'none';
   });
   if (tab === 'requests') loadRequests();
   if (tab === 'sessions') loadSessions();
+  if (tab === 'subscriptions') loadSubscriptions();
 }
 
 async function loadConfig() {
@@ -538,6 +579,111 @@ function copyApproveCode() {
   const btn = document.getElementById('copyApproveBtn');
   btn.textContent = '✓ Copied!';
   setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
+}
+
+async function createSubscription() {
+  const name = document.getElementById('subName').value.trim();
+  const plan = document.getElementById('subPlan').value;
+  const devices = parseInt(document.getElementById('subDevices').value) || 3;
+  const errEl = document.getElementById('subCreateError');
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Enter player name'; errEl.style.display = 'block'; return; }
+
+  const btn = document.querySelector('[onclick="createSubscription()"]');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const r = await fetch('/api/create-subscription', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, playerName: name, plan, maxDevices: devices })
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+
+    document.getElementById('subKeyBig').textContent = data.key;
+    document.getElementById('subKeyMeta').textContent =
+      `${name} · ${plan === 'yearly' ? 'Yearly' : 'Monthly'} · ${data.days} days · ${devices} device${devices > 1 ? 's' : ''} · expires ${new Date(data.expiresAt).toLocaleDateString()}`;
+    document.getElementById('subKeyResult').style.display = 'block';
+    document.getElementById('subKeyResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    document.getElementById('subName').value = '';
+    document.getElementById('subDevices').value = '3';
+    loadSubscriptions();
+  } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Create Subscription →'; }
+}
+
+function copySubKey() {
+  const key = document.getElementById('subKeyBig').textContent;
+  navigator.clipboard.writeText(key).catch(() => {});
+  const btn = document.getElementById('copySubKeyBtn');
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => btn.textContent = '📋 Copy Key', 2000);
+}
+
+async function loadSubscriptions() {
+  try {
+    const r = await fetch(`/api/subscriptions?password=${encodeURIComponent(adminPwd)}`);
+    if (!r.ok) return;
+    renderSubscriptions(await r.json());
+  } catch(e) {}
+}
+
+function renderSubscriptions(list) {
+  const el = document.getElementById('subscriptionsList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">🎫</div><div>No subscriptions yet</div></div>';
+    return;
+  }
+  const now = Date.now();
+  el.innerHTML = list.map(s => {
+    const expired = now > s.expiresAt;
+    const revoked = s.status === 'revoked';
+    const daysLeft = Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
+    const statusLbl = revoked ? '■ Revoked' : expired ? '⚠ Expired' : '● Active';
+    const statusCls = revoked ? 'ended' : expired ? 'pending' : 'active';
+    return `
+    <div class="session-item ${revoked || expired ? 'ended' : ''}">
+      <div class="session-info">
+        <div class="session-name">${esc(s.playerName)}</div>
+        <div class="session-code" style="font-size:13px;letter-spacing:2px">${s.key}</div>
+        <div class="status-badge ${statusCls}">${statusLbl}</div>
+        <div class="session-meta">
+          ${s.plan === 'yearly' ? 'Yearly' : 'Monthly'} ·
+          ${s.devices ? s.devices.length : 0}/${s.maxDevices} devices ·
+          ${expired || revoked ? 'expired' : daysLeft + 'd left'} ·
+          ${timeAgo(s.createdAt)}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+        ${!revoked && !expired ? `<button class="btn-danger" onclick="revokeSubscription('${s.key}',this)">Revoke</button>` : ''}
+        ${!revoked ? `<button class="btn-danger" style="background:#EDE7F6;color:var(--primary)" onclick="resetSubDevices('${s.key}',this)">Reset Devices</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function revokeSubscription(key, btn) {
+  if (!confirm(`Revoke subscription ${key}? Player will lose access.`)) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fetch('/api/end-subscription', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, key })
+    });
+    loadSubscriptions();
+  } catch(e) { btn.disabled = false; btn.textContent = 'Revoke'; }
+}
+
+async function resetSubDevices(key, btn) {
+  if (!confirm(`Reset device slots for ${key}? All registered devices will be removed.`)) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fetch('/api/end-subscription', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, key, resetDevices: true })
+    });
+    loadSubscriptions();
+  } catch(e) { btn.disabled = false; btn.textContent = 'Reset Devices'; }
 }
 </script>
 </body>

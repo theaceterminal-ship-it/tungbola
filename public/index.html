@@ -671,6 +671,19 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .wait-cancel{background:none;border:none;color:var(--on-surface-variant);font-size:13px;
   cursor:pointer;text-decoration:underline;font-family:inherit}
 
+/* ── SUBSCRIPTION STATUS BAR ── */
+.sub-status-bar{display:flex;align-items:center;gap:8px;background:#E8F5E9;
+  color:#2E7D32;border-radius:16px;padding:10px 16px;font-size:13px;font-weight:600;
+  margin-bottom:16px;max-width:290px}
+.sub-status-bar .mir{font-size:18px}
+
+/* ── SUBSCRIPTION KEY INPUT ── */
+.pay-sub-input{width:100%;padding:12px 14px;border:2px solid var(--outline);
+  border-radius:14px;font-size:18px;font-weight:700;font-family:monospace;
+  text-transform:uppercase;text-align:center;letter-spacing:3px;
+  outline:none;background:var(--bg);margin-bottom:10px;transition:border-color .2s}
+.pay-sub-input:focus{border-color:var(--primary)}
+
 /* ── END GAME BUTTON ── */
 .end-game-wrap{padding:8px 0 4px;display:flex;justify-content:center}
 .end-game-btn{display:flex;align-items:center;gap:8px;padding:12px 24px;
@@ -760,6 +773,10 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="balls-stage" id="ballsStage"></div>
   <div class="app-name">Tungbola</div>
   <div class="app-sub">Your game companion</div>
+  <div id="subStatusBar" class="sub-status-bar hidden">
+    <span class="mir">verified_user</span>
+    <span id="subStatusTxt"></span>
+  </div>
   <input type="file" id="fi1" accept=".pdf,.txt,.json" multiple style="display:none" onchange="handleUpload(event)">
   <button class="btn-fill" onclick="fi1.click()">
     <span class="mir">upload_file</span> Load Ticket Sheets
@@ -789,6 +806,15 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
       <button class="pay-req-btn" onclick="requestSession()">
         <span class="mir">send</span> I've Paid — Request Session
       </button>
+    </div>
+    <div class="pay-divider">have a subscription?</div>
+    <div class="pay-code-card" style="margin-bottom:14px">
+      <div class="pay-section-lbl">Subscription Key</div>
+      <input type="text" class="pay-sub-input" id="subKeyInput"
+        placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+      <div class="pay-error" id="subError"></div>
+      <button class="pay-verify-btn" onclick="verifySubscription()">Activate Subscription →</button>
     </div>
     <div class="pay-divider">already have a code?</div>
     <div class="pay-code-card">
@@ -1115,6 +1141,7 @@ let currentWin=null;
 let redoStack=[],dtGroupStart=0,lpTimer=null;
 let appConfig={pricePerSheet:5,upiId:'',whatsappNumber:''};
 let gameSession=null;
+let subscriptionKey=null;
 let pendingReqId=null,pollTimer=null;
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
@@ -1250,7 +1277,10 @@ function init(){
   buildBalls();
   loadAppConfig();
   try{const s=localStorage.getItem('tb_pay');if(s)gameSession=JSON.parse(s);}catch(e){}
+  try{const s=localStorage.getItem('tb_sub');if(s)subscriptionKey=JSON.parse(s).key;}catch(e){}
+  updateSubStatusBar();
   if(sheets.length>0&&gameSession) $('btnContinue').classList.remove('off');
+  if(gameSession?.type==='subscription') silentVerifySubscription();
   // Hide splash after 2s
   setTimeout(()=>{
     const s=$('splash');
@@ -1475,6 +1505,85 @@ function cancelWaiting(){
   showPayForm();
 }
 
+/* ══ SUBSCRIPTION ══ */
+async function verifySubscription(){
+  const key=($('subKeyInput').value||'').trim().toUpperCase();
+  const errEl=$('subError');
+  const btn=document.querySelector('[onclick="verifySubscription()"]');
+  errEl.style.display='none';
+  if(!key||key.length<10){errEl.textContent='Enter a valid subscription key';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Verifying…';
+  try{
+    const r=await fetch('/api/verify-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key,deviceId:getDeviceId()})
+    });
+    const data=await r.json();
+    if(!r.ok){
+      errEl.textContent=data.error||'Verification failed';
+      errEl.style.display='block';
+      btn.disabled=false;btn.textContent='Activate Subscription →';
+      return;
+    }
+    subscriptionKey=key;
+    localStorage.setItem('tb_sub',JSON.stringify({key}));
+    gameSession={type:'subscription',key,playerName:data.playerName,
+      plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
+    localStorage.setItem('tb_pay',JSON.stringify(gameSession));
+    $('payment').classList.add('off');
+    showSetup();
+  }catch(e){
+    errEl.textContent='Network error. Check connection.';
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Activate Subscription →';
+  }
+}
+
+async function silentVerifySubscription(){
+  if(!subscriptionKey) return;
+  try{
+    const r=await fetch('/api/verify-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key:subscriptionKey,deviceId:getDeviceId()})
+    });
+    if(!r.ok){
+      localStorage.removeItem('tb_sub');
+      subscriptionKey=null;
+      if(gameSession?.type==='subscription'){
+        gameSession=null;
+        localStorage.removeItem('tb_pay');
+        $('btnContinue').classList.add('off');
+        updateSubStatusBar();
+      }
+      return;
+    }
+    const data=await r.json();
+    gameSession={type:'subscription',key:subscriptionKey,playerName:data.playerName,
+      plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
+    localStorage.setItem('tb_pay',JSON.stringify(gameSession));
+    updateSubStatusBar();
+    if(data.daysLeft<=7)
+      setTimeout(()=>toast(`⚠️ Subscription expires in ${data.daysLeft} day${data.daysLeft===1?'':'s'}`),3500);
+  }catch(e){}
+}
+
+function updateSubStatusBar(){
+  const bar=$('subStatusBar');
+  if(!bar) return;
+  if(gameSession?.type==='subscription'){
+    const daysLeft=Math.max(0,Math.ceil((gameSession.expiresAt-Date.now())/86400000));
+    const plan=gameSession.plan==='yearly'?'Yearly':'Monthly';
+    $('subStatusTxt').textContent=`${gameSession.playerName} · ${plan} · ${daysLeft}d left`;
+    const ico=bar.querySelector('.mir');
+    if(ico) ico.textContent=daysLeft<=7?'warning':'verified_user';
+    bar.style.background=daysLeft<=7?'#FFF3E0':'';
+    bar.style.color=daysLeft<=7?'#E65100':'';
+    bar.classList.remove('hidden');
+  }else{
+    bar.classList.add('hidden');
+  }
+}
+
 /* ══ PAYMENT VERIFY ══ */
 async function verifyCode(){
   const code=$('payCodeInput').value.trim().toUpperCase();
@@ -1509,7 +1618,8 @@ async function verifyCode(){
 /* ══ END GAME ══ */
 async function endGame(){
   if(!confirm('End this game session? This cannot be undone.')) return;
-  if(gameSession){
+  const isSub=gameSession?.type==='subscription';
+  if(!isSub&&gameSession){
     try{
       await fetch('/api/end-session',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -1518,14 +1628,16 @@ async function endGame(){
     }catch(e){}
   }
   stopPolling();
-  ['tb_pay','tb_req','tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
-  gameSession=null;sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
+  ['tb_req','tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
+  if(!isSub){localStorage.removeItem('tb_pay');gameSession=null;}
+  sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
   active=new Set(PRIZES.map(p=>p.key));claimed={};redoStack=[];
   $('allDoneBanner').classList.remove('on');
   $('game').classList.add('off');$('setup').classList.add('off');$('payment').classList.add('off');
   $('btnContinue').classList.add('off');
   $('welcome').classList.remove('off');
-  toast('Game ended. Thanks for playing!');
+  updateSubStatusBar();
+  toast(isSub?'Game ended. Load new tickets to play again!':'Game ended. Thanks for playing!');
 }
 
 /* ══ SETUP ══ */

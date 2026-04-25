@@ -649,7 +649,10 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--primary)}
 .dp-qr-wrap{display:flex;flex-direction:column;align-items:center;
   gap:6px;margin:12px 0}
-.dp-qr-wrap canvas{border-radius:12px;border:3px solid var(--primary-container)}
+.dp-qr-wrap #dpQrContainer canvas,.dp-qr-wrap #dpQrContainer img{border-radius:12px;border:3px solid var(--primary-container);display:block}
+.dp-support{text-align:center;margin-top:10px}
+.dp-support-link{font-size:13px;color:var(--primary);text-decoration:none;font-weight:600}
+.dp-support-link:active{opacity:.7}
 .dp-upi-hint{font-size:12px;color:var(--on-surface-variant);text-align:center}
 /* ── WAITING SCREEN ── */
 #dpWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
@@ -824,7 +827,7 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
       <input type="text" class="act-input" id="dpName" placeholder="Your name"
         maxlength="50" style="margin-bottom:10px">
       <div class="dp-qr-wrap">
-        <canvas id="dpQrCanvas" width="180" height="180"></canvas>
+        <div id="dpQrContainer"></div>
         <div class="dp-upi-hint" id="dpUpiHint"></div>
       </div>
       <div class="act-error" id="dpError"></div>
@@ -832,6 +835,11 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
         I've Paid — Request Approval →
       </button>
       <button class="act-btn-ghost" onclick="dpReset()">← Change Sheets</button>
+      <div class="dp-support" id="dpSupport" style="display:none">
+        <a id="dpSupportLink" href="#" target="_blank" rel="noopener" class="dp-support-link">
+          💬 Need help? Contact on WhatsApp
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -848,6 +856,10 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   </div>
   <div class="wait-info" id="dpWaitInfo"></div>
   <button class="wait-cancel" onclick="dpCancelRequest()">Cancel</button>
+  <a id="waitSupportLink" href="#" target="_blank" rel="noopener"
+    class="dp-support-link" style="margin-top:14px;display:none">
+    💬 Taking too long? Contact on WhatsApp
+  </a>
 </div>
 
 <!-- ══ SETUP ══ -->
@@ -1415,6 +1427,8 @@ function dpReset(){
   const ne=$('dpName');if(ne) ne.value='';
   const er=$('dpError');if(er) er.style.display='none';
   $('dpFileInput').value='';
+  $('dpQrContainer').innerHTML='';
+  const dpSup=$('dpSupport');if(dpSup) dpSup.style.display='none';
   $('dpDesc').textContent='Single session · pay per sheet';
 }
 
@@ -1461,17 +1475,29 @@ async function dpHandleFiles(e){
 }
 
 function dpDrawQR(upiId,amount){
-  const canvas=$('dpQrCanvas');
+  const container=$('dpQrContainer');
   const hint=$('dpUpiHint');
-  if(!upiId){hint.textContent='UPI not configured – contact admin';return;}
+  container.innerHTML='';
+  if(!upiId){
+    hint.textContent='UPI not configured – contact admin';
+    return;
+  }
   const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Day+Pass`;
   hint.textContent=`Pay ₹${amount} to ${upiId}`;
-  // Clear canvas first
-  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
   try{
-    new QRCode(canvas,{text:upiStr,width:180,height:180,colorDark:'#1C1B1F',colorLight:'#FFFFFF',
-      correctLevel:QRCode.CorrectLevel.M});
-  }catch(ex){hint.textContent=`Pay ₹${amount} to UPI: ${upiId}`;}
+    new QRCode(container,{text:upiStr,width:180,height:180,
+      colorDark:'#1C1B1F',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});
+  }catch(ex){
+    hint.textContent=`Pay ₹${amount} to UPI: ${upiId}`;
+  }
+  // Show WhatsApp support links
+  const wa=appConfig.whatsappNumber||'';
+  const waUrl=wa?`https://wa.me/${wa}`:'#';
+  const showWa=!!wa;
+  const dpSup=$('dpSupport');const dpLnk=$('dpSupportLink');
+  if(dpSup&&dpLnk){dpSup.style.display=showWa?'':'none';dpLnk.href=waUrl;}
+  const wSup=$('waitSupportLink');
+  if(wSup){wSup.style.display=showWa?'':'none';wSup.href=waUrl;}
 }
 
 async function dpSubmitRequest(){

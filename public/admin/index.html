@@ -9,9 +9,9 @@
 <style>
 :root{
   --primary:#6750A4;--primary-c:#EADDFF;--error:#B3261E;--error-c:#F9DEDC;
-  --success:#4CAF50;--surface:#FFFFFF;--bg:#FFFBFE;--sv:#E7E0EC;
+  --success:#4CAF50;--surface:#FFFFFF;--bg:#F4F0FA;--sv:#E7E0EC;
   --on-s:#1C1B1F;--on-sv:#49454F;--outline:#79747E;
-  --shadow:0 1px 3px rgba(0,0,0,.12);--shadow-lg:0 4px 12px rgba(0,0,0,.15)
+  --shadow:0 1px 3px rgba(0,0,0,.1);--shadow-md:0 2px 8px rgba(0,0,0,.12);--shadow-lg:0 4px 16px rgba(0,0,0,.15)
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-height:100vh}
@@ -19,119 +19,198 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
 /* ── LOGIN ── */
 #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
   padding:24px;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%)}
-.login-card{background:#fff;border-radius:28px;padding:32px 28px;width:100%;max-width:360px;
+.login-card{background:#fff;border-radius:28px;padding:36px 32px;width:100%;max-width:360px;
   box-shadow:var(--shadow-lg);text-align:center}
-.login-logo{font-size:40px;font-weight:900;color:var(--primary);margin-bottom:6px}
+.login-logo{font-size:42px;font-weight:900;color:var(--primary);margin-bottom:4px}
 .login-sub{font-size:14px;color:var(--on-sv);margin-bottom:28px}
-.field{width:100%;padding:14px 16px;border:2px solid var(--outline);border-radius:14px;
-  font-size:16px;font-family:inherit;outline:none;background:var(--bg);margin-bottom:12px}
+.field{width:100%;padding:14px 16px;border:2px solid var(--sv);border-radius:14px;
+  font-size:15px;font-family:inherit;outline:none;background:#fff;margin-bottom:12px;
+  transition:border-color .2s}
 .field:focus{border-color:var(--primary)}
+select.field{cursor:pointer}
 .btn-primary{width:100%;padding:15px;background:var(--primary);color:#fff;border:none;
-  border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:opacity .15s}
 .btn-primary:active{opacity:.85}
-.login-error{color:var(--error);font-size:13px;margin-top:8px;font-weight:500;display:none}
+.login-error{color:var(--error);font-size:13px;margin-top:10px;font-weight:500;display:none}
 
-/* ── MAIN ── */
+/* ── MAIN SHELL ── */
 #mainScreen{display:none;flex-direction:column;min-height:100vh}
 
-.admin-header{background:var(--primary);color:#fff;padding:16px 20px;
+.admin-header{background:linear-gradient(135deg,#4527A0 0%,var(--primary) 60%,#7B1FA2 100%);
+  color:#fff;padding:0 24px;height:64px;
   display:flex;align-items:center;justify-content:space-between;
-  box-shadow:0 2px 8px rgba(103,80,164,.3)}
-.header-title{font-size:20px;font-weight:700}
-.header-sub{font-size:12px;opacity:.8;margin-top:1px}
-.logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;
-  padding:8px 14px;border-radius:20px;font-size:13px;font-weight:500;
-  cursor:pointer;font-family:inherit}
-
-.tab-bar{background:var(--surface);display:flex;border-bottom:1px solid var(--sv);
-  padding:0 16px;gap:4px}
-.tab-btn{flex:1;padding:14px 8px;border:none;background:transparent;
-  font-size:14px;font-weight:500;color:var(--on-sv);cursor:pointer;
-  border-bottom:3px solid transparent;font-family:inherit;transition:all .2s}
-.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
-@keyframes reqPulse{0%,100%{background:transparent}50%{background:var(--primary-c)}}
-
-.tab-content{flex:1;padding:16px;max-width:600px;width:100%;margin:0 auto}
-
-/* ── CARDS ── */
-.card{background:var(--surface);border-radius:20px;padding:20px;
-  box-shadow:var(--shadow);margin-bottom:16px}
-.card-title{font-size:16px;font-weight:700;margin-bottom:16px;
-  display:flex;align-items:center;gap:8px}
-.field-label{font-size:12px;font-weight:700;color:var(--on-sv);
-  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.field-wrap{margin-bottom:14px}
-.btn-sec{padding:12px 20px;background:var(--primary-c);color:var(--primary);
-  border:none;border-radius:12px;font-size:14px;font-weight:600;
+  box-shadow:0 2px 12px rgba(103,80,164,.4);flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-logo{font-size:22px;font-weight:900;letter-spacing:-.5px}
+.header-sep{width:1px;height:22px;background:rgba(255,255,255,.25)}
+.header-sub{font-size:13px;opacity:.8}
+.logout-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;
+  padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;
   cursor:pointer;font-family:inherit;transition:background .15s}
-.btn-sec:hover{background:#DDD6F3}
-.btn-full{width:100%}
-.btn-danger{background:var(--error-c);color:var(--error);padding:8px 14px;
-  border:none;border-radius:10px;font-size:13px;font-weight:600;
-  cursor:pointer;font-family:inherit}
+.logout-btn:hover{background:rgba(255,255,255,.25)}
 
-/* ── CODE DISPLAY ── */
-.code-result{background:linear-gradient(135deg,var(--primary) 0%,#8B5CF6 100%);
-  border-radius:20px;padding:24px;text-align:center;margin-bottom:16px;display:none}
-.code-result-label{font-size:12px;color:rgba(255,255,255,.75);
-  text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
-.code-big{font-size:48px;font-weight:900;color:#fff;letter-spacing:8px;
-  font-family:monospace;margin-bottom:8px}
-.code-meta{font-size:14px;color:rgba(255,255,255,.85);margin-bottom:16px}
-.code-copy-btn{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.5);
-  color:#fff;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit}
-.code-copy-btn:active{background:rgba(255,255,255,.35)}
+/* ── TAB BAR ── */
+.tab-bar{background:#fff;display:flex;border-bottom:2px solid var(--sv);padding:0 24px;gap:0}
+.tab-btn{padding:14px 20px;border:none;background:transparent;
+  font-size:14px;font-weight:500;color:var(--on-sv);cursor:pointer;
+  border-bottom:3px solid transparent;margin-bottom:-2px;
+  font-family:inherit;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--primary);background:rgba(103,80,164,.04)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
 
-/* ── SESSION LIST ── */
-.sessions-header{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:12px}
-.sessions-title{font-size:15px;font-weight:700}
-.refresh-btn{background:transparent;border:1px solid var(--outline);color:var(--on-sv);
-  padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit}
+/* ── CONTENT AREA ── */
+.tab-content{display:none;padding:24px;width:100%;max-width:1300px;margin:0 auto}
+.tab-content.active{display:block}
 
-.session-item{background:var(--surface);border-radius:14px;padding:14px 16px;
-  margin-bottom:8px;box-shadow:var(--shadow);display:flex;
-  align-items:flex-start;justify-content:space-between;gap:10px}
-.session-item.ended{opacity:.55}
-.session-info{flex:1;min-width:0}
-.session-name{font-size:15px;font-weight:600;margin-bottom:2px}
-.session-code{font-size:18px;font-weight:900;color:var(--primary);
-  letter-spacing:3px;font-family:monospace;margin-bottom:4px}
-.session-meta{font-size:12px;color:var(--on-sv)}
-.status-badge{display:inline-flex;align-items:center;padding:3px 8px;
-  border-radius:10px;font-size:11px;font-weight:600;margin-bottom:6px}
-.status-badge.active{background:#E8F5E9;color:#2E7D32}
-.status-badge.ended{background:var(--sv);color:var(--on-sv)}
-.status-badge.pending{background:#FFF3E0;color:#E65100;animation:pulse 1.5s ease-in-out infinite}
-.status-badge.approved{background:#E8F5E9;color:#2E7D32}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+/* ── SPLIT LAYOUT ── */
+.split{display:grid;grid-template-columns:360px 1fr;gap:24px;align-items:start}
+@media(max-width:860px){.split{grid-template-columns:1fr}}
 
-/* ── REQUESTS ── */
-.req-item{background:var(--surface);border-radius:14px;padding:14px 16px;
-  margin-bottom:10px;box-shadow:var(--shadow)}
-.req-item.pending-req{border-left:4px solid #E65100}
-.req-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
-.req-info{flex:1}
-.req-name{font-size:15px;font-weight:700;margin-bottom:2px}
-.req-meta{font-size:12px;color:var(--on-sv)}
-.req-id{font-size:11px;color:var(--on-sv);font-family:monospace;margin-top:4px}
-.btn-approve{background:var(--primary);color:#fff;border:none;border-radius:10px;
-  padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
-.btn-approve:disabled{opacity:.5;cursor:not-allowed}
-.req-approved-code{background:var(--primary-c);border-radius:8px;padding:8px 12px;
-  font-size:13px;color:var(--primary);font-weight:700;font-family:monospace;letter-spacing:2px}
-.tab-badge{display:inline-flex;align-items:center;justify-content:center;
-  background:#E65100;color:#fff;border-radius:10px;font-size:10px;font-weight:700;
-  min-width:16px;height:16px;padding:0 4px;margin-left:4px;vertical-align:middle}
+/* ── FORM PANEL ── */
+.form-panel{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow-md);
+  position:sticky;top:24px}
+.panel-title{font-size:16px;font-weight:700;margin-bottom:20px;
+  display:flex;align-items:center;gap:8px;padding-bottom:16px;
+  border-bottom:1px solid var(--sv)}
+.field-label{font-size:11px;font-weight:700;color:var(--on-sv);
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.field-wrap{margin-bottom:14px}
+.btn-gen{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;
+  border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:opacity .15s;margin-top:4px}
+.btn-gen:hover{opacity:.9}
+.btn-gen:disabled{opacity:.5;cursor:not-allowed}
+.form-err{font-size:12px;color:var(--error);margin-top:8px;text-align:center;display:none}
 
-.empty-list{text-align:center;padding:32px 16px;color:var(--on-sv);opacity:.6}
-.empty-list-icon{font-size:40px;margin-bottom:8px}
+/* ── CODE POPUP ── */
+.code-popup{background:linear-gradient(135deg,var(--primary) 0%,#7C3AED 100%);
+  border-radius:16px;padding:20px;text-align:center;margin-top:16px;display:none}
+.code-popup-lbl{font-size:10px;color:rgba(255,255,255,.7);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.code-popup-val{font-size:44px;font-weight:900;color:#fff;
+  letter-spacing:8px;font-family:monospace;margin-bottom:6px}
+.code-popup-val.sub-key{font-size:18px;letter-spacing:3px;word-break:break-all}
+.code-popup-meta{font-size:13px;color:rgba(255,255,255,.8);margin-bottom:14px;line-height:1.5}
+.code-popup-copy{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);
+  color:#fff;padding:8px 20px;border-radius:10px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:background .15s}
+.code-popup-copy:hover{background:rgba(255,255,255,.28)}
 
-.save-msg{font-size:13px;color:var(--success);font-weight:500;margin-top:8px;
-  text-align:center;display:none}
-.error-msg{font-size:13px;color:var(--error);font-weight:500;margin-top:8px;
-  text-align:center;display:none}
+/* ── LIST PANEL ── */
+.list-panel{background:#fff;border-radius:20px;box-shadow:var(--shadow-md);overflow:hidden}
+.list-hdr{padding:16px 20px;border-bottom:1px solid var(--sv);
+  display:flex;align-items:center;justify-content:space-between}
+.list-hdr-left{display:flex;align-items:center;gap:10px}
+.list-hdr-title{font-size:15px;font-weight:700}
+.list-count{background:var(--sv);color:var(--on-sv);border-radius:20px;
+  padding:3px 10px;font-size:12px;font-weight:600}
+.list-count.has-active{background:var(--primary-c);color:var(--primary)}
+.refresh-btn{background:transparent;border:1.5px solid var(--sv);color:var(--on-sv);
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;
+  cursor:pointer;font-family:inherit;transition:all .15s}
+.refresh-btn:hover{border-color:var(--primary);color:var(--primary)}
+.list-body{padding:12px 16px;max-height:72vh;overflow-y:auto}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:40px 20px;color:var(--on-sv);opacity:.55}
+.empty-ico{font-size:40px;margin-bottom:10px}
+.empty-txt{font-size:14px;font-weight:500}
+
+/* ── DAY PASS CARD ── */
+.pass-card{border:1px solid var(--sv);border-radius:14px;padding:14px 16px;
+  margin-bottom:10px;transition:box-shadow .15s;background:#FAFAFA}
+.pass-card:last-child{margin-bottom:0}
+.pass-card.is-active{background:#fff;border-color:rgba(103,80,164,.2);
+  box-shadow:0 2px 8px rgba(103,80,164,.08)}
+.pass-card.is-ended{opacity:.55}
+.pass-row1{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pass-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700}
+.pass-avatar.a{background:var(--primary-c);color:var(--primary)}
+.pass-avatar.e{background:var(--sv);color:var(--on-sv)}
+.pass-name-block{flex:1;min-width:0}
+.pass-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pass-time{font-size:11px;color:var(--on-sv);margin-top:1px}
+.pass-status{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+  border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
+.pass-status.active{background:#E8F5E9;color:#2E7D32}
+.pass-status.ended{background:var(--sv);color:var(--on-sv)}
+.pass-code-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pass-code{font-size:26px;font-weight:900;letter-spacing:5px;
+  font-family:monospace;color:var(--primary)}
+.pass-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;
+  border-radius:8px;font-size:11px;font-weight:600}
+.chip.sheets{background:#EDE7F6;color:#4527A0}
+.chip.amount{background:#E8F5E9;color:#2E7D32}
+.chip.time{background:#FFF8E1;color:#F57F17}
+.chip.expired{background:#FFF3E0;color:#E65100}
+.pass-actions{display:flex;gap:6px;justify-content:flex-end}
+.btn-end{background:var(--error-c);color:var(--error);border:none;
+  border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-end:hover{background:var(--error);color:#fff}
+.btn-end:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── SUBSCRIPTION CARD ── */
+.sub-card{border:1px solid var(--sv);border-radius:14px;padding:14px 16px;
+  margin-bottom:10px;background:#FAFAFA}
+.sub-card:last-child{margin-bottom:0}
+.sub-card.is-active{background:#fff;border-color:rgba(103,80,164,.2);
+  box-shadow:0 2px 8px rgba(103,80,164,.08)}
+.sub-card.is-inactive{opacity:.6}
+.sub-row1{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.sub-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700}
+.sub-avatar.a{background:linear-gradient(135deg,var(--primary),#7C3AED);color:#fff}
+.sub-avatar.i{background:var(--sv);color:var(--on-sv)}
+.sub-name-block{flex:1;min-width:0}
+.sub-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-created{font-size:11px;color:var(--on-sv);margin-top:1px}
+.sub-plan-badge{display:inline-flex;padding:3px 9px;border-radius:20px;
+  font-size:11px;font-weight:700;flex-shrink:0}
+.sub-plan-badge.monthly{background:#EDE7F6;color:var(--primary)}
+.sub-plan-badge.yearly{background:linear-gradient(135deg,#EDE7F6,#E1BEE7);color:#4527A0}
+.sub-key-box{background:var(--bg);border-radius:8px;padding:7px 12px;
+  font-family:monospace;font-size:12px;font-weight:700;letter-spacing:1.5px;
+  color:var(--on-sv);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sub-key-copy{background:transparent;border:none;color:var(--primary);
+  cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;
+  padding:2px 6px;border-radius:6px;transition:background .15s;white-space:nowrap}
+.sub-key-copy:hover{background:var(--primary-c)}
+.sub-devices-section{margin-bottom:10px}
+.sub-dev-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.sub-dev-lbl{font-size:11px;color:var(--on-sv);font-weight:600}
+.sub-dev-count{font-size:11px;color:var(--on-sv)}
+.sub-dev-bar{height:5px;background:var(--sv);border-radius:3px;overflow:hidden}
+.sub-dev-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .4s}
+.sub-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip.days{background:#E8F5E9;color:#2E7D32}
+.chip.expiring{background:#FFF3E0;color:#E65100}
+.chip.revoked{background:#FFEBEE;color:var(--error)}
+.chip.expired{background:var(--sv);color:var(--on-sv)}
+.chip.plan-m{background:#EDE7F6;color:var(--primary)}
+.chip.plan-y{background:#F3E5F5;color:#6A1B9A}
+.sub-actions{display:flex;gap:6px;justify-content:flex-end}
+.btn-revoke{background:var(--error-c);color:var(--error);border:none;
+  border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-revoke:hover{background:var(--error);color:#fff}
+.btn-reset{background:var(--primary-c);color:var(--primary);border:none;
+  border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-reset:hover{background:#DDD6F3}
+
+/* ── SETTINGS TAB ── */
+.settings-wrap{max-width:520px}
+.settings-card{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow-md);margin-bottom:16px}
+.settings-title{font-size:15px;font-weight:700;margin-bottom:18px;
+  padding-bottom:14px;border-bottom:1px solid var(--sv);display:flex;align-items:center;gap:8px}
+.save-msg{font-size:13px;color:var(--success);font-weight:600;margin-top:10px;text-align:center;display:none}
+.error-msg{font-size:13px;color:var(--error);font-weight:500;margin-top:8px;text-align:center;display:none}
 </style>
 </head>
 <body>
@@ -152,150 +231,182 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--on-s);min-
 
 <!-- ── MAIN ── -->
 <div id="mainScreen">
+
+  <!-- Header -->
   <div class="admin-header">
-    <div>
-      <div class="header-title">🎯 Tungbola Admin</div>
-      <div class="header-sub" id="headerSub">Loading config…</div>
+    <div class="header-left">
+      <div class="header-logo">🎯 Tungbola</div>
+      <div class="header-sep"></div>
+      <div class="header-sub" id="headerSub">Loading…</div>
     </div>
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 
+  <!-- Tab bar -->
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">Day Pass</button>
-    <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">Subscriptions</button>
-    <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">Settings</button>
+    <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">🎟️ Day Pass</button>
+    <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscriptions</button>
+    <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
 
   <!-- ── DAY PASS TAB ── -->
-  <div class="tab-content" id="tabSessions">
-    <!-- Create Code -->
-    <div class="card">
-      <div class="card-title">🎟️ Generate Day Pass Code</div>
-      <div class="field-wrap">
-        <div class="field-label">Player Name</div>
-        <input class="field" id="newName" placeholder="e.g. Rahul" type="text">
-      </div>
-      <div class="field-wrap">
-        <div class="field-label">Number of Sheets</div>
-        <input class="field" id="newSheets" type="number" min="1" max="50" value="1">
-      </div>
-      <button class="btn-sec btn-full" onclick="createCode()">Generate Code →</button>
-      <div class="error-msg" id="createError"></div>
-    </div>
+  <div class="tab-content active" id="tabSessions">
+    <div class="split">
 
-    <!-- Code Result -->
-    <div class="code-result" id="codeResult">
-      <div class="code-result-label">Session Code — Read this to the player</div>
-      <div class="code-big" id="codeBig"></div>
-      <div class="code-meta" id="codeMeta"></div>
-      <button class="code-copy-btn" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
-    </div>
+      <!-- Left: Form -->
+      <div class="form-panel">
+        <div class="panel-title">🎟️ Generate Day Pass</div>
+        <div class="field-wrap">
+          <div class="field-label">Player Name</div>
+          <input class="field" id="newName" placeholder="e.g. Rahul" type="text"
+            onkeydown="if(event.key==='Enter')createCode()">
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">Number of Sheets</div>
+          <input class="field" id="newSheets" type="number" min="1" max="300" value="1">
+        </div>
+        <button class="btn-gen" id="createCodeBtn" onclick="createCode()">Generate Code →</button>
+        <div class="form-err" id="createError"></div>
 
-    <!-- Day Pass List -->
-    <div class="sessions-header">
-      <div class="sessions-title">Active Day Passes</div>
-      <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
-    </div>
-    <div id="sessionsList">
-      <div class="empty-list">
-        <div class="empty-list-icon">🎟️</div>
-        <div>No day passes yet</div>
+        <!-- Code popup appears here -->
+        <div class="code-popup" id="codeResult">
+          <div class="code-popup-lbl">Day Pass Code · Share with player</div>
+          <div class="code-popup-val" id="codeBig"></div>
+          <div class="code-popup-meta" id="codeMeta"></div>
+          <button class="code-popup-copy" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
+        </div>
       </div>
+
+      <!-- Right: List -->
+      <div class="list-panel">
+        <div class="list-hdr">
+          <div class="list-hdr-left">
+            <div class="list-hdr-title">Day Passes</div>
+            <div class="list-count" id="dpCount">0</div>
+          </div>
+          <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
+        </div>
+        <div class="list-body" id="sessionsList">
+          <div class="empty">
+            <div class="empty-ico">🎟️</div>
+            <div class="empty-txt">No day passes yet</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <!-- ── SUBSCRIPTIONS TAB ── -->
-  <div class="tab-content" id="tabSubscriptions" style="display:none">
-    <div class="card">
-      <div class="card-title">🎫 New Subscription</div>
-      <div class="field-wrap">
-        <div class="field-label">Player Name</div>
-        <input class="field" id="subName" placeholder="e.g. Rahul" type="text">
-      </div>
-      <div class="field-wrap">
-        <div class="field-label">Plan</div>
-        <select class="field" id="subPlan" style="cursor:pointer">
-          <option value="monthly">Monthly (30 days)</option>
-          <option value="yearly">Yearly (365 days)</option>
-        </select>
-      </div>
-      <div class="field-wrap">
-        <div class="field-label">Max Devices (1–5)</div>
-        <input class="field" id="subDevices" type="number" min="1" max="5" value="3">
-      </div>
-      <button class="btn-sec btn-full" onclick="createSubscription()">Create Subscription →</button>
-      <div class="error-msg" id="subCreateError"></div>
-    </div>
+  <div class="tab-content" id="tabSubscriptions">
+    <div class="split">
 
-    <div class="code-result" id="subKeyResult">
-      <div class="code-result-label">Subscription Key — Share with player</div>
-      <div class="code-big" id="subKeyBig" style="font-size:22px;letter-spacing:4px;word-break:break-all"></div>
-      <div class="code-meta" id="subKeyMeta"></div>
-      <button class="code-copy-btn" onclick="copySubKey()" id="copySubKeyBtn">📋 Copy Key</button>
-    </div>
+      <!-- Left: Form -->
+      <div class="form-panel">
+        <div class="panel-title">🎫 New Subscription</div>
+        <div class="field-wrap">
+          <div class="field-label">Player Name</div>
+          <input class="field" id="subName" placeholder="e.g. Priya" type="text"
+            onkeydown="if(event.key==='Enter')createSubscription()">
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">Plan</div>
+          <select class="field" id="subPlan">
+            <option value="monthly">Monthly — 30 days</option>
+            <option value="yearly">Yearly — 365 days</option>
+          </select>
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">Max Devices (1 – 5)</div>
+          <input class="field" id="subDevices" type="number" min="1" max="5" value="3">
+        </div>
+        <button class="btn-gen" id="createSubBtn" onclick="createSubscription()">Create Subscription →</button>
+        <div class="form-err" id="subCreateError"></div>
 
-    <div class="sessions-header">
-      <div class="sessions-title">All Subscriptions</div>
-      <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
-    </div>
-    <div id="subscriptionsList">
-      <div class="empty-list"><div class="empty-list-icon">🎫</div><div>No subscriptions yet</div></div>
+        <!-- Key popup -->
+        <div class="code-popup" id="subKeyResult">
+          <div class="code-popup-lbl">Subscription Key · Share with player</div>
+          <div class="code-popup-val sub-key" id="subKeyBig"></div>
+          <div class="code-popup-meta" id="subKeyMeta"></div>
+          <button class="code-popup-copy" onclick="copySubKey()" id="copySubKeyBtn">📋 Copy Key</button>
+        </div>
+      </div>
+
+      <!-- Right: List -->
+      <div class="list-panel">
+        <div class="list-hdr">
+          <div class="list-hdr-left">
+            <div class="list-hdr-title">Subscribers</div>
+            <div class="list-count" id="subCount">0</div>
+          </div>
+          <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
+        </div>
+        <div class="list-body" id="subscriptionsList">
+          <div class="empty">
+            <div class="empty-ico">🎫</div>
+            <div class="empty-txt">No subscriptions yet</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <!-- ── SETTINGS TAB ── -->
-  <div class="tab-content" id="tabSettings" style="display:none">
-    <div class="card">
-      <div class="card-title">⚙️ Game Settings</div>
-      <div class="field-wrap">
-        <div class="field-label">Price per Sheet (₹)</div>
-        <input class="field" id="cfgPrice" type="number" min="1" placeholder="5">
+  <div class="tab-content" id="tabSettings">
+    <div class="settings-wrap">
+      <div class="settings-card">
+        <div class="settings-title">⚙️ Game Settings</div>
+        <div class="field-wrap">
+          <div class="field-label">Price per Sheet (₹)</div>
+          <input class="field" id="cfgPrice" type="number" min="1" placeholder="5">
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">UPI ID</div>
+          <input class="field" id="cfgUpi" placeholder="yourname@paytm" type="text">
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">WhatsApp Number (with country code, no +)</div>
+          <input class="field" id="cfgWa" placeholder="919876543210" type="tel">
+        </div>
+        <button class="btn-gen" onclick="saveConfig()">Save Settings</button>
+        <div class="save-msg" id="saveMsg">✓ Settings saved!</div>
+        <div class="error-msg" id="settingsError"></div>
       </div>
-      <div class="field-wrap">
-        <div class="field-label">UPI ID</div>
-        <input class="field" id="cfgUpi" placeholder="yourname@paytm" type="text">
-      </div>
-      <div class="field-wrap">
-        <div class="field-label">WhatsApp Number (with country code, no +)</div>
-        <input class="field" id="cfgWa" placeholder="919876543210" type="tel">
-      </div>
-      <button class="btn-sec btn-full" onclick="saveConfig()">Save Settings</button>
-      <div class="save-msg" id="saveMsg">✓ Settings saved!</div>
-      <div class="error-msg" id="settingsError"></div>
-    </div>
-    <div class="card" style="background:#FFF3E0">
-      <div style="font-size:13px;color:#E65100;font-weight:600;margin-bottom:6px">⚠️ How to set Admin Password</div>
-      <div style="font-size:12px;color:#6D4C41;line-height:1.6">
-        Go to your Vercel project → Settings → Environment Variables →
-        Add variable named <strong>ADMIN_PASSWORD</strong> with your chosen password → Redeploy.
+      <div class="settings-card" style="background:#FFF3E0;border:1px solid #FFE0B2">
+        <div style="font-size:13px;color:#E65100;font-weight:700;margin-bottom:6px">⚠️ Admin Password</div>
+        <div style="font-size:12px;color:#6D4C41;line-height:1.7">
+          Vercel project → Settings → Environment Variables →
+          Add <strong>ADMIN_PASSWORD</strong> → Redeploy.
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+</div><!-- #mainScreen -->
 
 <script>
 let adminPwd = sessionStorage.getItem('tb_admin_pwd') || '';
 let cfg = {};
 
-// Auto-login if session has password
 if (adminPwd) bootAdmin();
 
+/* ── AUTH ── */
 function login() {
   const pwd = document.getElementById('pwdInput').value.trim();
   if (!pwd) return;
-  document.getElementById('loginError').style.display = 'none';
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
   fetch(`/api/sessions?password=${encodeURIComponent(pwd)}`)
     .then(async r => {
-      const errEl = document.getElementById('loginError');
-      if (r.status === 429) { errEl.textContent = 'Too many attempts — wait a few minutes and try again.'; errEl.style.display = 'block'; return; }
+      if (r.status === 429) { errEl.textContent = 'Too many attempts — wait a few minutes.'; errEl.style.display = 'block'; return; }
       if (!r.ok) { errEl.textContent = 'Wrong password. Try again.'; errEl.style.display = 'block'; return; }
       adminPwd = pwd;
       sessionStorage.setItem('tb_admin_pwd', pwd);
       bootAdmin();
-      const data = await r.json();
-      if (data) renderSessions(data);
+      renderSessions(await r.json());
     })
-    .catch(() => { const e = document.getElementById('loginError'); e.textContent = 'Network error — check connection.'; e.style.display = 'block'; });
+    .catch(() => { errEl.textContent = 'Network error.'; errEl.style.display = 'block'; });
 }
 
 function bootAdmin() {
@@ -313,16 +424,18 @@ function logout() {
   document.getElementById('pwdInput').value = '';
 }
 
+/* ── TABS ── */
 function switchTab(tab) {
   ['sessions','subscriptions','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
-    if (el) el.style.display = t === tab ? 'block' : 'none';
+    if (el) { el.classList.toggle('active', t === tab); }
   });
   if (tab === 'sessions') loadSessions();
   if (tab === 'subscriptions') loadSubscriptions();
 }
 
+/* ── CONFIG ── */
 async function loadConfig() {
   try {
     const r = await fetch('/api/config');
@@ -344,8 +457,7 @@ async function saveConfig() {
   errEl.style.display = 'none'; msgEl.style.display = 'none';
   try {
     const r = await fetch('/api/save-config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: adminPwd, pricePerSheet: Number(price), upiId: upi, whatsappNumber: wa })
     });
     if (!r.ok) { const d = await r.json(); errEl.textContent = d.error; errEl.style.display = 'block'; return; }
@@ -356,41 +468,39 @@ async function saveConfig() {
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
 }
 
+/* ── DAY PASS ── */
 async function createCode() {
   const name = document.getElementById('newName').value.trim();
   const sheets = parseInt(document.getElementById('newSheets').value) || 1;
   const errEl = document.getElementById('createError');
+  const btn = document.getElementById('createCodeBtn');
   errEl.style.display = 'none';
   if (!name) { errEl.textContent = 'Enter player name'; errEl.style.display = 'block'; return; }
-
+  btn.disabled = true; btn.textContent = 'Generating…';
   try {
     const r = await fetch('/api/create-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: adminPwd, playerName: name, sheetCount: sheets })
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
 
-    // Show code result prominently
     document.getElementById('codeBig').textContent = data.code;
     document.getElementById('codeMeta').textContent =
-      `${name} · ${sheets} sheet${sheets > 1 ? 's' : ''} · ₹${data.amount}`;
-    document.getElementById('codeResult').style.display = 'block';
-    document.getElementById('codeResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      `${esc(name)} · ${sheets} sheet${sheets > 1 ? 's' : ''} · ₹${data.amount} · valid 24h`;
+    const popup = document.getElementById('codeResult');
+    popup.style.display = 'block';
+    document.getElementById('copyBtn').textContent = '📋 Copy Code';
 
-    // Clear form
     document.getElementById('newName').value = '';
     document.getElementById('newSheets').value = '1';
-
-    // Refresh list
     loadSessions();
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Generate Code →'; }
 }
 
 function copyCode() {
-  const code = document.getElementById('codeBig').textContent;
-  navigator.clipboard.writeText(code).catch(() => {});
+  navigator.clipboard.writeText(document.getElementById('codeBig').textContent).catch(() => {});
   const btn = document.getElementById('copyBtn');
   btn.textContent = '✓ Copied!';
   setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
@@ -406,64 +516,69 @@ async function loadSessions() {
 
 function renderSessions(list) {
   const el = document.getElementById('sessionsList');
+  const countEl = document.getElementById('dpCount');
   if (!list.length) {
-    el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">📋</div><div>No sessions yet</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🎟️</div><div class="empty-txt">No day passes yet</div></div>';
+    countEl.textContent = '0'; countEl.className = 'list-count';
     return;
   }
-  el.innerHTML = list.map(s => `
-    <div class="session-item ${s.status === 'ended' ? 'ended' : ''}">
-      <div class="session-info">
-        <div class="session-name">${esc(s.playerName)}</div>
-        <div class="session-code">${s.code}</div>
-        <div class="status-badge ${s.status}">${s.status === 'active' ? '● Active' : '■ Ended'}</div>
-        <div class="session-meta">
-          ${s.sheetCount} sheet${s.sheetCount > 1 ? 's' : ''} · ₹${s.amount}
-          &nbsp;·&nbsp; ${timeAgo(s.createdAt)}
-          ${s.endedAt ? ` · ended ${timeAgo(s.endedAt)}` : ''}
+  const active = list.filter(s => s.status === 'active').length;
+  countEl.textContent = `${active} active / ${list.length} total`;
+  countEl.className = 'list-count' + (active > 0 ? ' has-active' : '');
+
+  el.innerHTML = list.map(s => {
+    const isActive = s.status === 'active';
+    const init = (s.playerName || '?')[0].toUpperCase();
+    const amount = s.amount || ((cfg.pricePerSheet || 5) * s.sheetCount);
+    return `
+    <div class="pass-card ${isActive ? 'is-active' : 'is-ended'}">
+      <div class="pass-row1">
+        <div class="pass-avatar ${isActive ? 'a' : 'e'}">${init}</div>
+        <div class="pass-name-block">
+          <div class="pass-name">${esc(s.playerName)}</div>
+          <div class="pass-time">Created ${timeAgo(s.createdAt)}</div>
+        </div>
+        <div class="pass-status ${isActive ? 'active' : 'ended'}">
+          ${isActive ? '● Active' : '■ Ended'}
         </div>
       </div>
-      ${s.status === 'active' ? `<button class="btn-danger" onclick="endSession('${s.code}',this)">End</button>` : ''}
-    </div>`).join('');
+      <div class="pass-code-row">
+        <div class="pass-code">${s.code}</div>
+      </div>
+      <div class="pass-chips">
+        <span class="chip sheets">📄 ${s.sheetCount} sheet${s.sheetCount > 1 ? 's' : ''}</span>
+        <span class="chip amount">₹${amount}</span>
+        ${isActive ? `<span class="chip time">⏱ expires ${timeUntil(s.createdAt + 86400000)}</span>` : ''}
+        ${s.endedAt ? `<span class="chip expired">ended ${timeAgo(s.endedAt)}</span>` : ''}
+      </div>
+      ${isActive ? `<div class="pass-actions">
+        <button class="btn-end" onclick="endSession('${s.code}',this)">End Pass</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 async function endSession(code, btn) {
-  if (!confirm(`End session for code ${code}?`)) return;
+  if (!confirm(`End day pass ${code}?`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
     await fetch('/api/end-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, password: adminPwd })
     });
     loadSessions();
-  } catch(e) { btn.disabled = false; btn.textContent = 'End'; }
+  } catch(e) { btn.disabled = false; btn.textContent = 'End Pass'; }
 }
 
-function timeAgo(ms) {
-  const diff = Date.now() - ms;
-  const m = Math.floor(diff / 60000);
-  const h = Math.floor(m / 60);
-  const d = Math.floor(h / 24);
-  if (d > 0) return `${d}d ago`;
-  if (h > 0) return `${h}h ago`;
-  if (m > 0) return `${m}m ago`;
-  return 'just now';
-}
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-
+/* ── SUBSCRIPTIONS ── */
 async function createSubscription() {
   const name = document.getElementById('subName').value.trim();
   const plan = document.getElementById('subPlan').value;
   const devices = parseInt(document.getElementById('subDevices').value) || 3;
   const errEl = document.getElementById('subCreateError');
+  const btn = document.getElementById('createSubBtn');
   errEl.style.display = 'none';
   if (!name) { errEl.textContent = 'Enter player name'; errEl.style.display = 'block'; return; }
-
-  const btn = document.querySelector('[onclick="createSubscription()"]');
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
     const r = await fetch('/api/subscription', {
@@ -475,9 +590,10 @@ async function createSubscription() {
 
     document.getElementById('subKeyBig').textContent = data.key;
     document.getElementById('subKeyMeta').textContent =
-      `${name} · ${plan === 'yearly' ? 'Yearly' : 'Monthly'} · ${data.days} days · ${devices} device${devices > 1 ? 's' : ''} · expires ${new Date(data.expiresAt).toLocaleDateString()}`;
-    document.getElementById('subKeyResult').style.display = 'block';
-    document.getElementById('subKeyResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      `${esc(name)} · ${plan === 'yearly' ? 'Yearly' : 'Monthly'} · ${data.days} days · up to ${devices} device${devices > 1 ? 's' : ''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}`;
+    const popup = document.getElementById('subKeyResult');
+    popup.style.display = 'block';
+    document.getElementById('copySubKeyBtn').textContent = '📋 Copy Key';
 
     document.getElementById('subName').value = '';
     document.getElementById('subDevices').value = '3';
@@ -487,8 +603,7 @@ async function createSubscription() {
 }
 
 function copySubKey() {
-  const key = document.getElementById('subKeyBig').textContent;
-  navigator.clipboard.writeText(key).catch(() => {});
+  navigator.clipboard.writeText(document.getElementById('subKeyBig').textContent).catch(() => {});
   const btn = document.getElementById('copySubKeyBtn');
   btn.textContent = '✓ Copied!';
   setTimeout(() => btn.textContent = '📋 Copy Key', 2000);
@@ -504,40 +619,66 @@ async function loadSubscriptions() {
 
 function renderSubscriptions(list) {
   const el = document.getElementById('subscriptionsList');
+  const countEl = document.getElementById('subCount');
   if (!list.length) {
-    el.innerHTML = '<div class="empty-list"><div class="empty-list-icon">🎫</div><div>No subscriptions yet</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No subscriptions yet</div></div>';
+    countEl.textContent = '0'; countEl.className = 'list-count';
     return;
   }
   const now = Date.now();
+  const active = list.filter(s => s.status === 'active' && now <= s.expiresAt).length;
+  countEl.textContent = `${active} active / ${list.length} total`;
+  countEl.className = 'list-count' + (active > 0 ? ' has-active' : '');
+
   el.innerHTML = list.map(s => {
     const expired = now > s.expiresAt;
     const revoked = s.status === 'revoked';
+    const inactive = revoked || expired;
     const daysLeft = Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
-    const statusLbl = revoked ? '■ Revoked' : expired ? '⚠ Expired' : '● Active';
-    const statusCls = revoked ? 'ended' : expired ? 'pending' : 'active';
+    const devUsed = s.devices ? s.devices.length : 0;
+    const devPct = Math.round((devUsed / (s.maxDevices || 3)) * 100);
+    const init = (s.playerName || '?')[0].toUpperCase();
+    const planLabel = s.plan === 'yearly' ? 'Yearly' : 'Monthly';
+
     return `
-    <div class="session-item ${revoked || expired ? 'ended' : ''}">
-      <div class="session-info">
-        <div class="session-name">${esc(s.playerName)}</div>
-        <div class="session-code" style="font-size:13px;letter-spacing:2px">${s.key}</div>
-        <div class="status-badge ${statusCls}">${statusLbl}</div>
-        <div class="session-meta">
-          ${s.plan === 'yearly' ? 'Yearly' : 'Monthly'} ·
-          ${s.devices ? s.devices.length : 0}/${s.maxDevices} devices ·
-          ${expired || revoked ? 'expired' : daysLeft + 'd left'} ·
-          ${timeAgo(s.createdAt)}
+    <div class="sub-card ${inactive ? 'is-inactive' : 'is-active'}">
+      <div class="sub-row1">
+        <div class="sub-avatar ${inactive ? 'i' : 'a'}">${init}</div>
+        <div class="sub-name-block">
+          <div class="sub-name">${esc(s.playerName)}</div>
+          <div class="sub-created">Since ${new Date(s.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
         </div>
+        <div class="sub-plan-badge ${s.plan}">${planLabel}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
-        ${!revoked && !expired ? `<button class="btn-danger" onclick="revokeSubscription('${s.key}',this)">Revoke</button>` : ''}
-        ${!revoked ? `<button class="btn-danger" style="background:#EDE7F6;color:var(--primary)" onclick="resetSubDevices('${s.key}',this)">Reset Devices</button>` : ''}
+      <div class="sub-key-box">
+        <span>${s.key}</span>
+        <button class="sub-key-copy" onclick="copyToClip('${s.key}',this)">Copy</button>
       </div>
+      <div class="sub-devices-section">
+        <div class="sub-dev-top">
+          <span class="sub-dev-lbl">Devices</span>
+          <span class="sub-dev-count">${devUsed} / ${s.maxDevices} used</span>
+        </div>
+        <div class="sub-dev-bar"><div class="sub-dev-fill" style="width:${devPct}%"></div></div>
+      </div>
+      <div class="sub-chips">
+        ${revoked ? `<span class="chip revoked">✕ Revoked</span>` :
+          expired ? `<span class="chip expired">Expired</span>` :
+          daysLeft <= 7 ? `<span class="chip expiring">⚠ ${daysLeft}d left</span>` :
+          `<span class="chip days">✓ ${daysLeft}d left</span>`}
+        <span class="chip ${s.plan === 'yearly' ? 'plan-y' : 'plan-m'}">${planLabel}</span>
+        <span class="chip time">Exp ${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
+      </div>
+      ${!revoked ? `<div class="sub-actions">
+        ${!expired ? `<button class="btn-revoke" onclick="revokeSubscription('${s.key}',this)">Revoke</button>` : ''}
+        <button class="btn-reset" onclick="resetSubDevices('${s.key}',this)">Reset Devices</button>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
 
 async function revokeSubscription(key, btn) {
-  if (!confirm(`Revoke subscription ${key}? Player will lose access.`)) return;
+  if (!confirm(`Revoke ${key}?\nPlayer will lose access immediately.`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
     await fetch('/api/subscription', {
@@ -549,7 +690,7 @@ async function revokeSubscription(key, btn) {
 }
 
 async function resetSubDevices(key, btn) {
-  if (!confirm(`Reset device slots for ${key}? All registered devices will be removed.`)) return;
+  if (!confirm(`Reset all device slots for ${key}?\nAll registered devices will need to re-activate.`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
     await fetch('/api/subscription', {
@@ -558,6 +699,34 @@ async function resetSubDevices(key, btn) {
     });
     loadSubscriptions();
   } catch(e) { btn.disabled = false; btn.textContent = 'Reset Devices'; }
+}
+
+function copyToClip(text, btn) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  const orig = btn.textContent;
+  btn.textContent = '✓';
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+/* ── HELPERS ── */
+function timeAgo(ms) {
+  const d = Date.now() - ms, m = Math.floor(d / 60000), h = Math.floor(m / 60), dy = Math.floor(h / 24);
+  if (dy > 0) return `${dy}d ago`;
+  if (h > 0) return `${h}h ago`;
+  if (m > 0) return `${m}m ago`;
+  return 'just now';
+}
+
+function timeUntil(ms) {
+  const d = ms - Date.now();
+  if (d <= 0) return 'soon';
+  const h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000);
+  if (h > 0) return `in ${h}h ${m}m`;
+  return `in ${m}m`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
 </body>

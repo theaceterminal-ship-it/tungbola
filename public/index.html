@@ -2446,12 +2446,17 @@ function parseText(raw,fallback='Unknown'){
   }
   for(const line of lines){
     const sm=line.match(/Sheet\s+No\.?\s*(\S+)/i);
-    if(sm){flush();if(sheet)sheet.name=sm[1];else sheet={name:sm[1],tickets:[]};continue;}
+    if(sm){
+      // If mid-ticket (rows already collected), the label is a page watermark — don't interrupt
+      if(rows.length>0){if(sheet)sheet.name=sm[1];}
+      else{flush();if(sheet)sheet.name=sm[1];else sheet={name:sm[1],tickets:[]};}
+      continue;
+    }
     if(/TUKPA|TAMBOLA|JACKPOT|Dream/i.test(line)) continue;
     if(line.toLowerCase()==='partystuff'){flush();continue;}
     const tm=line.match(/^(\d+)$/);
     if(tm){flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tm[1]);continue;}
-    if(ticket&&/^\d+(\s+\d+){4,}$/.test(line)){rows.push(line.split(/\s+/).map(Number));continue;}
+    if(ticket&&/^\d+(\s+\d+){3,}$/.test(line)){rows.push(line.split(/\s+/).map(Number));continue;}
     if(ticket&&line.startsWith('|')&&!line.includes('---')){
       const ns=line.split('|').map(c=>c.trim()).filter(c=>c&&!/^-+$/.test(c))
         .flatMap(c=>(c.match(/\d+/g)||[]).map(Number));
@@ -2471,9 +2476,19 @@ function mkT(id){
     fullHouseClaimed:false,earlyFiveClaimed:false,
     earlySixClaimed:false,earlySevenClaimed:false,ticketCornersClaimed:false};
 }
+function splitMerged(n){
+  // e.g. 2143 → [21,43] when two tambola numbers got merged by PDF renderer
+  const s=String(n);
+  for(let i=1;i<s.length;i++){
+    const a=parseInt(s.slice(0,i)),b=parseInt(s.slice(i));
+    if(a>=1&&a<=90&&b>=1&&b<=90) return[a,b];
+  }
+  return[n];
+}
 function placeNums(ticket,rows){
   rows.forEach((nums,ri)=>{if(ri>=3)return;
-    nums.forEach(n=>{if(!n||isNaN(n))return;
+    const expanded=nums.flatMap(n=>n>90?splitMerged(n):[n]);
+    expanded.forEach(n=>{if(!n||isNaN(n))return;
       const col=n2col(n);if(col<0)return;
       const idx=ri*9+col;if(ticket.numbers[idx]===null)ticket.numbers[idx]=n;
     });

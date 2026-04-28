@@ -36,62 +36,78 @@ select.field{cursor:pointer}
 
 /* ── MAIN SHELL ── */
 #mainScreen{display:none;flex-direction:column;min-height:100vh}
-
 .admin-header{background:linear-gradient(135deg,#4527A0 0%,var(--primary) 60%,#7B1FA2 100%);
-  color:#fff;padding:0 24px;height:64px;
+  color:#fff;padding:0 20px;height:60px;
   display:flex;align-items:center;justify-content:space-between;
   box-shadow:0 2px 12px rgba(103,80,164,.4);flex-shrink:0}
-.header-left{display:flex;align-items:center;gap:14px}
-.header-logo{font-size:22px;font-weight:900;letter-spacing:-.5px}
-.header-sep{width:1px;height:22px;background:rgba(255,255,255,.25)}
-.header-sub{font-size:13px;opacity:.8}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-logo{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.header-sep{width:1px;height:20px;background:rgba(255,255,255,.25)}
+.header-sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
 .logout-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;
-  padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;
-  cursor:pointer;font-family:inherit;transition:background .15s}
+  padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:background .15s;flex-shrink:0}
 .logout-btn:hover{background:rgba(255,255,255,.25)}
 
 /* ── TAB BAR ── */
-.tab-bar{background:#fff;display:flex;border-bottom:2px solid var(--sv);padding:0 24px;gap:0}
-.tab-btn{padding:14px 20px;border:none;background:transparent;
-  font-size:14px;font-weight:500;color:var(--on-sv);cursor:pointer;
+.tab-bar{background:#fff;display:flex;border-bottom:2px solid var(--sv);
+  padding:0 12px;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{padding:13px 14px;border:none;background:transparent;
+  font-size:13px;font-weight:500;color:var(--on-sv);cursor:pointer;
   border-bottom:3px solid transparent;margin-bottom:-2px;
-  font-family:inherit;transition:all .2s;white-space:nowrap}
-.tab-btn:hover{color:var(--primary);background:rgba(103,80,164,.04)}
+  font-family:inherit;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
 
-/* ── CONTENT AREA ── */
-.tab-content{display:none;padding:24px;width:100%;max-width:1300px;margin:0 auto}
+/* ── CONTENT ── */
+.tab-content{display:none;padding:16px;width:100%;max-width:1300px;margin:0 auto}
 .tab-content.active{display:block}
 
-/* ── SPLIT LAYOUT ── */
-.split{display:grid;grid-template-columns:360px 1fr;gap:24px;align-items:start}
+/* ── SPLIT ── */
+.split{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
 @media(max-width:860px){.split{grid-template-columns:1fr}}
 
 /* ── FORM PANEL ── */
-.form-panel{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow-md);
-  position:sticky;top:24px}
-.panel-title{font-size:16px;font-weight:700;margin-bottom:20px;
-  display:flex;align-items:center;gap:8px;padding-bottom:16px;
-  border-bottom:1px solid var(--sv)}
+.form-panel{background:#fff;border-radius:20px;padding:18px 18px 18px;box-shadow:var(--shadow-md);
+  position:sticky;top:16px}
+@media(max-width:860px){.form-panel{position:static}}
+.form-toggle-btn{width:100%;display:flex;align-items:center;justify-content:space-between;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  padding-bottom:14px;border-bottom:1px solid var(--sv)}
+.form-toggle-btn:focus{outline:none}
+.panel-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.toggle-chevron{font-size:18px;color:var(--on-sv);transition:transform .25s;line-height:1;flex-shrink:0}
+.toggle-chevron.open{transform:rotate(180deg)}
+.form-body{overflow:hidden}
+@media(max-width:860px){
+  .form-body{max-height:0;transition:max-height .3s ease}
+  .form-body.open{max-height:750px}
+}
+@media(min-width:861px){
+  .form-body{max-height:none!important;overflow:visible!important}
+  .toggle-chevron{display:none}
+  .form-toggle-btn{cursor:default;pointer-events:none}
+}
+.form-body-inner{padding-top:14px}
 .field-label{font-size:11px;font-weight:700;color:var(--on-sv);
   text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
-.field-wrap{margin-bottom:14px}
+.field-wrap{margin-bottom:13px}
 .btn-gen{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;
   border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
-  font-family:inherit;transition:opacity .15s;margin-top:4px}
+  font-family:inherit;transition:opacity .15s;margin-top:2px}
 .btn-gen:hover{opacity:.9}
 .btn-gen:disabled{opacity:.5;cursor:not-allowed}
 .form-err{font-size:12px;color:var(--error);margin-top:8px;text-align:center;display:none}
 
 /* ── CODE POPUP ── */
 .code-popup{background:linear-gradient(135deg,var(--primary) 0%,#7C3AED 100%);
-  border-radius:16px;padding:20px;text-align:center;margin-top:16px;display:none}
+  border-radius:16px;padding:18px;text-align:center;margin-top:14px;display:none}
 .code-popup-lbl{font-size:10px;color:rgba(255,255,255,.7);
   text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.code-popup-val{font-size:44px;font-weight:900;color:#fff;
+.code-popup-val{font-size:40px;font-weight:900;color:#fff;
   letter-spacing:8px;font-family:monospace;margin-bottom:6px}
-.code-popup-val.sub-key{font-size:18px;letter-spacing:3px;word-break:break-all}
-.code-popup-meta{font-size:13px;color:rgba(255,255,255,.8);margin-bottom:14px;line-height:1.5}
+.code-popup-val.sub-key{font-size:16px;letter-spacing:2px;word-break:break-all}
+.code-popup-meta{font-size:12px;color:rgba(255,255,255,.8);margin-bottom:14px;line-height:1.5;white-space:pre-line}
 .code-popup-copy{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);
   color:#fff;padding:8px 20px;border-radius:10px;font-size:13px;font-weight:600;
   cursor:pointer;font-family:inherit;transition:background .15s}
@@ -99,134 +115,167 @@ select.field{cursor:pointer}
 
 /* ── LIST PANEL ── */
 .list-panel{background:#fff;border-radius:20px;box-shadow:var(--shadow-md);overflow:hidden}
-.list-hdr{padding:16px 20px;border-bottom:1px solid var(--sv);
-  display:flex;align-items:center;justify-content:space-between}
-.list-hdr-left{display:flex;align-items:center;gap:10px}
-.list-hdr-title{font-size:15px;font-weight:700}
+.list-hdr{padding:12px 16px;border-bottom:1px solid var(--sv);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;min-height:50px}
+.list-hdr-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.list-hdr-title{font-size:14px;font-weight:700;white-space:nowrap}
 .list-count{background:var(--sv);color:var(--on-sv);border-radius:20px;
-  padding:3px 10px;font-size:12px;font-weight:600}
+  padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap}
 .list-count.has-active{background:var(--primary-c);color:var(--primary)}
 .refresh-btn{background:transparent;border:1.5px solid var(--sv);color:var(--on-sv);
-  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;
-  cursor:pointer;font-family:inherit;transition:all .15s}
+  padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;
+  cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0}
 .refresh-btn:hover{border-color:var(--primary);color:var(--primary)}
-.list-body{padding:12px 16px;max-height:72vh;overflow-y:auto}
+.list-body{padding:10px 12px}
+.list-sep{height:1px;background:var(--sv);margin:0}
 
-/* ── EMPTY STATE ── */
-.empty{text-align:center;padding:40px 20px;color:var(--on-sv);opacity:.55}
-.empty-ico{font-size:40px;margin-bottom:10px}
-.empty-txt{font-size:14px;font-weight:500}
+/* ── FILTER TOGGLE ── */
+.filter-row{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.filter-lbl{font-size:11px;font-weight:600;color:var(--on-sv);white-space:nowrap}
+.pill{width:32px;height:18px;border-radius:9px;background:var(--sv);
+  position:relative;transition:background .2s;flex-shrink:0}
+.pill.on{background:var(--primary)}
+.pill::after{content:'';position:absolute;width:14px;height:14px;background:#fff;
+  border-radius:50%;top:2px;left:2px;transition:left .2s;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.pill.on::after{left:16px}
+.hidden-note{display:block;font-size:11px;color:var(--on-sv);opacity:.6;
+  padding:5px 14px 0;min-height:18px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:32px 16px;color:var(--on-sv);opacity:.5}
+.empty-ico{font-size:36px;margin-bottom:8px}
+.empty-txt{font-size:13px;font-weight:500}
 
 /* ── DAY PASS CARD ── */
-.pass-card{border:1px solid var(--sv);border-radius:14px;padding:14px 16px;
-  margin-bottom:10px;transition:box-shadow .15s;background:#FAFAFA}
+.pass-card{border:1px solid var(--sv);border-radius:12px;padding:12px 13px;
+  margin-bottom:9px;background:#FAFAFA;transition:box-shadow .15s}
 .pass-card:last-child{margin-bottom:0}
 .pass-card.is-active{background:#fff;border-color:rgba(103,80,164,.2);
   box-shadow:0 2px 8px rgba(103,80,164,.08)}
-.pass-card.is-ended{opacity:.55}
-.pass-row1{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.pass-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:700}
+.pass-card.is-ended{opacity:.45}
+.pass-card.is-expired{opacity:.6}
+.pass-row1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.pass-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 .pass-avatar.a{background:var(--primary-c);color:var(--primary)}
 .pass-avatar.e{background:var(--sv);color:var(--on-sv)}
 .pass-name-block{flex:1;min-width:0}
-.pass-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pass-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pass-time{font-size:11px;color:var(--on-sv);margin-top:1px}
-.pass-status{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+.pass-status{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;
   border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
 .pass-status.active{background:#E8F5E9;color:#2E7D32}
 .pass-status.ended{background:var(--sv);color:var(--on-sv)}
-.pass-code-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.pass-code{font-size:26px;font-weight:900;letter-spacing:5px;
-  font-family:monospace;color:var(--primary)}
-.pass-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;
-  border-radius:8px;font-size:11px;font-weight:600}
+.pass-status.expired{background:#FFF3E0;color:#E65100}
+.pass-code-row{margin-bottom:9px}
+.pass-code{font-size:24px;font-weight:900;letter-spacing:5px;font-family:monospace;color:var(--primary)}
+.pass-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;
+  border-radius:7px;font-size:11px;font-weight:600}
 .chip.sheets{background:#EDE7F6;color:#4527A0}
 .chip.amount{background:#E8F5E9;color:#2E7D32}
 .chip.time{background:#FFF8E1;color:#F57F17}
-.chip.expired{background:#FFF3E0;color:#E65100}
+.chip.grayed{background:var(--sv);color:var(--on-sv)}
+.chip.expiring{background:#FFF3E0;color:#E65100}
+.chip.revoked{background:#FFEBEE;color:var(--error)}
+.chip.days{background:#E8F5E9;color:#2E7D32}
+.chip.plan-m{background:#EDE7F6;color:var(--primary)}
+.chip.plan-y{background:#F3E5F5;color:#6A1B9A}
 .pass-actions{display:flex;gap:6px;justify-content:flex-end}
+
+/* ── INLINE CONFIRM ── */
+.confirm-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:4px 0 2px}
+.confirm-lbl{font-size:12px;color:var(--on-s);font-weight:600;flex:1;min-width:120px}
+.btn-yes{background:var(--error);color:#fff;border:none;border-radius:8px;
+  padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-yes:disabled{opacity:.5;cursor:not-allowed}
+.btn-no{background:var(--sv);color:var(--on-sv);border:none;border-radius:8px;
+  padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
 .btn-end{background:var(--error-c);color:var(--error);border:none;
-  border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;
+  border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:all .15s}
 .btn-end:hover{background:var(--error);color:#fff}
-.btn-end:disabled{opacity:.4;cursor:not-allowed}
 
 /* ── SUBSCRIPTION CARD ── */
-.sub-card{border:1px solid var(--sv);border-radius:14px;padding:14px 16px;
-  margin-bottom:10px;background:#FAFAFA}
+.sub-card{border:1px solid var(--sv);border-radius:12px;padding:12px 13px;
+  margin-bottom:9px;background:#FAFAFA}
 .sub-card:last-child{margin-bottom:0}
 .sub-card.is-active{background:#fff;border-color:rgba(103,80,164,.2);
   box-shadow:0 2px 8px rgba(103,80,164,.08)}
-.sub-card.is-inactive{opacity:.6}
-.sub-row1{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.sub-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:700}
+.sub-card.is-inactive{opacity:.55}
+.sub-row1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.sub-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 .sub-avatar.a{background:linear-gradient(135deg,var(--primary),#7C3AED);color:#fff}
 .sub-avatar.i{background:var(--sv);color:var(--on-sv)}
 .sub-name-block{flex:1;min-width:0}
-.sub-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub-created{font-size:11px;color:var(--on-sv);margin-top:1px}
-.sub-plan-badge{display:inline-flex;padding:3px 9px;border-radius:20px;
+.sub-plan-badge{display:inline-flex;padding:3px 8px;border-radius:20px;
   font-size:11px;font-weight:700;flex-shrink:0}
 .sub-plan-badge.monthly{background:#EDE7F6;color:var(--primary)}
 .sub-plan-badge.yearly{background:linear-gradient(135deg,#EDE7F6,#E1BEE7);color:#4527A0}
-.sub-key-box{background:var(--bg);border-radius:8px;padding:7px 12px;
-  font-family:monospace;font-size:12px;font-weight:700;letter-spacing:1.5px;
-  color:var(--on-sv);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sub-key-box{background:var(--bg);border-radius:8px;padding:7px 11px;
+  margin-bottom:9px;display:flex;align-items:center;gap:8px;overflow:hidden}
+.sub-key-text{font-family:monospace;font-size:12px;font-weight:700;letter-spacing:1px;
+  color:var(--on-sv);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .sub-key-copy{background:transparent;border:none;color:var(--primary);
   cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;
-  padding:2px 6px;border-radius:6px;transition:background .15s;white-space:nowrap}
+  padding:2px 6px;border-radius:6px;transition:background .15s;white-space:nowrap;flex-shrink:0}
 .sub-key-copy:hover{background:var(--primary-c)}
-.sub-devices-section{margin-bottom:10px}
+.sub-devices-section{margin-bottom:9px}
 .sub-dev-top{display:flex;justify-content:space-between;margin-bottom:4px}
 .sub-dev-lbl{font-size:11px;color:var(--on-sv);font-weight:600}
 .sub-dev-count{font-size:11px;color:var(--on-sv)}
 .sub-dev-bar{height:5px;background:var(--sv);border-radius:3px;overflow:hidden}
 .sub-dev-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .4s}
-.sub-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.chip.days{background:#E8F5E9;color:#2E7D32}
-.chip.expiring{background:#FFF3E0;color:#E65100}
-.chip.revoked{background:#FFEBEE;color:var(--error)}
-.chip.expired{background:var(--sv);color:var(--on-sv)}
-.chip.plan-m{background:#EDE7F6;color:var(--primary)}
-.chip.plan-y{background:#F3E5F5;color:#6A1B9A}
+.sub-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
 .sub-actions{display:flex;gap:6px;justify-content:flex-end}
 .btn-revoke{background:var(--error-c);color:var(--error);border:none;
-  border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;
+  border-radius:8px;padding:8px 13px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:all .15s}
 .btn-revoke:hover{background:var(--error);color:#fff}
 .btn-reset{background:var(--primary-c);color:var(--primary);border:none;
-  border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;
+  border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-reset:hover{background:#DDD6F3}
 
 /* ── REQUEST CARDS ── */
-.req-card{background:#fff;border-radius:16px;padding:16px;
-  box-shadow:var(--shadow);margin-bottom:10px;border-left:4px solid var(--primary)}
-.req-card.approved{border-left-color:var(--success);opacity:.7}
-.req-row1{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.req-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#9C27B0);
+.req-card{background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow);margin-bottom:9px;border-left:4px solid var(--primary)}
+.req-row1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.req-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#9C27B0);
   color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:700;flex-shrink:0}
-.req-name{font-size:15px;font-weight:700}
+  font-size:13px;font-weight:700;flex-shrink:0}
+.req-name{font-size:14px;font-weight:700}
 .req-time{font-size:11px;color:var(--on-sv);margin-top:2px}
-.req-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.req-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
 .btn-approve{background:#E8F5E9;color:#2E7D32;border:none;
-  border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;
+  border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:all .15s;width:100%}
 .btn-approve:hover{background:#4CAF50;color:#fff}
 .btn-approve:disabled{opacity:.5;cursor:not-allowed}
-/* ── SETTINGS TAB ── */
+
+/* ── SETTINGS ── */
 .settings-wrap{max-width:520px}
-.settings-card{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow-md);margin-bottom:16px}
-.settings-title{font-size:15px;font-weight:700;margin-bottom:18px;
-  padding-bottom:14px;border-bottom:1px solid var(--sv);display:flex;align-items:center;gap:8px}
+.settings-card{background:#fff;border-radius:20px;padding:22px;box-shadow:var(--shadow-md);margin-bottom:14px}
+.settings-title{font-size:15px;font-weight:700;margin-bottom:16px;
+  padding-bottom:12px;border-bottom:1px solid var(--sv);display:flex;align-items:center;gap:8px}
 .save-msg{font-size:13px;color:var(--success);font-weight:600;margin-top:10px;text-align:center;display:none}
 .error-msg{font-size:13px;color:var(--error);font-weight:500;margin-top:8px;text-align:center;display:none}
+
+/* ── MOBILE OVERRIDES ── */
+@media(max-width:860px){
+  .tab-content{padding:12px}
+  .pass-actions,.sub-actions{flex-direction:column}
+  .btn-end,.btn-revoke,.btn-reset{width:100%;padding:11px;font-size:13px;text-align:center}
+  .confirm-row{flex-direction:column;align-items:stretch}
+  .confirm-lbl{margin-bottom:4px}
+  .btn-yes,.btn-no{width:100%;padding:11px;font-size:13px;text-align:center}
+  .pass-code{font-size:20px;letter-spacing:4px}
+  .list-body{padding:9px 10px}
+}
 </style>
 </head>
 <body>
@@ -248,7 +297,6 @@ select.field{cursor:pointer}
 <!-- ── MAIN ── -->
 <div id="mainScreen">
 
-  <!-- Header -->
   <div class="admin-header">
     <div class="header-left">
       <div class="header-logo">🎯 Tungbola</div>
@@ -258,7 +306,6 @@ select.field{cursor:pointer}
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 
-  <!-- Tab bar -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">🎟️ Day Pass</button>
     <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscriptions</button>
@@ -269,34 +316,35 @@ select.field{cursor:pointer}
   <div class="tab-content active" id="tabSessions">
     <div class="split">
 
-      <!-- Left: Form -->
       <div class="form-panel">
-        <div class="panel-title">🎟️ Generate Day Pass</div>
-        <div class="field-wrap">
-          <div class="field-label">Player Name</div>
-          <input class="field" id="newName" placeholder="e.g. Rahul" type="text"
-            onkeydown="if(event.key==='Enter')createCode()">
-        </div>
-        <div class="field-wrap">
-          <div class="field-label">Number of Sheets</div>
-          <input class="field" id="newSheets" type="number" min="1" max="300" value="1">
-        </div>
-        <button class="btn-gen" id="createCodeBtn" onclick="createCode()">Generate Code →</button>
-        <div class="form-err" id="createError"></div>
-
-        <!-- Code popup appears here -->
-        <div class="code-popup" id="codeResult">
-          <div class="code-popup-lbl">Day Pass Code · Share with player</div>
-          <div class="code-popup-val" id="codeBig"></div>
-          <div class="code-popup-meta" id="codeMeta"></div>
-          <button class="code-popup-copy" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
+        <button class="form-toggle-btn" onclick="toggleForm('dpForm','dpChev')">
+          <div class="panel-title">🎟️ Generate Day Pass</div>
+          <span class="toggle-chevron" id="dpChev">⌄</span>
+        </button>
+        <div class="form-body" id="dpForm">
+          <div class="form-body-inner">
+            <div class="field-wrap">
+              <div class="field-label">Player Name</div>
+              <input class="field" id="newName" placeholder="e.g. Rahul" type="text"
+                onkeydown="if(event.key==='Enter')createCode()">
+            </div>
+            <div class="field-wrap">
+              <div class="field-label">Number of Sheets</div>
+              <input class="field" id="newSheets" type="number" min="1" max="300" value="1">
+            </div>
+            <button class="btn-gen" id="createCodeBtn" onclick="createCode()">Generate Code →</button>
+            <div class="form-err" id="createError"></div>
+            <div class="code-popup" id="codeResult">
+              <div class="code-popup-lbl">Day Pass Code · Share with player</div>
+              <div class="code-popup-val" id="codeBig"></div>
+              <div class="code-popup-meta" id="codeMeta"></div>
+              <button class="code-popup-copy" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Right: Lists -->
       <div class="list-panel">
-
-        <!-- Pending requests -->
         <div class="list-hdr">
           <div class="list-hdr-left">
             <div class="list-hdr-title">Pending Requests</div>
@@ -304,14 +352,12 @@ select.field{cursor:pointer}
           </div>
           <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
         </div>
-        <div class="list-body" id="requestsList" style="margin-bottom:24px">
-          <div class="empty">
-            <div class="empty-ico">📥</div>
-            <div class="empty-txt">No pending requests</div>
-          </div>
+        <div class="list-body" id="requestsList">
+          <div class="empty"><div class="empty-ico">📥</div><div class="empty-txt">No pending requests</div></div>
         </div>
 
-        <!-- Active passes -->
+        <div class="list-sep"></div>
+
         <div class="list-hdr">
           <div class="list-hdr-left">
             <div class="list-hdr-title">Day Passes</div>
@@ -320,12 +366,8 @@ select.field{cursor:pointer}
           <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
         </div>
         <div class="list-body" id="sessionsList">
-          <div class="empty">
-            <div class="empty-ico">🎟️</div>
-            <div class="empty-txt">No day passes yet</div>
-          </div>
+          <div class="empty"><div class="empty-ico">🎟️</div><div class="empty-txt">No day passes yet</div></div>
         </div>
-
       </div>
 
     </div>
@@ -335,51 +377,58 @@ select.field{cursor:pointer}
   <div class="tab-content" id="tabSubscriptions">
     <div class="split">
 
-      <!-- Left: Form -->
       <div class="form-panel">
-        <div class="panel-title">🎫 New Subscription</div>
-        <div class="field-wrap">
-          <div class="field-label">Player Name</div>
-          <input class="field" id="subName" placeholder="e.g. Priya" type="text"
-            onkeydown="if(event.key==='Enter')createSubscription()">
-        </div>
-        <div class="field-wrap">
-          <div class="field-label">Plan</div>
-          <select class="field" id="subPlan">
-            <option value="monthly">Monthly — 30 days</option>
-            <option value="yearly">Yearly — 365 days</option>
-          </select>
-        </div>
-        <div class="field-wrap">
-          <div class="field-label">Max Devices (1 – 5)</div>
-          <input class="field" id="subDevices" type="number" min="1" max="5" value="3">
-        </div>
-        <button class="btn-gen" id="createSubBtn" onclick="createSubscription()">Create Subscription →</button>
-        <div class="form-err" id="subCreateError"></div>
-
-        <!-- Key popup -->
-        <div class="code-popup" id="subKeyResult">
-          <div class="code-popup-lbl">Subscription Key · Share with player</div>
-          <div class="code-popup-val sub-key" id="subKeyBig"></div>
-          <div class="code-popup-meta" id="subKeyMeta"></div>
-          <button class="code-popup-copy" onclick="copySubKey()" id="copySubKeyBtn">📋 Copy Key</button>
+        <button class="form-toggle-btn" onclick="toggleForm('subForm','subChev')">
+          <div class="panel-title">🎫 New Subscription</div>
+          <span class="toggle-chevron" id="subChev">⌄</span>
+        </button>
+        <div class="form-body" id="subForm">
+          <div class="form-body-inner">
+            <div class="field-wrap">
+              <div class="field-label">Player Name</div>
+              <input class="field" id="subName" placeholder="e.g. Priya" type="text"
+                onkeydown="if(event.key==='Enter')createSubscription()">
+            </div>
+            <div class="field-wrap">
+              <div class="field-label">Plan</div>
+              <select class="field" id="subPlan">
+                <option value="monthly">Monthly — 30 days</option>
+                <option value="yearly">Yearly — 365 days</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <div class="field-label">Max Devices (1 – 5)</div>
+              <input class="field" id="subDevices" type="number" min="1" max="5" value="3">
+            </div>
+            <button class="btn-gen" id="createSubBtn" onclick="createSubscription()">Create Subscription →</button>
+            <div class="form-err" id="subCreateError"></div>
+            <div class="code-popup" id="subKeyResult">
+              <div class="code-popup-lbl">Subscription Key · Share with player</div>
+              <div class="code-popup-val sub-key" id="subKeyBig"></div>
+              <div class="code-popup-meta" id="subKeyMeta"></div>
+              <button class="code-popup-copy" onclick="copySubKey()" id="copySubKeyBtn">📋 Copy Key</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Right: List -->
       <div class="list-panel">
         <div class="list-hdr">
           <div class="list-hdr-left">
             <div class="list-hdr-title">Subscribers</div>
             <div class="list-count" id="subCount">0</div>
           </div>
-          <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
-        </div>
-        <div class="list-body" id="subscriptionsList">
-          <div class="empty">
-            <div class="empty-ico">🎫</div>
-            <div class="empty-txt">No subscriptions yet</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="filter-row" onclick="toggleActiveSubs()" title="Hide expired &amp; revoked">
+              <span class="filter-lbl">Active only</span>
+              <div class="pill on" id="activeSubsPill"></div>
+            </div>
+            <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
           </div>
+        </div>
+        <span class="hidden-note" id="subHiddenNote"></span>
+        <div class="list-body" id="subscriptionsList">
+          <div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No subscriptions yet</div></div>
         </div>
       </div>
 
@@ -417,7 +466,7 @@ select.field{cursor:pointer}
       <div class="settings-card">
         <div class="settings-title" style="justify-content:space-between">
           <span>🐛 PDF Parse Errors</span>
-          <button class="refresh-btn" onclick="loadParseErrors()" style="font-size:12px">↻ Refresh</button>
+          <button class="refresh-btn" onclick="loadParseErrors()">↻ Refresh</button>
         </div>
         <div id="parseErrorsList">
           <div style="font-size:13px;color:var(--on-sv)">Loading…</div>
@@ -426,11 +475,14 @@ select.field{cursor:pointer}
     </div>
   </div>
 
-</div><!-- #mainScreen -->
+</div>
 
 <script>
 let adminPwd = sessionStorage.getItem('tb_admin_pwd') || '';
 let cfg = {};
+let showInactiveSubs = false;
+let lastSubsList = null;
+let reqRefreshTimer = null;
 
 if (adminPwd) bootAdmin();
 
@@ -471,12 +523,11 @@ function logout() {
 }
 
 /* ── TABS ── */
-let reqRefreshTimer = null;
 function switchTab(tab) {
   ['sessions','subscriptions','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
-    if (el) { el.classList.toggle('active', t === tab); }
+    if (el) el.classList.toggle('active', t === tab);
   });
   clearInterval(reqRefreshTimer); reqRefreshTimer = null;
   if (tab === 'sessions') {
@@ -485,6 +536,16 @@ function switchTab(tab) {
   }
   if (tab === 'subscriptions') loadSubscriptions();
   if (tab === 'settings') loadParseErrors();
+}
+
+/* ── COLLAPSIBLE FORM ── */
+function toggleForm(bodyId, chevId) {
+  const body = document.getElementById(bodyId);
+  const chev = document.getElementById(chevId);
+  if (!body) return;
+  const opening = !body.classList.contains('open');
+  body.classList.toggle('open', opening);
+  if (chev) chev.classList.toggle('open', opening);
 }
 
 /* ── CONFIG ── */
@@ -552,11 +613,11 @@ function renderRequests(list) {
         </div>
       </div>
       <div class="req-chips">
-        <span class="chip sheets">📄 ${r.sheetCount} sheet${r.sheetCount > 1 ? 's' : ''}</span>
+        <span class="chip sheets">📄 ${r.sheetCount} sheet${r.sheetCount>1?'s':''}</span>
         <span class="chip amount">₹${r.amount}</span>
-        <span class="chip time">⏱ expires ${timeUntil(r.createdAt + 7200000)}</span>
+        <span class="chip time">⏱ expires ${timeUntil(r.createdAt+7200000)}</span>
       </div>
-      <button class="btn-approve" onclick="approveRequest('${r.reqId}',this)">✓ Approve & Grant Day Pass</button>
+      <button class="btn-approve" onclick="approveRequest('${r.reqId}',this)">✓ Approve &amp; Grant Day Pass</button>
     </div>`;
   }).join('');
 }
@@ -572,12 +633,11 @@ async function approveRequest(reqId, btn) {
     if (!r.ok) { btn.disabled = false; btn.textContent = '✓ Approve & Grant Day Pass'; alert(data.error); return; }
     const card = document.getElementById('req-' + reqId);
     if (card) card.remove();
-    loadSessions();
-    loadRequests();
+    loadSessions(); loadRequests();
   } catch(e) { btn.disabled = false; btn.textContent = '✓ Approve & Grant Day Pass'; }
 }
 
-/* ── DAY PASS ── */
+/* ── DAY PASS GENERATE ── */
 async function createCode() {
   const name = document.getElementById('newName').value.trim();
   const sheets = parseInt(document.getElementById('newSheets').value) || 1;
@@ -593,14 +653,11 @@ async function createCode() {
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
-
     document.getElementById('codeBig').textContent = data.code;
     document.getElementById('codeMeta').textContent =
-      `${esc(name)} · ${sheets} sheet${sheets > 1 ? 's' : ''} · ₹${data.amount} · valid 24h`;
-    const popup = document.getElementById('codeResult');
-    popup.style.display = 'block';
+      `${name} · ${sheets} sheet${sheets>1?'s':''} · ₹${data.amount} · valid 24h`;
+    document.getElementById('codeResult').style.display = 'block';
     document.getElementById('copyBtn').textContent = '📋 Copy Code';
-
     document.getElementById('newName').value = '';
     document.getElementById('newSheets').value = '1';
     loadSessions();
@@ -615,6 +672,7 @@ function copyCode() {
   setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
 }
 
+/* ── DAY PASS LIST ── */
 async function loadSessions() {
   try {
     const r = await fetch(`/api/sessions?password=${encodeURIComponent(adminPwd)}`);
@@ -626,57 +684,83 @@ async function loadSessions() {
 function renderSessions(list) {
   const el = document.getElementById('sessionsList');
   const countEl = document.getElementById('dpCount');
+  const now = Date.now();
   if (!list.length) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">🎟️</div><div class="empty-txt">No day passes yet</div></div>';
     countEl.textContent = '0'; countEl.className = 'list-count';
     return;
   }
-  const active = list.filter(s => s.status === 'active').length;
-  countEl.textContent = `${active} active / ${list.length} total`;
-  countEl.className = 'list-count' + (active > 0 ? ' has-active' : '');
+  // A pass is truly live only if server says active AND under 24h
+  const live = list.filter(s => s.status === 'active' && (now - s.createdAt) < 86400000).length;
+  countEl.textContent = `${live} active / ${list.length} total`;
+  countEl.className = 'list-count' + (live > 0 ? ' has-active' : '');
 
   el.innerHTML = list.map(s => {
-    const isActive = s.status === 'active';
+    const serverActive = s.status === 'active';
+    const over24h = serverActive && (now - s.createdAt) >= 86400000;
+    const isLive = serverActive && !over24h;
     const init = (s.playerName || '?')[0].toUpperCase();
     const amount = s.amount || ((cfg.pricePerSheet || 5) * s.sheetCount);
+
+    const statusHtml = isLive
+      ? `<div class="pass-status active">● Active</div>`
+      : over24h
+        ? `<div class="pass-status expired">⏰ Expired</div>`
+        : `<div class="pass-status ended">■ Ended</div>`;
+
+    const timeChip = isLive
+      ? `<span class="chip time">⏱ ${timeUntil(s.createdAt + 86400000)}</span>`
+      : over24h
+        ? `<span class="chip grayed">expired ${timeAgo(s.createdAt + 86400000)}</span>`
+        : (s.endedAt ? `<span class="chip grayed">ended ${timeAgo(s.endedAt)}</span>` : '');
+
+    const actionHtml = isLive
+      ? `<div class="pass-actions" data-code="${esc(s.code)}">
+           <button class="btn-end" onclick="askEndPass(this)">End Pass</button>
+         </div>`
+      : '';
+
     return `
-    <div class="pass-card ${isActive ? 'is-active' : 'is-ended'}">
+    <div class="pass-card ${isLive?'is-active':over24h?'is-expired':'is-ended'}">
       <div class="pass-row1">
-        <div class="pass-avatar ${isActive ? 'a' : 'e'}">${init}</div>
+        <div class="pass-avatar ${isLive?'a':'e'}">${init}</div>
         <div class="pass-name-block">
           <div class="pass-name">${esc(s.playerName)}</div>
           <div class="pass-time">Created ${timeAgo(s.createdAt)}</div>
         </div>
-        <div class="pass-status ${isActive ? 'active' : 'ended'}">
-          ${isActive ? '● Active' : '■ Ended'}
-        </div>
+        ${statusHtml}
       </div>
-      <div class="pass-code-row">
-        <div class="pass-code">${s.code}</div>
-      </div>
+      <div class="pass-code-row"><div class="pass-code">${s.code}</div></div>
       <div class="pass-chips">
-        <span class="chip sheets">📄 ${s.sheetCount} sheet${s.sheetCount > 1 ? 's' : ''}</span>
+        <span class="chip sheets">📄 ${s.sheetCount} sheet${s.sheetCount>1?'s':''}</span>
         <span class="chip amount">₹${amount}</span>
-        ${isActive ? `<span class="chip time">⏱ expires ${timeUntil(s.createdAt + 86400000)}</span>` : ''}
-        ${s.endedAt ? `<span class="chip expired">ended ${timeAgo(s.endedAt)}</span>` : ''}
+        ${timeChip}
       </div>
-      ${isActive ? `<div class="pass-actions">
-        <button class="btn-end" onclick="endSession('${s.code}',this)">End Pass</button>
-      </div>` : ''}
+      ${actionHtml}
     </div>`;
   }).join('');
 }
 
-async function endSession(code, btn) {
-  if (!confirm(`End day pass ${code}?`)) return;
+/* ── END PASS — inline confirm, no window.confirm() ── */
+function askEndPass(btn) {
+  const el = btn.closest('.pass-actions');
+  const code = el.dataset.code;
+  el.className = 'confirm-row';
+  el.innerHTML = `<span class="confirm-lbl">End this pass?</span>
+    <button class="btn-no" onclick="loadSessions()">No</button>
+    <button class="btn-yes">Yes, End</button>`;
+  el.querySelector('.btn-yes').onclick = () => doEndPass(code, el.querySelector('.btn-yes'));
+}
+
+async function doEndPass(code, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
     await fetch('/api/end-session', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, password: adminPwd })
     });
-    loadSessions();
-  } catch(e) { btn.disabled = false; btn.textContent = 'End Pass'; }
+  } catch(e) {}
+  loadSessions();
 }
 
 /* ── SUBSCRIPTIONS ── */
@@ -696,14 +780,11 @@ async function createSubscription() {
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
-
     document.getElementById('subKeyBig').textContent = data.key;
     document.getElementById('subKeyMeta').textContent =
-      `${esc(name)} · ${plan === 'yearly' ? 'Yearly' : 'Monthly'} · ${data.days} days · up to ${devices} device${devices > 1 ? 's' : ''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}`;
-    const popup = document.getElementById('subKeyResult');
-    popup.style.display = 'block';
+      `${name} · ${plan==='yearly'?'Yearly':'Monthly'} · ${data.days} days · up to ${devices} device${devices>1?'s':''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+    document.getElementById('subKeyResult').style.display = 'block';
     document.getElementById('copySubKeyBtn').textContent = '📋 Copy Key';
-
     document.getElementById('subName').value = '';
     document.getElementById('subDevices').value = '3';
     loadSubscriptions();
@@ -722,24 +803,48 @@ async function loadSubscriptions() {
   try {
     const r = await fetch(`/api/subscription?password=${encodeURIComponent(adminPwd)}`);
     if (!r.ok) return;
-    renderSubscriptions(await r.json());
+    lastSubsList = await r.json();
+    renderSubscriptions(lastSubsList);
   } catch(e) {}
 }
 
+function toggleActiveSubs() {
+  showInactiveSubs = !showInactiveSubs;
+  document.getElementById('activeSubsPill').classList.toggle('on', !showInactiveSubs);
+  if (lastSubsList) renderSubscriptions(lastSubsList);
+}
+
 function renderSubscriptions(list) {
+  lastSubsList = list;
   const el = document.getElementById('subscriptionsList');
   const countEl = document.getElementById('subCount');
+  const noteEl = document.getElementById('subHiddenNote');
+  const now = Date.now();
+
   if (!list.length) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No subscriptions yet</div></div>';
     countEl.textContent = '0'; countEl.className = 'list-count';
+    if (noteEl) noteEl.textContent = '';
     return;
   }
-  const now = Date.now();
-  const active = list.filter(s => s.status === 'active' && now <= s.expiresAt).length;
-  countEl.textContent = `${active} active / ${list.length} total`;
-  countEl.className = 'list-count' + (active > 0 ? ' has-active' : '');
 
-  el.innerHTML = list.map(s => {
+  const activeCount = list.filter(s => s.status === 'active' && now <= s.expiresAt).length;
+  countEl.textContent = `${activeCount} active / ${list.length} total`;
+  countEl.className = 'list-count' + (activeCount > 0 ? ' has-active' : '');
+
+  // Filter: hide revoked + expired unless "Show all" toggled
+  const filtered = showInactiveSubs
+    ? list
+    : list.filter(s => s.status !== 'revoked' && now <= s.expiresAt);
+  const hiddenCount = list.length - filtered.length;
+  if (noteEl) noteEl.textContent = hiddenCount > 0 ? `${hiddenCount} inactive hidden — toggle to show all` : '';
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No active subscriptions</div></div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(s => {
     const expired = now > s.expiresAt;
     const revoked = s.status === 'revoked';
     const inactive = revoked || expired;
@@ -760,8 +865,8 @@ function renderSubscriptions(list) {
         <div class="sub-plan-badge ${s.plan}">${planLabel}</div>
       </div>
       <div class="sub-key-box">
-        <span>${s.key}</span>
-        <button class="sub-key-copy" onclick="copyToClip('${s.key}',this)">Copy</button>
+        <span class="sub-key-text" title="${esc(s.key)}">${esc(s.key)}</span>
+        <button class="sub-key-copy" data-copyval="${esc(s.key)}" onclick="copyKeyBtn(this)">Copy</button>
       </div>
       <div class="sub-devices-section">
         <div class="sub-dev-top">
@@ -771,43 +876,70 @@ function renderSubscriptions(list) {
         <div class="sub-dev-bar"><div class="sub-dev-fill" style="width:${devPct}%"></div></div>
       </div>
       <div class="sub-chips">
-        ${revoked ? `<span class="chip revoked">✕ Revoked</span>` :
-          expired ? `<span class="chip expired">Expired</span>` :
-          daysLeft <= 7 ? `<span class="chip expiring">⚠ ${daysLeft}d left</span>` :
-          `<span class="chip days">✓ ${daysLeft}d left</span>`}
-        <span class="chip ${s.plan === 'yearly' ? 'plan-y' : 'plan-m'}">${planLabel}</span>
+        ${revoked
+          ? `<span class="chip revoked">✕ Revoked</span>`
+          : expired
+            ? `<span class="chip grayed">Expired</span>`
+            : daysLeft <= 7
+              ? `<span class="chip expiring">⚠ ${daysLeft}d left</span>`
+              : `<span class="chip days">✓ ${daysLeft}d left</span>`}
+        <span class="chip ${s.plan==='yearly'?'plan-y':'plan-m'}">${planLabel}</span>
         <span class="chip time">Exp ${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
       </div>
-      ${!revoked ? `<div class="sub-actions">
-        ${!expired ? `<button class="btn-revoke" onclick="revokeSubscription('${s.key}',this)">Revoke</button>` : ''}
-        <button class="btn-reset" onclick="resetSubDevices('${s.key}',this)">Reset Devices</button>
+      ${!revoked ? `<div class="sub-actions" data-key="${esc(s.key)}">
+        ${!expired ? `<button class="btn-revoke" onclick="askRevoke(this)">Revoke</button>` : ''}
+        <button class="btn-reset" onclick="askResetDev(this)">Reset Devices</button>
       </div>` : ''}
     </div>`;
   }).join('');
 }
 
-async function revokeSubscription(key, btn) {
-  if (!confirm(`Revoke ${key}?\nPlayer will lose access immediately.`)) return;
+/* ── REVOKE — inline confirm ── */
+function askRevoke(btn) {
+  const el = btn.closest('.sub-actions');
+  const key = el.dataset.key;
+  el.className = 'confirm-row';
+  el.innerHTML = `<span class="confirm-lbl">Revoke — player loses access?</span>
+    <button class="btn-no" onclick="loadSubscriptions()">No</button>
+    <button class="btn-yes">Yes, Revoke</button>`;
+  el.querySelector('.btn-yes').onclick = () => doRevoke(key, el.querySelector('.btn-yes'));
+}
+
+async function doRevoke(key, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
     await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'end', password: adminPwd, key })
     });
-    loadSubscriptions();
-  } catch(e) { btn.disabled = false; btn.textContent = 'Revoke'; }
+  } catch(e) {}
+  loadSubscriptions();
 }
 
-async function resetSubDevices(key, btn) {
-  if (!confirm(`Reset all device slots for ${key}?\nAll registered devices will need to re-activate.`)) return;
+/* ── RESET DEVICES — inline confirm ── */
+function askResetDev(btn) {
+  const el = btn.closest('.sub-actions');
+  const key = el.dataset.key;
+  el.className = 'confirm-row';
+  el.innerHTML = `<span class="confirm-lbl">Reset all device slots?</span>
+    <button class="btn-no" onclick="loadSubscriptions()">No</button>
+    <button class="btn-yes">Yes, Reset</button>`;
+  el.querySelector('.btn-yes').onclick = () => doResetDev(key, el.querySelector('.btn-yes'));
+}
+
+async function doResetDev(key, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
     await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reset-devices', password: adminPwd, key })
     });
-    loadSubscriptions();
-  } catch(e) { btn.disabled = false; btn.textContent = 'Reset Devices'; }
+  } catch(e) {}
+  loadSubscriptions();
+}
+
+function copyKeyBtn(btn) {
+  copyToClip(btn.dataset.copyval, btn);
 }
 
 function copyToClip(text, btn) {
@@ -842,7 +974,7 @@ async function loadParseErrors() {
 
 /* ── HELPERS ── */
 function timeAgo(ms) {
-  const d = Date.now() - ms, m = Math.floor(d / 60000), h = Math.floor(m / 60), dy = Math.floor(h / 24);
+  const d = Date.now() - ms, m = Math.floor(d/60000), h = Math.floor(m/60), dy = Math.floor(h/24);
   if (dy > 0) return `${dy}d ago`;
   if (h > 0) return `${h}h ago`;
   if (m > 0) return `${m}m ago`;
@@ -851,14 +983,14 @@ function timeAgo(ms) {
 
 function timeUntil(ms) {
   const d = ms - Date.now();
-  if (d <= 0) return 'soon';
-  const h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000);
+  if (d <= 0) return 'expired';
+  const h = Math.floor(d/3600000), m = Math.floor((d%3600000)/60000);
   if (h > 0) return `in ${h}h ${m}m`;
   return `in ${m}m`;
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>

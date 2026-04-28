@@ -2528,10 +2528,12 @@ async function pdfToText(file){
   const buf=await file.arrayBuffer();
   const pdf=await pdfjsLib.getDocument({data:buf}).promise;
   const lines=[];
+  let hasText=false;
   for(let p=1;p<=pdf.numPages;p++){
     const page=await pdf.getPage(p);
     const tc=await page.getTextContent();
     const items=tc.items.filter(it=>it.str.trim());
+    if(items.length) hasText=true;
     if(!items.length) continue;
     items.sort((a,b)=>b.transform[5]-a.transform[5]);
     const groups=[];let cur=[items[0]];
@@ -2546,7 +2548,36 @@ async function pdfToText(file){
       if(txt) lines.push(txt);
     });
   }
+  if(!hasText) return pdfToTextOcr(pdf);
   return lines.join('\n');
+}
+
+/* ══ OCR FALLBACK (scanned/image-only PDFs) ══ */
+async function pdfToTextOcr(pdf){
+  toast('Scanning image PDF — this may take 10–20 s…');
+  if(typeof Tesseract==='undefined'){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload=res;
+      s.onerror=()=>rej(new Error('Could not load OCR engine. Check your internet connection.'));
+      document.head.appendChild(s);
+    });
+  }
+  const worker=await Tesseract.createWorker('eng');
+  await worker.setParameters({tessedit_char_whitelist:'0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz./'});
+  const pages=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p);
+    const vp=page.getViewport({scale:2});
+    const cv=document.createElement('canvas');
+    cv.width=vp.width; cv.height=vp.height;
+    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    const {data:{text}}=await worker.recognize(cv);
+    pages.push(text);
+  }
+  await worker.terminate();
+  return pages.join('\n');
 }
 
 /* ══ PARSERS ══ */
@@ -2573,9 +2604,14 @@ function parseText(raw,fallback='Unknown'){
       else{flush();if(sheet)sheet.name=sm[1];else sheet={name:sm[1],tickets:[]};}
       continue;
     }
-    if(/TUKPA|TAMBOLA|JACKPOT|Dream/i.test(line)) continue;
+    if(/TUKPA|TAMBOLA|JACKPOT|Dream/i.test(line)){
+      // e.g. "RIDER TAMBOLA JACKPOTA0271" — extract alphanumeric ticket ID from end of title
+      const tidm=line.match(/([A-Z]\d{3,5})$/);
+      if(tidm){flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tidm[1]);}
+      continue;
+    }
     if(line.toLowerCase()==='partystuff'){flush();continue;}
-    const tm=line.match(/^(\d+)$/);
+    const tm=line.match(/^([A-Z]\d{3,5}|\d+)$/);
     if(tm){flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tm[1]);continue;}
     if(ticket&&/^\d+(\s+\d+){3,}$/.test(line)){rows.push(line.split(/\s+/).map(Number));continue;}
     if(ticket&&line.startsWith('|')&&!line.includes('---')){

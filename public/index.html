@@ -2548,36 +2548,53 @@ async function pdfToText(file){
       if(txt) lines.push(txt);
     });
   }
-  if(!hasText) return pdfToTextOcr(pdf);
+  if(!hasText) return pdfToTextOcr(file);
   return lines.join('\n');
 }
 
 /* ══ OCR FALLBACK (scanned/image-only PDFs) ══ */
-async function pdfToTextOcr(pdf){
-  toast('Scanning image PDF — this may take 10–20 s…');
-  if(typeof Tesseract==='undefined'){
-    await new Promise((res,rej)=>{
-      const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-      s.onload=res;
-      s.onerror=()=>rej(new Error('Could not load OCR engine. Check your internet connection.'));
-      document.head.appendChild(s);
-    });
+async function pdfToTextOcr(file){
+  toast('Reading scanned PDF — please wait…');
+  const form=new FormData();
+  form.append('file',file,file.name||'sheet.pdf');
+  form.append('apikey','helloworld');
+  form.append('language','eng');
+  form.append('detectOrientation','true');
+  form.append('scale','true');
+  form.append('OCREngine','2');
+  form.append('isOverlayRequired','true');
+  const r=await fetch('https://api.ocr.space/parse/image',{method:'POST',body:form});
+  if(!r.ok) throw new Error('OCR service unavailable');
+  const data=await r.json();
+  if(data.IsErroredOnProcessing) throw new Error(data.ErrorMessage?.[0]||'OCR failed');
+  if(!data.ParsedResults?.length) throw new Error('No text found in scanned PDF');
+  const out=[];
+  for(const result of data.ParsedResults){
+    const ocrLines=result.TextOverlay?.Lines||[];
+    if(!ocrLines.length){out.push(result.ParsedText||'');continue;}
+    // Collect every word with its x,y position
+    const items=[];
+    for(const ln of ocrLines){
+      for(const w of ln.Words||[]){
+        const text=w.WordText.trim();
+        if(text) items.push({text,top:w.Top,left:w.Left});
+      }
+    }
+    items.sort((a,b)=>a.top-b.top||a.left-b.left);
+    // Group words whose y-coordinates are within 50px into the same physical row
+    const rows=[];
+    for(const item of items){
+      const last=rows[rows.length-1];
+      if(!last||item.top-last[0].top>50) rows.push([item]);
+      else last.push(item);
+    }
+    // Output each row left-to-right
+    for(const row of rows){
+      row.sort((a,b)=>a.left-b.left);
+      out.push(row.map(i=>i.text).join(' '));
+    }
   }
-  const worker=await Tesseract.createWorker('eng');
-  await worker.setParameters({tessedit_char_whitelist:'0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz./'});
-  const pages=[];
-  for(let p=1;p<=pdf.numPages;p++){
-    const page=await pdf.getPage(p);
-    const vp=page.getViewport({scale:2});
-    const cv=document.createElement('canvas');
-    cv.width=vp.width; cv.height=vp.height;
-    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
-    const {data:{text}}=await worker.recognize(cv);
-    pages.push(text);
-  }
-  await worker.terminate();
-  return pages.join('\n');
+  return out.join('\n');
 }
 
 /* ══ PARSERS ══ */

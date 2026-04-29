@@ -44,6 +44,9 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 @keyframes float{0%,100%{transform:translateY(0)}40%{transform:translateY(-18px)}70%{transform:translateY(-8px)}}
 .app-name{font-size:44px;font-weight:900;color:var(--primary);letter-spacing:-1px;margin-bottom:6px}
 .app-sub{font-size:16px;color:var(--on-surface-variant);margin-bottom:40px}
+.mkt-link{margin-top:8px;font-size:13px;color:var(--primary);font-weight:600;
+  text-decoration:none;opacity:.8;display:inline-flex;align-items:center;gap:4px}
+.mkt-link:hover{opacity:1}
 .btn-fill{display:flex;align-items:center;justify-content:center;gap:10px;
   width:100%;max-width:290px;padding:17px;background:var(--primary);color:var(--on-primary);
   border:none;border-radius:20px;font-size:16px;font-weight:700;cursor:pointer;
@@ -801,6 +804,7 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     <span class="mir">upload_file</span> Load Ticket Sheets
   </button>
   <button class="btn-outline off" id="btnContinue" onclick="showGame()">Continue Last Game</button>
+  <a href="https://YOUR-MARKETPLACE-URL.vercel.app" class="mkt-link">🛒 Marketplace</a>
 </div>
 
 <!-- ══ ACTIVATION ══ -->
@@ -2629,9 +2633,9 @@ function parseText(raw,fallback='Unknown'){
       else{flush();if(sheet)sheet.name=sm[1];else sheet={name:sm[1],tickets:[]};}
       continue;
     }
-    if(/TUKPA|TAMBOLA|JACKPOT|Dream/i.test(line)){
-      // e.g. "RIDER TAMBOLA JACKPOTA0271" — extract alphanumeric ticket ID from end of title
-      const tidm=line.match(/([A-Z]\d{3,5})$/);
+    if(/TUKPA|TAMBOLA|JACKPOT|Dream|Good[\s.]*Luck/i.test(line)){
+      // e.g. "RIDER TAMBOLA JACKPOTA0271" or "Good Luck 0439" — ticket ID at end of brand line
+      const tidm=line.match(/([A-Z]\d{3,5}|\d{3,6})$/);
       if(tidm){flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tidm[1]);}
       continue;
     }

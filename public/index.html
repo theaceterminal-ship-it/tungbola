@@ -1959,7 +1959,7 @@ const MARKET_URL = 'https://tungbola-market.vercel.app';
 function openMarket(){
   const panel = document.getElementById('mktPanel');
   const frame = document.getElementById('mktFrame');
-  if(!frame.src) frame.src = MARKET_URL;
+  if(frame.src !== MARKET_URL) frame.src = MARKET_URL;
   panel.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -2781,7 +2781,7 @@ init();
     <span class="mkt-panel-title">Buy Sheets</span>
     <button class="mkt-panel-close" onclick="closeMarket()">✕</button>
   </div>
-  <iframe id="mktFrame" src="" allow="clipboard-write" loading="lazy"></iframe>
+  <iframe id="mktFrame" allow="clipboard-write"></iframe>
 </div>
 </body>
 </html>

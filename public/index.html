@@ -1014,15 +1014,6 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     </button>
   </div>
 
-  <!-- ── MARKETPLACE PANEL ── -->
-  <div class="mkt-panel" id="mktPanel">
-    <div class="mkt-panel-bar">
-      <span class="mir" style="color:#fff;font-size:20px">shopping_cart</span>
-      <span class="mkt-panel-title">Buy Sheets</span>
-      <button class="mkt-panel-close" onclick="closeMarket()">✕</button>
-    </div>
-    <iframe id="mktFrame" src="" allow="clipboard-write" loading="lazy"></iframe>
-  </div>
 
   <!-- ── DESKTOP: top nav ── -->
   <div class="dt-topnav">
@@ -2782,5 +2773,15 @@ if(window.visualViewport){
 /* ══ START ══ */
 init();
 </script>
+
+<!-- ── MARKETPLACE PANEL (outside #game so it works from any screen) ── -->
+<div class="mkt-panel" id="mktPanel">
+  <div class="mkt-panel-bar">
+    <span class="mir" style="color:#fff;font-size:20px">shopping_cart</span>
+    <span class="mkt-panel-title">Buy Sheets</span>
+    <button class="mkt-panel-close" onclick="closeMarket()">✕</button>
+  </div>
+  <iframe id="mktFrame" src="" allow="clipboard-write" loading="lazy"></iframe>
+</div>
 </body>
 </html>

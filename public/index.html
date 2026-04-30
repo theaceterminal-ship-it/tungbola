@@ -2634,9 +2634,11 @@ function parseText(raw,fallback='Unknown'){
       continue;
     }
     if(/TUKPA|TAMBOLA|JACKPOT|Dream|Good[\s.]*Luck/i.test(line)){
-      // e.g. "RIDER TAMBOLA JACKPOTA0271" or "Good Luck 0439" — ticket ID at end of brand line
+      // Always flush on brand line so the next bare number can start the ticket
+      // (PDF.js may split "Good Luck" and "0439" into separate lines)
       const tidm=line.match(/([A-Z]\d{3,5}|\d{3,6})$/);
-      if(tidm){flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tidm[1]);}
+      flush();
+      if(tidm){if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tidm[1]);}
       continue;
     }
     if(line.toLowerCase()==='partystuff'){flush();continue;}

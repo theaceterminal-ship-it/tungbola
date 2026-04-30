@@ -2628,8 +2628,8 @@ function parseText(raw,fallback='Unknown'){
   for(const line of lines){
     const sm=line.match(/Sheet\s+No\.?\s*(\S+)/i);
     if(sm){
-      // If mid-ticket (rows already collected), the label is a page watermark — don't interrupt
-      if(rows.length>0){if(sheet)sheet.name=sm[1];}
+      // If mid-ticket (rows collected) OR ticket just started (brand seen, rows pending), it's a watermark
+      if(rows.length>0||ticket){if(sheet)sheet.name=sm[1];}
       else{flush();if(sheet)sheet.name=sm[1];else sheet={name:sm[1],tickets:[]};}
       continue;
     }

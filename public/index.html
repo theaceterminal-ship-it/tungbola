@@ -1546,8 +1546,14 @@ async function dpHandleFiles(e){
       const nm=f.name.toLowerCase();
       const txt=nm.endsWith('.pdf')?await pdfToText(f):await f.text();
       const fb=f.name.replace(/\.[^/.]+$/,'');
-      const ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
+      let ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
       if(!ns.length){errs.push(f.name);continue;}
+      // If text-PDF extraction gave only 1-row tickets, the PDF may have image rows → retry with OCR
+      if(nm.endsWith('.pdf')&&ns.every(s=>s.tickets.length&&s.tickets.every(t=>ticketRowCount(t)<=1))){
+        try{const ocrTxt=await pdfToTextOcr(f);const ocrNs=parseText(ocrTxt,fb);
+          if(ocrNs.some(s=>s.tickets.some(t=>isTicketValid(t))))ns=ocrNs;}
+        catch(e){ocrFailed=true;}
+      }
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
         if(i>=0)sheets[i]=s;else sheets.push(s);
@@ -2574,8 +2580,14 @@ async function handleUpload(e){
       const nm=f.name.toLowerCase();
       const txt=nm.endsWith('.pdf')?await pdfToText(f):await f.text();
       const fb=f.name.replace(/\.[^/.]+$/,'');
-      const ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
+      let ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
       if(!ns.length){errs.push(f.name);continue;}
+      // If text-PDF extraction gave only 1-row tickets, the PDF may have image rows → retry with OCR
+      if(nm.endsWith('.pdf')&&ns.every(s=>s.tickets.length&&s.tickets.every(t=>ticketRowCount(t)<=1))){
+        try{const ocrTxt=await pdfToTextOcr(f);const ocrNs=parseText(ocrTxt,fb);
+          if(ocrNs.some(s=>s.tickets.some(t=>isTicketValid(t))))ns=ocrNs;}
+        catch(e){ocrFailed=true;}
+      }
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
         if(i>=0)sheets[i]=s;else sheets.push(s);
@@ -2656,26 +2668,12 @@ async function pdfToTextOcr(file){
   for(const result of data.ParsedResults){
     const ocrLines=result.TextOverlay?.Lines||[];
     if(!ocrLines.length){out.push(result.ParsedText||'');continue;}
-    // Collect every word with its x,y position
-    const items=[];
-    for(const ln of ocrLines){
-      for(const w of ln.Words||[]){
-        const text=w.WordText.trim();
-        if(text) items.push({text,top:w.Top,left:w.Left});
-      }
-    }
-    items.sort((a,b)=>a.top-b.top||a.left-b.left);
-    // Group words whose y-coordinates are within 50px into the same physical row
-    const rows=[];
-    for(const item of items){
-      const last=rows[rows.length-1];
-      if(!last||item.top-last[0].top>50) rows.push([item]);
-      else last.push(item);
-    }
-    // Output each row left-to-right
-    for(const row of rows){
-      row.sort((a,b)=>a.left-b.left);
-      out.push(row.map(i=>i.text).join(' '));
+    // Use the OCR engine's own line detection, sorted top-to-bottom, words left-to-right
+    const sorted=[...ocrLines].sort((a,b)=>(a.Words?.[0]?.Top??0)-(b.Words?.[0]?.Top??0));
+    for(const ln of sorted){
+      const words=[...(ln.Words||[])].sort((a,b)=>a.Left-b.Left);
+      const text=words.map(w=>w.WordText.trim()).filter(Boolean).join(' ');
+      if(text) out.push(text);
     }
   }
   return out.join('\n');
@@ -2698,7 +2696,7 @@ function parseText(raw,fallback='Unknown'){
     ticket=null;rows=[];
   }
   for(const line of lines){
-    const sm=line.match(/Sheet\s+No\.?\s*(\S+)/i);
+    const sm=line.match(/Sheet\s+(?:No\.?|Number)\s*(\S+)/i);
     if(sm){
       // If mid-ticket (rows collected) OR ticket just started (brand seen, rows pending), it's a watermark
       if(rows.length>0||ticket){if(sheet)sheet.name=sm[1];}
@@ -2706,8 +2704,9 @@ function parseText(raw,fallback='Unknown'){
       continue;
     }
     if(/TUKPA|TAMBOLA|JACKPOT|Dream|Good[\s.]*Luck/i.test(line)){
-      // Always flush on brand line so the next bare number can start the ticket
-      // (PDF.js may split "Good Luck" and "0439" into separate lines)
+      // Rescue any number row embedded in this brand line before flushing
+      // (watermark text often appears at the same Y as the last ticket row in OCR output)
+      if(ticket){const nm=line.match(/(\d+(?:\s+\d+){3,})/);if(nm)rows.push(nm[1].split(/\s+/).map(Number));}
       const tidm=line.match(/([A-Z]\d{3,5}|\d{3,6})$/);
       flush();
       if(tidm){if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tidm[1]);}
@@ -2715,9 +2714,15 @@ function parseText(raw,fallback='Unknown'){
     }
     if(line.toLowerCase()==='partystuff'){flush();continue;}
     const tm=line.match(/^([A-Z]\d{3,5}|\d+)$/);
-    // Bare numbers mid-ticket (rows.length>0) are stray OCR artefacts from rotated sheet labels
-    if(tm){if(rows.length>0&&!/[A-Z]/.test(tm[1])){continue;}flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tm[1]);continue;}
-    if(ticket&&/^\d+(\s+\d+){3,}$/.test(line)){rows.push(line.split(/\s+/).map(Number));continue;}
+    // Bare numbers mid-ticket (rows>0) or while waiting for rows (ticket set, rows=[]) are sheet-label artefacts
+    if(tm){if((rows.length>0||ticket)&&!/[A-Z]/.test(tm[1])){continue;}flush();if(!sheet)sheet={name:fallback,tickets:[]};ticket=mkT(tm[1]);continue;}
+    if(ticket&&/^\d+(\s+\d+){3,}$/.test(line)){
+      const all=line.split(/\s+/).map(Number);
+      // If ≥5 valid tambola numbers (1-90) already present, drop >90 contaminants (e.g. sheet label mixed in)
+      const valid=all.filter(n=>n>=1&&n<=90);
+      rows.push(valid.length>=5?valid:all);
+      continue;
+    }
     if(ticket&&line.startsWith('|')&&!line.includes('---')){
       const ns=line.split('|').map(c=>c.trim()).filter(c=>c&&!/^-+$/.test(c))
         .flatMap(c=>(c.match(/\d+/g)||[]).map(Number));

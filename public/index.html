@@ -1232,6 +1232,7 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="/tungbola-parser.js"></script>
 <script>
 if(typeof pdfjsLib!=='undefined')
   pdfjsLib.GlobalWorkerOptions.workerSrc=
@@ -1543,17 +1544,10 @@ async function dpHandleFiles(e){
     const f=files[fi];
     $('loadMsg').textContent=files.length>1?`Reading ${fi+1}/${files.length}: ${f.name}`:`Reading ${f.name}…`;
     try{
-      const nm=f.name.toLowerCase();
-      const txt=nm.endsWith('.pdf')?await pdfToText(f):await f.text();
-      const fb=f.name.replace(/\.[^/.]+$/,'');
-      let ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
+      const result=await TBFiles.parseFile(f);
+      let ns=result.sheets;
+      if(result.warnings&&result.warnings.some(w=>/ocr/i.test(w))) ocrFailed=true;
       if(!ns.length){errs.push(f.name);continue;}
-      // If text-PDF extraction gave only 1-row tickets, the PDF may have image rows → retry with OCR
-      if(nm.endsWith('.pdf')&&ns.every(s=>s.tickets.length&&s.tickets.every(t=>ticketRowCount(t)<=1))){
-        try{const ocrTxt=await pdfToTextOcr(f);const ocrNs=parseText(ocrTxt,fb);
-          if(ocrNs.some(s=>s.tickets.some(t=>isTicketValid(t))))ns=ocrNs;}
-        catch(e){ocrFailed=true;}
-      }
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
         if(i>=0)sheets[i]=s;else sheets.push(s);
@@ -2577,17 +2571,10 @@ async function handleUpload(e){
       ?`Reading ${fi+1}/${files.length}: ${f.name}`
       :`Reading ${f.name}…`;
     try{
-      const nm=f.name.toLowerCase();
-      const txt=nm.endsWith('.pdf')?await pdfToText(f):await f.text();
-      const fb=f.name.replace(/\.[^/.]+$/,'');
-      let ns=nm.endsWith('.json')?parseJSON(txt):parseText(txt,fb);
+      const result=await TBFiles.parseFile(f);
+      let ns=result.sheets;
+      if(result.warnings&&result.warnings.some(w=>/ocr/i.test(w))) ocrFailed=true;
       if(!ns.length){errs.push(f.name);continue;}
-      // If text-PDF extraction gave only 1-row tickets, the PDF may have image rows → retry with OCR
-      if(nm.endsWith('.pdf')&&ns.every(s=>s.tickets.length&&s.tickets.every(t=>ticketRowCount(t)<=1))){
-        try{const ocrTxt=await pdfToTextOcr(f);const ocrNs=parseText(ocrTxt,fb);
-          if(ocrNs.some(s=>s.tickets.some(t=>isTicketValid(t))))ns=ocrNs;}
-        catch(e){ocrFailed=true;}
-      }
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
         if(i>=0)sheets[i]=s;else sheets.push(s);

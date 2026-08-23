@@ -11,9 +11,9 @@ module.exports = async function(req, res) {
     return res.status(429).json({ error: 'Too many requests' });
 
   try {
-    const cfg = await kv.get('tb:config') || { pricePerSheet: 5, upiId: '', whatsappNumber: '' };
+    const cfg = await kv.get('tb:config') || { upiId: '', whatsappNumber: '' };
     res.json(cfg);
   } catch(e) {
-    res.json({ pricePerSheet: 5, upiId: '', whatsappNumber: '' });
+    res.json({ upiId: '', whatsappNumber: '' });
   }
 };

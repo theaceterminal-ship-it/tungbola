@@ -10,7 +10,7 @@
 :root{
   --primary:#6750A4;--primary-c:#EADDFF;--error:#B3261E;--error-c:#F9DEDC;
   --success:#4CAF50;--surface:#FFFFFF;--bg:#F4F0FA;--sv:#E7E0EC;
-  --on-s:#1C1B1F;--on-sv:#49454F;--outline:#79747E;
+  --on-s:#1C1B1F;--on-sv:#49454F;--outline:#79747E;--amber:#F57F17;--amber-c:#FFF3E0;
   --shadow:0 1px 3px rgba(0,0,0,.1);--shadow-md:0 2px 8px rgba(0,0,0,.12);--shadow-lg:0 4px 16px rgba(0,0,0,.15)
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -43,7 +43,7 @@ select.field{cursor:pointer}
 .header-left{display:flex;align-items:center;gap:12px}
 .header-logo{font-size:20px;font-weight:900;letter-spacing:-.5px}
 .header-sep{width:1px;height:20px;background:rgba(255,255,255,.25)}
-.header-sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.header-sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
 .logout-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;
   padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;
   cursor:pointer;font-family:inherit;transition:background .15s;flex-shrink:0}
@@ -81,7 +81,7 @@ select.field{cursor:pointer}
 .form-body{overflow:hidden}
 @media(max-width:860px){
   .form-body{max-height:0;transition:max-height .3s ease}
-  .form-body.open{max-height:750px}
+  .form-body.open{max-height:900px}
 }
 @media(min-width:861px){
   .form-body{max-height:none!important;overflow:visible!important}
@@ -92,6 +92,11 @@ select.field{cursor:pointer}
 .field-label{font-size:11px;font-weight:700;color:var(--on-sv);
   text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .field-wrap{margin-bottom:13px}
+.field-hint{font-size:11px;color:var(--on-sv);opacity:.7;margin-top:4px}
+.duration-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.preset-chip{padding:7px 12px;border-radius:20px;border:1.5px solid var(--sv);background:#fff;
+  font-size:12px;font-weight:600;color:var(--on-sv);cursor:pointer;font-family:inherit;transition:all .15s}
+.preset-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .btn-gen{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;
   border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
   font-family:inherit;transition:opacity .15s;margin-top:2px}
@@ -126,11 +131,29 @@ select.field{cursor:pointer}
   padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;
   cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0}
 .refresh-btn:hover{border-color:var(--primary);color:var(--primary)}
-.list-body{padding:10px 12px}
-.list-sep{height:1px;background:var(--sv);margin:0}
 
-/* ── FILTER TOGGLE ── */
-.filter-row{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+/* ── STAT STRIP ── */
+.stat-strip{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;border-bottom:1px solid var(--sv)}
+.stat-chip{flex:1;min-width:90px;padding:9px 10px;border-radius:12px;background:var(--bg);
+  cursor:pointer;border:2px solid transparent;transition:all .15s;text-align:center}
+.stat-chip.active-filter{border-color:var(--primary)}
+.stat-chip-num{font-size:18px;font-weight:900;line-height:1.1}
+.stat-chip-lbl{font-size:10px;font-weight:600;color:var(--on-sv);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.stat-chip.st-active .stat-chip-num{color:#2E7D32}
+.stat-chip.st-expiring .stat-chip-num{color:var(--amber)}
+.stat-chip.st-expired .stat-chip-num{color:var(--outline)}
+.stat-chip.st-revoked .stat-chip-num{color:var(--error)}
+
+/* ── SEARCH / SORT ROW ── */
+.tools-row{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--sv);flex-wrap:wrap}
+.search-box{flex:1;min-width:160px;position:relative}
+.search-input{width:100%;padding:9px 12px 9px 32px;border:1.5px solid var(--sv);border-radius:20px;
+  font-size:13px;font-family:inherit;outline:none;background:var(--bg)}
+.search-input:focus{border-color:var(--primary);background:#fff}
+.search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5}
+.sort-select{padding:9px 12px;border:1.5px solid var(--sv);border-radius:20px;font-size:13px;
+  font-family:inherit;background:var(--bg);color:var(--on-s);cursor:pointer;outline:none}
+.filter-row{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;flex-shrink:0}
 .filter-lbl{font-size:11px;font-weight:600;color:var(--on-sv);white-space:nowrap}
 .pill{width:32px;height:18px;border-radius:9px;background:var(--sv);
   position:relative;transition:background .2s;flex-shrink:0}
@@ -139,63 +162,29 @@ select.field{cursor:pointer}
   border-radius:50%;top:2px;left:2px;transition:left .2s;
   box-shadow:0 1px 2px rgba(0,0,0,.25)}
 .pill.on::after{left:16px}
-.hidden-note{display:block;font-size:11px;color:var(--on-sv);opacity:.6;
-  padding:5px 14px 0;min-height:18px}
+
+.list-body{padding:10px 12px}
+.list-sep{height:1px;background:var(--sv);margin:0}
+.group-hdr{font-size:11px;font-weight:700;color:var(--on-sv);text-transform:uppercase;
+  letter-spacing:.6px;padding:10px 4px 6px;display:flex;align-items:center;gap:6px}
+.group-hdr.warn{color:var(--amber)}
 
 /* ── EMPTY ── */
 .empty{text-align:center;padding:32px 16px;color:var(--on-sv);opacity:.5}
 .empty-ico{font-size:36px;margin-bottom:8px}
 .empty-txt{font-size:13px;font-weight:500}
 
-/* ── DAY PASS CARD ── */
-.pass-card{border:1px solid var(--sv);border-radius:12px;padding:12px 13px;
-  margin-bottom:9px;background:#FAFAFA;transition:box-shadow .15s}
-.pass-card:last-child{margin-bottom:0}
-.pass-card.is-active{background:#fff;border-color:rgba(103,80,164,.2);
-  box-shadow:0 2px 8px rgba(103,80,164,.08)}
-.pass-card.is-ended{opacity:.45}
-.pass-card.is-expired{opacity:.6}
-.pass-row1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.pass-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-.pass-avatar.a{background:var(--primary-c);color:var(--primary)}
-.pass-avatar.e{background:var(--sv);color:var(--on-sv)}
-.pass-name-block{flex:1;min-width:0}
-.pass-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pass-time{font-size:11px;color:var(--on-sv);margin-top:1px}
-.pass-status{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;
-  border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
-.pass-status.active{background:#E8F5E9;color:#2E7D32}
-.pass-status.ended{background:var(--sv);color:var(--on-sv)}
-.pass-status.expired{background:#FFF3E0;color:#E65100}
-.pass-code-row{margin-bottom:9px}
-.pass-code{font-size:24px;font-weight:900;letter-spacing:5px;font-family:monospace;color:var(--primary)}
-.pass-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
-.chip{display:inline-flex;align-items:center;padding:3px 8px;
-  border-radius:7px;font-size:11px;font-weight:600}
-.chip.sheets{background:#EDE7F6;color:#4527A0}
-.chip.amount{background:#E8F5E9;color:#2E7D32}
-.chip.time{background:#FFF8E1;color:#F57F17}
-.chip.grayed{background:var(--sv);color:var(--on-sv)}
-.chip.expiring{background:#FFF3E0;color:#E65100}
-.chip.revoked{background:#FFEBEE;color:var(--error)}
-.chip.days{background:#E8F5E9;color:#2E7D32}
-.chip.plan-m{background:#EDE7F6;color:var(--primary)}
-.chip.plan-y{background:#F3E5F5;color:#6A1B9A}
-.pass-actions{display:flex;gap:6px;justify-content:flex-end}
-
 /* ── INLINE CONFIRM ── */
 .confirm-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:4px 0 2px}
 .confirm-lbl{font-size:12px;color:var(--on-s);font-weight:600;flex:1;min-width:120px}
+.confirm-input{width:64px;padding:8px 10px;border:1.5px solid var(--sv);border-radius:8px;
+  font-size:13px;font-family:inherit;text-align:center}
 .btn-yes{background:var(--error);color:#fff;border:none;border-radius:8px;
   padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-yes.ok{background:#2E7D32}
 .btn-yes:disabled{opacity:.5;cursor:not-allowed}
 .btn-no{background:var(--sv);color:var(--on-sv);border:none;border-radius:8px;
   padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
-.btn-end{background:var(--error-c);color:var(--error);border:none;
-  border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;
-  cursor:pointer;font-family:inherit;transition:all .15s}
-.btn-end:hover{background:var(--error);color:#fff}
 
 /* ── SUBSCRIPTION CARD ── */
 .sub-card{border:1px solid var(--sv);border-radius:12px;padding:12px 13px;
@@ -203,19 +192,20 @@ select.field{cursor:pointer}
 .sub-card:last-child{margin-bottom:0}
 .sub-card.is-active{background:#fff;border-color:rgba(103,80,164,.2);
   box-shadow:0 2px 8px rgba(103,80,164,.08)}
+.sub-card.is-warn{background:#fff;border-color:rgba(245,127,23,.35);
+  box-shadow:0 2px 8px rgba(245,127,23,.1)}
 .sub-card.is-inactive{opacity:.55}
 .sub-row1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
 .sub-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 .sub-avatar.a{background:linear-gradient(135deg,var(--primary),#7C3AED);color:#fff}
+.sub-avatar.w{background:linear-gradient(135deg,var(--amber),#FFB300);color:#fff}
 .sub-avatar.i{background:var(--sv);color:var(--on-sv)}
 .sub-name-block{flex:1;min-width:0}
 .sub-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub-created{font-size:11px;color:var(--on-sv);margin-top:1px}
 .sub-plan-badge{display:inline-flex;padding:3px 8px;border-radius:20px;
-  font-size:11px;font-weight:700;flex-shrink:0}
-.sub-plan-badge.monthly{background:#EDE7F6;color:var(--primary)}
-.sub-plan-badge.yearly{background:linear-gradient(135deg,#EDE7F6,#E1BEE7);color:#4527A0}
+  font-size:11px;font-weight:700;flex-shrink:0;background:var(--primary-c);color:var(--primary)}
 .sub-key-box{background:var(--bg);border-radius:8px;padding:7px 11px;
   margin-bottom:9px;display:flex;align-items:center;gap:8px;overflow:hidden}
 .sub-key-text{font-family:monospace;font-size:12px;font-weight:700;letter-spacing:1px;
@@ -231,7 +221,14 @@ select.field{cursor:pointer}
 .sub-dev-bar{height:5px;background:var(--sv);border-radius:3px;overflow:hidden}
 .sub-dev-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .4s}
 .sub-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
-.sub-actions{display:flex;gap:6px;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;
+  border-radius:7px;font-size:11px;font-weight:600}
+.chip.grayed{background:var(--sv);color:var(--on-sv)}
+.chip.expiring{background:#FFF3E0;color:#E65100}
+.chip.revoked{background:#FFEBEE;color:var(--error)}
+.chip.days{background:#E8F5E9;color:#2E7D32}
+.chip.phone{background:#E0F2F1;color:#00695C}
+.sub-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
 .btn-revoke{background:var(--error-c);color:var(--error);border:none;
   border-radius:8px;padding:8px 13px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:all .15s}
@@ -240,22 +237,14 @@ select.field{cursor:pointer}
   border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-reset:hover{background:#DDD6F3}
-
-/* ── REQUEST CARDS ── */
-.req-card{background:#fff;border-radius:14px;padding:14px;
-  box-shadow:var(--shadow);margin-bottom:9px;border-left:4px solid var(--primary)}
-.req-row1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.req-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#9C27B0);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;flex-shrink:0}
-.req-name{font-size:14px;font-weight:700}
-.req-time{font-size:11px;color:var(--on-sv);margin-top:2px}
-.req-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
-.btn-approve{background:#E8F5E9;color:#2E7D32;border:none;
-  border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;
-  cursor:pointer;font-family:inherit;transition:all .15s;width:100%}
-.btn-approve:hover{background:#4CAF50;color:#fff}
-.btn-approve:disabled{opacity:.5;cursor:not-allowed}
+.btn-extend{background:#E8F5E9;color:#2E7D32;border:none;
+  border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-extend:hover{background:#C8E6C9}
+.btn-remind{background:#E0F2F1;color:#00695C;border:none;
+  border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:background .15s;text-decoration:none;display:inline-flex;align-items:center}
+.btn-remind:hover{background:#B2DFDB}
 
 /* ── SETTINGS ── */
 .settings-wrap{max-width:520px}
@@ -268,13 +257,14 @@ select.field{cursor:pointer}
 /* ── MOBILE OVERRIDES ── */
 @media(max-width:860px){
   .tab-content{padding:12px}
-  .pass-actions,.sub-actions{flex-direction:column}
-  .btn-end,.btn-revoke,.btn-reset{width:100%;padding:11px;font-size:13px;text-align:center}
+  .sub-actions{flex-direction:column}
+  .btn-revoke,.btn-reset,.btn-extend,.btn-remind{width:100%;padding:11px;font-size:13px;text-align:center;justify-content:center}
   .confirm-row{flex-direction:column;align-items:stretch}
   .confirm-lbl{margin-bottom:4px}
   .btn-yes,.btn-no{width:100%;padding:11px;font-size:13px;text-align:center}
-  .pass-code{font-size:20px;letter-spacing:4px}
   .list-body{padding:9px 10px}
+  .stat-strip{gap:6px}
+  .stat-chip{min-width:75px;padding:8px}
 }
 </style>
 </head>
@@ -307,74 +297,12 @@ select.field{cursor:pointer}
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtnSessions" onclick="switchTab('sessions')">🎟️ Day Pass</button>
-    <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscriptions</button>
+    <button class="tab-btn active" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscribers</button>
     <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
 
-  <!-- ── DAY PASS TAB ── -->
-  <div class="tab-content active" id="tabSessions">
-    <div class="split">
-
-      <div class="form-panel">
-        <button class="form-toggle-btn" onclick="toggleForm('dpForm','dpChev')">
-          <div class="panel-title">🎟️ Generate Day Pass</div>
-          <span class="toggle-chevron" id="dpChev">⌄</span>
-        </button>
-        <div class="form-body" id="dpForm">
-          <div class="form-body-inner">
-            <div class="field-wrap">
-              <div class="field-label">Player Name</div>
-              <input class="field" id="newName" placeholder="e.g. Rahul" type="text"
-                onkeydown="if(event.key==='Enter')createCode()">
-            </div>
-            <div class="field-wrap">
-              <div class="field-label">Number of Sheets</div>
-              <input class="field" id="newSheets" type="number" min="1" max="300" value="1">
-            </div>
-            <button class="btn-gen" id="createCodeBtn" onclick="createCode()">Generate Code →</button>
-            <div class="form-err" id="createError"></div>
-            <div class="code-popup" id="codeResult">
-              <div class="code-popup-lbl">Day Pass Code · Share with player</div>
-              <div class="code-popup-val" id="codeBig"></div>
-              <div class="code-popup-meta" id="codeMeta"></div>
-              <button class="code-popup-copy" onclick="copyCode()" id="copyBtn">📋 Copy Code</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="list-panel">
-        <div class="list-hdr">
-          <div class="list-hdr-left">
-            <div class="list-hdr-title">Pending Requests</div>
-            <div class="list-count" id="reqCount">0</div>
-          </div>
-          <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
-        </div>
-        <div class="list-body" id="requestsList">
-          <div class="empty"><div class="empty-ico">📥</div><div class="empty-txt">No pending requests</div></div>
-        </div>
-
-        <div class="list-sep"></div>
-
-        <div class="list-hdr">
-          <div class="list-hdr-left">
-            <div class="list-hdr-title">Day Passes</div>
-            <div class="list-count" id="dpCount">0</div>
-          </div>
-          <button class="refresh-btn" onclick="loadSessions()">↻ Refresh</button>
-        </div>
-        <div class="list-body" id="sessionsList">
-          <div class="empty"><div class="empty-ico">🎟️</div><div class="empty-txt">No day passes yet</div></div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ── SUBSCRIPTIONS TAB ── -->
-  <div class="tab-content" id="tabSubscriptions">
+  <!-- ── SUBSCRIBERS TAB ── -->
+  <div class="tab-content active" id="tabSubscriptions">
     <div class="split">
 
       <div class="form-panel">
@@ -390,11 +318,22 @@ select.field{cursor:pointer}
                 onkeydown="if(event.key==='Enter')createSubscription()">
             </div>
             <div class="field-wrap">
-              <div class="field-label">Plan</div>
-              <select class="field" id="subPlan">
-                <option value="monthly">Monthly — 30 days</option>
-                <option value="yearly">Yearly — 365 days</option>
-              </select>
+              <div class="field-label">Phone / WhatsApp (optional)</div>
+              <input class="field" id="subPhone" placeholder="919876543210" type="tel">
+              <div class="field-hint">Lets you send a one-tap renewal reminder later.</div>
+            </div>
+            <div class="field-wrap">
+              <div class="field-label">Duration</div>
+              <div class="duration-presets" id="durationPresets">
+                <button type="button" class="preset-chip" data-m="1" onclick="pickDuration(1)">1 Month</button>
+                <button type="button" class="preset-chip" data-m="2" onclick="pickDuration(2)">2 Months</button>
+                <button type="button" class="preset-chip" data-m="3" onclick="pickDuration(3)">3 Months</button>
+                <button type="button" class="preset-chip" data-m="6" onclick="pickDuration(6)">6 Months</button>
+                <button type="button" class="preset-chip active" data-m="12" onclick="pickDuration(12)">1 Year</button>
+                <button type="button" class="preset-chip" data-m="0" onclick="pickDuration(0)">Custom…</button>
+              </div>
+              <input class="field off" id="subMonthsCustom" type="number" min="1" max="36" value="1"
+                placeholder="Number of months" style="display:none">
             </div>
             <div class="field-wrap">
               <div class="field-label">Max Devices (1 – 5)</div>
@@ -418,15 +357,44 @@ select.field{cursor:pointer}
             <div class="list-hdr-title">Subscribers</div>
             <div class="list-count" id="subCount">0</div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="filter-row" onclick="toggleActiveSubs()" title="Hide expired &amp; revoked">
-              <span class="filter-lbl">Active only</span>
-              <div class="pill on" id="activeSubsPill"></div>
-            </div>
-            <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
+          <button class="refresh-btn" onclick="loadSubscriptions()">↻ Refresh</button>
+        </div>
+
+        <div class="stat-strip">
+          <div class="stat-chip st-active active-filter" id="statActive" onclick="setStatFilter('active')">
+            <div class="stat-chip-num" id="statActiveNum">0</div>
+            <div class="stat-chip-lbl">Active</div>
+          </div>
+          <div class="stat-chip st-expiring" id="statExpiring" onclick="setStatFilter('expiring')">
+            <div class="stat-chip-num" id="statExpiringNum">0</div>
+            <div class="stat-chip-lbl">Expiring ≤3d</div>
+          </div>
+          <div class="stat-chip st-expired" id="statExpired" onclick="setStatFilter('expired')">
+            <div class="stat-chip-num" id="statExpiredNum">0</div>
+            <div class="stat-chip-lbl">Expired</div>
+          </div>
+          <div class="stat-chip st-revoked" id="statRevoked" onclick="setStatFilter('revoked')">
+            <div class="stat-chip-num" id="statRevokedNum">0</div>
+            <div class="stat-chip-lbl">Revoked</div>
           </div>
         </div>
-        <span class="hidden-note" id="subHiddenNote"></span>
+
+        <div class="tools-row">
+          <div class="search-box">
+            <span class="search-ico">🔍</span>
+            <input class="search-input" id="subSearch" placeholder="Search name, key or phone…" oninput="onSearchInput()">
+          </div>
+          <select class="sort-select" id="subSort" onchange="onSortChange()">
+            <option value="expiry">Expiring soonest</option>
+            <option value="newest">Newest first</option>
+            <option value="name">Name A–Z</option>
+          </select>
+          <div class="filter-row" onclick="toggleAllFilter()" title="Show every subscriber, including expired &amp; revoked">
+            <span class="filter-lbl">Show all</span>
+            <div class="pill" id="allFilterPill"></div>
+          </div>
+        </div>
+
         <div class="list-body" id="subscriptionsList">
           <div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No subscriptions yet</div></div>
         </div>
@@ -441,16 +409,14 @@ select.field{cursor:pointer}
       <div class="settings-card">
         <div class="settings-title">⚙️ Game Settings</div>
         <div class="field-wrap">
-          <div class="field-label">Price per Sheet (₹)</div>
-          <input class="field" id="cfgPrice" type="number" min="1" placeholder="5">
-        </div>
-        <div class="field-wrap">
           <div class="field-label">UPI ID</div>
           <input class="field" id="cfgUpi" placeholder="yourname@paytm" type="text">
+          <div class="field-hint">Used for the Marketplace sheet-purchase QR code.</div>
         </div>
         <div class="field-wrap">
           <div class="field-label">WhatsApp Number (with country code, no +)</div>
           <input class="field" id="cfgWa" placeholder="919876543210" type="tel">
+          <div class="field-hint">Your own support number, shown to players who need help.</div>
         </div>
         <button class="btn-gen" onclick="saveConfig()">Save Settings</button>
         <div class="save-msg" id="saveMsg">✓ Settings saved!</div>
@@ -465,7 +431,7 @@ select.field{cursor:pointer}
       </div>
       <div class="settings-card">
         <div class="settings-title" style="justify-content:space-between">
-          <span>🐛 PDF Parse Errors</span>
+          <span>🐛 PDF/JPG Parse Errors</span>
           <button class="refresh-btn" onclick="loadParseErrors()">↻ Refresh</button>
         </div>
         <div id="parseErrorsList">
@@ -480,9 +446,13 @@ select.field{cursor:pointer}
 <script>
 let adminPwd = sessionStorage.getItem('tb_admin_pwd') || '';
 let cfg = {};
-let showInactiveSubs = false;
-let lastSubsList = null;
-let reqRefreshTimer = null;
+let showAllSubs = false;
+let statFilter = null;           // 'active' | 'expiring' | 'expired' | 'revoked' | null
+let searchQuery = '';
+let sortMode = 'expiry';
+let lastSubsList = [];
+let selectedMonths = 12;
+let searchDebounce = null;
 
 if (adminPwd) bootAdmin();
 
@@ -492,14 +462,14 @@ function login() {
   if (!pwd) return;
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
-  fetch(`/api/sessions?password=${encodeURIComponent(pwd)}`)
+  fetch(`/api/subscription?password=${encodeURIComponent(pwd)}`)
     .then(async r => {
       if (r.status === 429) { errEl.textContent = 'Too many attempts — wait a few minutes.'; errEl.style.display = 'block'; return; }
       if (!r.ok) { errEl.textContent = 'Wrong password. Try again.'; errEl.style.display = 'block'; return; }
       adminPwd = pwd;
       sessionStorage.setItem('tb_admin_pwd', pwd);
       bootAdmin();
-      renderSessions(await r.json());
+      renderSubscriptions(await r.json());
     })
     .catch(() => { errEl.textContent = 'Network error.'; errEl.style.display = 'block'; });
 }
@@ -508,9 +478,7 @@ function bootAdmin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'flex';
   loadConfig();
-  loadSessions();
-  loadRequests();
-  reqRefreshTimer = setInterval(() => loadRequests(), 8000);
+  loadSubscriptions();
   loadParseErrors();
 }
 
@@ -524,16 +492,11 @@ function logout() {
 
 /* ── TABS ── */
 function switchTab(tab) {
-  ['sessions','subscriptions','settings'].forEach(t => {
+  ['subscriptions','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
     if (el) el.classList.toggle('active', t === tab);
   });
-  clearInterval(reqRefreshTimer); reqRefreshTimer = null;
-  if (tab === 'sessions') {
-    loadSessions(); loadRequests();
-    reqRefreshTimer = setInterval(() => loadRequests(), 8000);
-  }
   if (tab === 'subscriptions') loadSubscriptions();
   if (tab === 'settings') loadParseErrors();
 }
@@ -548,21 +511,33 @@ function toggleForm(bodyId, chevId) {
   if (chev) chev.classList.toggle('open', opening);
 }
 
+/* ── DURATION PICKER ── */
+function pickDuration(m) {
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.toggle('active', Number(c.dataset.m) === m));
+  const custom = document.getElementById('subMonthsCustom');
+  if (m === 0) {
+    custom.style.display = '';
+    custom.classList.remove('off');
+    selectedMonths = Math.max(1, Math.min(36, parseInt(custom.value) || 1));
+    custom.oninput = () => { selectedMonths = Math.max(1, Math.min(36, parseInt(custom.value) || 1)); };
+  } else {
+    custom.style.display = 'none';
+    selectedMonths = m;
+  }
+}
+
 /* ── CONFIG ── */
 async function loadConfig() {
   try {
     const r = await fetch('/api/config');
     cfg = await r.json();
-    document.getElementById('cfgPrice').value = cfg.pricePerSheet || 5;
     document.getElementById('cfgUpi').value = cfg.upiId || '';
     document.getElementById('cfgWa').value = cfg.whatsappNumber || '';
-    document.getElementById('headerSub').textContent =
-      `₹${cfg.pricePerSheet || 5}/sheet · ${cfg.upiId || 'UPI not set'}`;
+    document.getElementById('headerSub').textContent = cfg.upiId ? `UPI: ${cfg.upiId}` : 'UPI not set';
   } catch(e) {}
 }
 
 async function saveConfig() {
-  const price = document.getElementById('cfgPrice').value;
   const upi = document.getElementById('cfgUpi').value.trim();
   const wa = document.getElementById('cfgWa').value.trim();
   const errEl = document.getElementById('settingsError');
@@ -571,203 +546,22 @@ async function saveConfig() {
   try {
     const r = await fetch('/api/save-config', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, pricePerSheet: Number(price), upiId: upi, whatsappNumber: wa })
+      body: JSON.stringify({ password: adminPwd, upiId: upi, whatsappNumber: wa })
     });
     if (!r.ok) { const d = await r.json(); errEl.textContent = d.error; errEl.style.display = 'block'; return; }
-    cfg = { pricePerSheet: Number(price), upiId: upi, whatsappNumber: wa };
+    cfg = { upiId: upi, whatsappNumber: wa };
     msgEl.style.display = 'block';
-    document.getElementById('headerSub').textContent = `₹${price}/sheet · ${upi || 'UPI not set'}`;
+    document.getElementById('headerSub').textContent = upi ? `UPI: ${upi}` : 'UPI not set';
     setTimeout(() => msgEl.style.display = 'none', 3000);
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
 }
 
-/* ── PAYMENT REQUESTS ── */
-async function loadRequests() {
-  try {
-    const r = await fetch(`/api/payment?password=${encodeURIComponent(adminPwd)}`);
-    if (!r.ok) return;
-    renderRequests(await r.json());
-  } catch(e) {}
-}
-
-function renderRequests(list) {
-  const el = document.getElementById('requestsList');
-  const countEl = document.getElementById('reqCount');
-  const pending = list.filter(r => r.status === 'pending');
-  if (!pending.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">📥</div><div class="empty-txt">No pending requests</div></div>';
-    countEl.textContent = '0'; countEl.className = 'list-count';
-    return;
-  }
-  countEl.textContent = `${pending.length} pending`;
-  countEl.className = 'list-count has-active';
-  el.innerHTML = pending.map(r => {
-    const init = (r.playerName || '?')[0].toUpperCase();
-    return `
-    <div class="req-card" id="req-${r.reqId}">
-      <div class="req-row1">
-        <div class="req-avatar">${init}</div>
-        <div>
-          <div class="req-name">${esc(r.playerName)}</div>
-          <div class="req-time">Requested ${timeAgo(r.createdAt)}</div>
-        </div>
-      </div>
-      <div class="req-chips">
-        <span class="chip sheets">📄 ${r.sheetCount} sheet${r.sheetCount>1?'s':''}</span>
-        <span class="chip amount">₹${r.amount}</span>
-        <span class="chip time">⏱ expires ${timeUntil(r.createdAt+7200000)}</span>
-      </div>
-      <button class="btn-approve" onclick="approveRequest('${r.reqId}',this)">✓ Approve &amp; Grant Day Pass</button>
-    </div>`;
-  }).join('');
-}
-
-async function approveRequest(reqId, btn) {
-  btn.disabled = true; btn.textContent = 'Approving…';
-  try {
-    const r = await fetch('/api/payment', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'approve', password: adminPwd, reqId })
-    });
-    const data = await r.json();
-    if (!r.ok) { btn.disabled = false; btn.textContent = '✓ Approve & Grant Day Pass'; alert(data.error); return; }
-    const card = document.getElementById('req-' + reqId);
-    if (card) card.remove();
-    loadSessions(); loadRequests();
-  } catch(e) { btn.disabled = false; btn.textContent = '✓ Approve & Grant Day Pass'; }
-}
-
-/* ── DAY PASS GENERATE ── */
-async function createCode() {
-  const name = document.getElementById('newName').value.trim();
-  const sheets = parseInt(document.getElementById('newSheets').value) || 1;
-  const errEl = document.getElementById('createError');
-  const btn = document.getElementById('createCodeBtn');
-  errEl.style.display = 'none';
-  if (!name) { errEl.textContent = 'Enter player name'; errEl.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Generating…';
-  try {
-    const r = await fetch('/api/create-code', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, playerName: name, sheetCount: sheets })
-    });
-    const data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
-    document.getElementById('codeBig').textContent = data.code;
-    document.getElementById('codeMeta').textContent =
-      `${name} · ${sheets} sheet${sheets>1?'s':''} · ₹${data.amount} · valid 24h`;
-    document.getElementById('codeResult').style.display = 'block';
-    document.getElementById('copyBtn').textContent = '📋 Copy Code';
-    document.getElementById('newName').value = '';
-    document.getElementById('newSheets').value = '1';
-    loadSessions();
-  } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
-  finally { btn.disabled = false; btn.textContent = 'Generate Code →'; }
-}
-
-function copyCode() {
-  navigator.clipboard.writeText(document.getElementById('codeBig').textContent).catch(() => {});
-  const btn = document.getElementById('copyBtn');
-  btn.textContent = '✓ Copied!';
-  setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
-}
-
-/* ── DAY PASS LIST ── */
-async function loadSessions() {
-  try {
-    const r = await fetch(`/api/sessions?password=${encodeURIComponent(adminPwd)}`);
-    if (!r.ok) return;
-    renderSessions(await r.json());
-  } catch(e) {}
-}
-
-function renderSessions(list) {
-  const el = document.getElementById('sessionsList');
-  const countEl = document.getElementById('dpCount');
-  const now = Date.now();
-  if (!list.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">🎟️</div><div class="empty-txt">No day passes yet</div></div>';
-    countEl.textContent = '0'; countEl.className = 'list-count';
-    return;
-  }
-  // A pass is truly live only if server says active AND under 24h
-  const live = list.filter(s => s.status === 'active' && (now - s.createdAt) < 86400000).length;
-  countEl.textContent = `${live} active / ${list.length} total`;
-  countEl.className = 'list-count' + (live > 0 ? ' has-active' : '');
-
-  el.innerHTML = list.map(s => {
-    const serverActive = s.status === 'active';
-    const over24h = serverActive && (now - s.createdAt) >= 86400000;
-    const isLive = serverActive && !over24h;
-    const init = (s.playerName || '?')[0].toUpperCase();
-    const amount = s.amount || ((cfg.pricePerSheet || 5) * s.sheetCount);
-
-    const statusHtml = isLive
-      ? `<div class="pass-status active">● Active</div>`
-      : over24h
-        ? `<div class="pass-status expired">⏰ Expired</div>`
-        : `<div class="pass-status ended">■ Ended</div>`;
-
-    const timeChip = isLive
-      ? `<span class="chip time">⏱ ${timeUntil(s.createdAt + 86400000)}</span>`
-      : over24h
-        ? `<span class="chip grayed">expired ${timeAgo(s.createdAt + 86400000)}</span>`
-        : (s.endedAt ? `<span class="chip grayed">ended ${timeAgo(s.endedAt)}</span>` : '');
-
-    const actionHtml = isLive
-      ? `<div class="pass-actions" data-code="${esc(s.code)}">
-           <button class="btn-end" onclick="askEndPass(this)">End Pass</button>
-         </div>`
-      : '';
-
-    return `
-    <div class="pass-card ${isLive?'is-active':over24h?'is-expired':'is-ended'}">
-      <div class="pass-row1">
-        <div class="pass-avatar ${isLive?'a':'e'}">${init}</div>
-        <div class="pass-name-block">
-          <div class="pass-name">${esc(s.playerName)}</div>
-          <div class="pass-time">Created ${timeAgo(s.createdAt)}</div>
-        </div>
-        ${statusHtml}
-      </div>
-      <div class="pass-code-row"><div class="pass-code">${s.code}</div></div>
-      <div class="pass-chips">
-        <span class="chip sheets">📄 ${s.sheetCount} sheet${s.sheetCount>1?'s':''}</span>
-        <span class="chip amount">₹${amount}</span>
-        ${timeChip}
-      </div>
-      ${actionHtml}
-    </div>`;
-  }).join('');
-}
-
-/* ── END PASS — inline confirm, no window.confirm() ── */
-function askEndPass(btn) {
-  const el = btn.closest('.pass-actions');
-  const code = el.dataset.code;
-  el.className = 'confirm-row';
-  el.innerHTML = `<span class="confirm-lbl">End this pass?</span>
-    <button class="btn-no" onclick="loadSessions()">No</button>
-    <button class="btn-yes">Yes, End</button>`;
-  el.querySelector('.btn-yes').onclick = () => doEndPass(code, el.querySelector('.btn-yes'));
-}
-
-async function doEndPass(code, btn) {
-  btn.disabled = true; btn.textContent = '…';
-  try {
-    await fetch('/api/end-session', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, password: adminPwd })
-    });
-  } catch(e) {}
-  loadSessions();
-}
-
-/* ── SUBSCRIPTIONS ── */
+/* ── SUBSCRIPTIONS: CREATE ── */
 async function createSubscription() {
   const name = document.getElementById('subName').value.trim();
-  const plan = document.getElementById('subPlan').value;
+  const phone = document.getElementById('subPhone').value.trim();
   const devices = parseInt(document.getElementById('subDevices').value) || 3;
+  const months = selectedMonths;
   const errEl = document.getElementById('subCreateError');
   const btn = document.getElementById('createSubBtn');
   errEl.style.display = 'none';
@@ -776,16 +570,17 @@ async function createSubscription() {
   try {
     const r = await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', password: adminPwd, playerName: name, plan, maxDevices: devices })
+      body: JSON.stringify({ action: 'create', password: adminPwd, playerName: name, months, maxDevices: devices, phone })
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
     document.getElementById('subKeyBig').textContent = data.key;
     document.getElementById('subKeyMeta').textContent =
-      `${name} · ${plan==='yearly'?'Yearly':'Monthly'} · ${data.days} days · up to ${devices} device${devices>1?'s':''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+      `${name} · ${data.plan} · up to ${devices} device${devices>1?'s':''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
     document.getElementById('subKeyResult').style.display = 'block';
     document.getElementById('copySubKeyBtn').textContent = '📋 Copy Key';
     document.getElementById('subName').value = '';
+    document.getElementById('subPhone').value = '';
     document.getElementById('subDevices').value = '3';
     loadSubscriptions();
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
@@ -799,6 +594,7 @@ function copySubKey() {
   setTimeout(() => btn.textContent = '📋 Copy Key', 2000);
 }
 
+/* ── SUBSCRIPTIONS: LOAD / FILTER / SORT ── */
 async function loadSubscriptions() {
   try {
     const r = await fetch(`/api/subscription?password=${encodeURIComponent(adminPwd)}`);
@@ -808,61 +604,133 @@ async function loadSubscriptions() {
   } catch(e) {}
 }
 
-function toggleActiveSubs() {
-  showInactiveSubs = !showInactiveSubs;
-  document.getElementById('activeSubsPill').classList.toggle('on', !showInactiveSubs);
-  if (lastSubsList) renderSubscriptions(lastSubsList);
+function onSearchInput() {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    searchQuery = document.getElementById('subSearch').value.trim().toLowerCase();
+    renderSubscriptions(lastSubsList);
+  }, 150);
+}
+function onSortChange() {
+  sortMode = document.getElementById('subSort').value;
+  renderSubscriptions(lastSubsList);
+}
+function toggleAllFilter() {
+  showAllSubs = !showAllSubs;
+  document.getElementById('allFilterPill').classList.toggle('on', showAllSubs);
+  renderSubscriptions(lastSubsList);
+}
+function setStatFilter(f) {
+  statFilter = (statFilter === f) ? null : f;
+  ['Active','Expiring','Expired','Revoked'].forEach(k => {
+    document.getElementById('stat' + k).classList.toggle('active-filter',
+      statFilter === k.toLowerCase() || (statFilter === null && k === 'Active'));
+  });
+  renderSubscriptions(lastSubsList);
+}
+
+function planLabelOf(s) {
+  if (s.planLabel) return s.planLabel;
+  const m = s.months || (s.plan === 'yearly' ? 12 : 1);
+  if (m % 12 === 0) return m === 12 ? '1 Year' : `${m/12} Years`;
+  return m === 1 ? '1 Month' : `${m} Months`;
+}
+
+function classify(s, now) {
+  if (s.status === 'revoked') return 'revoked';
+  if (now > s.expiresAt) return 'expired';
+  if (Math.ceil((s.expiresAt - now) / 86400000) <= 3) return 'expiring';
+  return 'active';
 }
 
 function renderSubscriptions(list) {
   lastSubsList = list;
   const el = document.getElementById('subscriptionsList');
   const countEl = document.getElementById('subCount');
-  const noteEl = document.getElementById('subHiddenNote');
   const now = Date.now();
 
   if (!list.length) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No subscriptions yet</div></div>';
     countEl.textContent = '0'; countEl.className = 'list-count';
-    if (noteEl) noteEl.textContent = '';
+    document.getElementById('statActiveNum').textContent = '0';
+    document.getElementById('statExpiringNum').textContent = '0';
+    document.getElementById('statExpiredNum').textContent = '0';
+    document.getElementById('statRevokedNum').textContent = '0';
     return;
   }
 
-  const activeCount = list.filter(s => s.status === 'active' && now <= s.expiresAt).length;
-  countEl.textContent = `${activeCount} active / ${list.length} total`;
-  countEl.className = 'list-count' + (activeCount > 0 ? ' has-active' : '');
+  const withStatus = list.map(s => ({ ...s, _status: classify(s, now) }));
+  const counts = { active: 0, expiring: 0, expired: 0, revoked: 0 };
+  withStatus.forEach(s => counts[s._status]++);
+  document.getElementById('statActiveNum').textContent = counts.active;
+  document.getElementById('statExpiringNum').textContent = counts.expiring;
+  document.getElementById('statExpiredNum').textContent = counts.expired;
+  document.getElementById('statRevokedNum').textContent = counts.revoked;
 
-  // Filter: hide revoked + expired unless "Show all" toggled
-  const filtered = showInactiveSubs
-    ? list
-    : list.filter(s => s.status !== 'revoked' && now <= s.expiresAt);
-  const hiddenCount = list.length - filtered.length;
-  if (noteEl) noteEl.textContent = hiddenCount > 0 ? `${hiddenCount} inactive hidden — toggle to show all` : '';
+  countEl.textContent = `${counts.active + counts.expiring} active / ${list.length} total`;
+  countEl.className = 'list-count' + ((counts.active + counts.expiring) > 0 ? ' has-active' : '');
+
+  let filtered = withStatus;
+  if (!showAllSubs) filtered = filtered.filter(s => s._status !== 'revoked' && s._status !== 'expired');
+  if (statFilter) filtered = filtered.filter(s => s._status === statFilter);
+  if (searchQuery) filtered = filtered.filter(s =>
+    (s.playerName || '').toLowerCase().includes(searchQuery) ||
+    (s.key || '').toLowerCase().includes(searchQuery) ||
+    (s.phone || '').includes(searchQuery));
+
+  if (sortMode === 'expiry') filtered.sort((a, b) => a.expiresAt - b.expiresAt);
+  else if (sortMode === 'newest') filtered.sort((a, b) => b.createdAt - a.createdAt);
+  else if (sortMode === 'name') filtered.sort((a, b) => (a.playerName||'').localeCompare(b.playerName||''));
 
   if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">🎫</div><div class="empty-txt">No active subscriptions</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">No subscribers match</div></div>';
     return;
   }
 
-  el.innerHTML = filtered.map(s => {
-    const expired = now > s.expiresAt;
-    const revoked = s.status === 'revoked';
-    const inactive = revoked || expired;
-    const daysLeft = Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
-    const devUsed = s.devices ? s.devices.length : 0;
-    const devPct = Math.round((devUsed / (s.maxDevices || 3)) * 100);
-    const init = (s.playerName || '?')[0].toUpperCase();
-    const planLabel = s.plan === 'yearly' ? 'Yearly' : 'Monthly';
+  const expiringGroup = filtered.filter(s => s._status === 'expiring');
+  const restGroup = filtered.filter(s => s._status !== 'expiring');
 
-    return `
-    <div class="sub-card ${inactive ? 'is-inactive' : 'is-active'}">
+  let html = '';
+  if (expiringGroup.length && !statFilter) {
+    html += `<div class="group-hdr warn">⚠️ Expiring within 3 days (${expiringGroup.length})</div>`;
+    html += expiringGroup.map(s => subCardHtml(s, now)).join('');
+    if (restGroup.length) html += `<div class="group-hdr">All Subscribers</div>`;
+  }
+  html += restGroup.map(s => subCardHtml(s, now)).join('');
+  el.innerHTML = html;
+}
+
+function subCardHtml(s, now) {
+  const status = s._status;
+  const expired = status === 'expired';
+  const revoked = status === 'revoked';
+  const warn = status === 'expiring';
+  const active = status === 'active';
+  const daysLeft = Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
+  const devUsed = s.devices ? s.devices.length : 0;
+  const devPct = Math.round((devUsed / (s.maxDevices || 3)) * 100);
+  const init = (s.playerName || '?')[0].toUpperCase();
+  const cardCls = revoked || expired ? 'is-inactive' : warn ? 'is-warn' : 'is-active';
+  const avatarCls = revoked || expired ? 'i' : warn ? 'w' : 'a';
+
+  const remindMsg = encodeURIComponent(
+    expired
+      ? `Hi ${s.playerName}! 👋 Your Tungbola subscription has expired. Renew whenever you're ready to keep playing — just let us know!`
+      : `Hi ${s.playerName}! 👋 Just a friendly reminder — your Tungbola subscription expires in ${daysLeft} day${daysLeft===1?'':'s'} (${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}). Renew anytime to keep playing without interruption. Thank you! 🎯`
+  );
+  const remindBtn = s.phone
+    ? `<a class="btn-remind" href="https://wa.me/${esc(s.phone)}?text=${remindMsg}" target="_blank" rel="noopener">💬 Remind</a>`
+    : '';
+
+  return `
+    <div class="sub-card ${cardCls}">
       <div class="sub-row1">
-        <div class="sub-avatar ${inactive ? 'i' : 'a'}">${init}</div>
+        <div class="sub-avatar ${avatarCls}">${init}</div>
         <div class="sub-name-block">
           <div class="sub-name">${esc(s.playerName)}</div>
           <div class="sub-created">Since ${new Date(s.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
         </div>
-        <div class="sub-plan-badge ${s.plan}">${planLabel}</div>
+        <div class="sub-plan-badge">${esc(planLabelOf(s))}</div>
       </div>
       <div class="sub-key-box">
         <span class="sub-key-text" title="${esc(s.key)}">${esc(s.key)}</span>
@@ -880,31 +748,32 @@ function renderSubscriptions(list) {
           ? `<span class="chip revoked">✕ Revoked</span>`
           : expired
             ? `<span class="chip grayed">Expired</span>`
-            : daysLeft <= 7
+            : warn
               ? `<span class="chip expiring">⚠ ${daysLeft}d left</span>`
               : `<span class="chip days">✓ ${daysLeft}d left</span>`}
-        <span class="chip ${s.plan==='yearly'?'plan-y':'plan-m'}">${planLabel}</span>
-        <span class="chip time">Exp ${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
+        <span class="chip grayed">Exp ${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
+        ${s.phone ? `<span class="chip phone">📱 ${esc(s.phone)}</span>` : ''}
       </div>
-      ${!revoked ? `<div class="sub-actions" data-key="${esc(s.key)}">
-        ${!expired ? `<button class="btn-revoke" onclick="askRevoke(this)">Revoke</button>` : ''}
+      <div class="sub-actions" data-key="${esc(s.key)}" data-name="${esc(s.playerName)}">
+        ${remindBtn}
+        <button class="btn-extend" onclick="askExtend(this)">Extend</button>
+        ${!revoked && !expired ? `<button class="btn-revoke" onclick="askRevoke(this)">Revoke</button>` : ''}
         <button class="btn-reset" onclick="askResetDev(this)">Reset Devices</button>
-      </div>` : ''}
+      </div>
     </div>`;
-  }).join('');
 }
 
 /* ── REVOKE — inline confirm ── */
 function askRevoke(btn) {
   const el = btn.closest('.sub-actions');
   const key = el.dataset.key;
+  const saved = el.innerHTML;
   el.className = 'confirm-row';
   el.innerHTML = `<span class="confirm-lbl">Revoke — player loses access?</span>
     <button class="btn-no" onclick="loadSubscriptions()">No</button>
     <button class="btn-yes">Yes, Revoke</button>`;
   el.querySelector('.btn-yes').onclick = () => doRevoke(key, el.querySelector('.btn-yes'));
 }
-
 async function doRevoke(key, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
@@ -926,7 +795,6 @@ function askResetDev(btn) {
     <button class="btn-yes">Yes, Reset</button>`;
   el.querySelector('.btn-yes').onclick = () => doResetDev(key, el.querySelector('.btn-yes'));
 }
-
 async function doResetDev(key, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
@@ -938,10 +806,31 @@ async function doResetDev(key, btn) {
   loadSubscriptions();
 }
 
-function copyKeyBtn(btn) {
-  copyToClip(btn.dataset.copyval, btn);
+/* ── EXTEND — inline confirm with month picker ── */
+function askExtend(btn) {
+  const el = btn.closest('.sub-actions');
+  const key = el.dataset.key;
+  el.className = 'confirm-row';
+  el.innerHTML = `<span class="confirm-lbl">Extend by</span>
+    <input class="confirm-input" id="extendMonths" type="number" min="1" max="36" value="1">
+    <span class="confirm-lbl" style="flex:0">month(s)</span>
+    <button class="btn-no" onclick="loadSubscriptions()">Cancel</button>
+    <button class="btn-yes ok">Confirm</button>`;
+  el.querySelector('.btn-yes').onclick = () => doExtend(key, el.querySelector('.btn-yes'));
+}
+async function doExtend(key, btn) {
+  const months = Math.max(1, Math.min(36, parseInt(document.getElementById('extendMonths').value) || 1));
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fetch('/api/subscription', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', password: adminPwd, key, extendMonths: months })
+    });
+  } catch(e) {}
+  loadSubscriptions();
 }
 
+function copyKeyBtn(btn) { copyToClip(btn.dataset.copyval, btn); }
 function copyToClip(text, btn) {
   navigator.clipboard.writeText(text).catch(() => {});
   const orig = btn.textContent;
@@ -953,7 +842,7 @@ function copyToClip(text, btn) {
 async function loadParseErrors() {
   const el = document.getElementById('parseErrorsList');
   try {
-    const r = await fetch(`/api/payment?password=${encodeURIComponent(adminPwd)}&type=errors`);
+    const r = await fetch(`/api/payment?password=${encodeURIComponent(adminPwd)}`);
     if (!r.ok) return;
     const logs = await r.json();
     if (!logs.parseErrors || !logs.parseErrors.length) {
@@ -973,22 +862,6 @@ async function loadParseErrors() {
 }
 
 /* ── HELPERS ── */
-function timeAgo(ms) {
-  const d = Date.now() - ms, m = Math.floor(d/60000), h = Math.floor(m/60), dy = Math.floor(h/24);
-  if (dy > 0) return `${dy}d ago`;
-  if (h > 0) return `${h}h ago`;
-  if (m > 0) return `${m}m ago`;
-  return 'just now';
-}
-
-function timeUntil(ms) {
-  const d = ms - Date.now();
-  if (d <= 0) return 'expired';
-  const h = Math.floor(d/3600000), m = Math.floor((d%3600000)/60000);
-  if (h > 0) return `in ${h}h ${m}m`;
-  return `in ${m}m`;
-}
-
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

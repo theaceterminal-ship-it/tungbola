@@ -8,6 +8,29 @@ function genSubKey() {
   return `SUB-${part()}-${part()}-${part()}`;
 }
 
+/* Flexible duration: 1..36 months, calendar-accurate. Clamps the day-of-month
+   so e.g. Jan 31 + 1 month lands on Feb 28, not overflows into March. */
+function addMonths(fromMs, months) {
+  const d = new Date(fromMs);
+  const day = d.getDate();
+  d.setDate(1);                       // avoid overflow while changing month
+  d.setMonth(d.getMonth() + months);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  return d.getTime();
+}
+function planLabel(months) {
+  if (!months || months < 1) return 'Custom';
+  if (months % 12 === 0) return months === 12 ? '1 Year' : `${months / 12} Years`;
+  return months === 1 ? '1 Month' : `${months} Months`;
+}
+/* Backward compatibility: subscriptions created before this update only have
+   plan:'monthly'|'yearly' and no `months` field. */
+function monthsOf(sub) {
+  if (sub.months) return sub.months;
+  return sub.plan === 'yearly' ? 12 : 1;
+}
+
 module.exports = async function(req, res) {
   secureHeaders(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -20,7 +43,9 @@ module.exports = async function(req, res) {
     if (!checkPassword(password, process.env.ADMIN_PASSWORD))
       return res.status(401).json({ error: 'Wrong password' });
     const list = await kv.get('tb:subscriptions') || [];
-    return res.json(list);
+    // normalize so the admin UI always has `months` + a human label to show
+    const out = list.map(s => ({ ...s, months: monthsOf(s), planLabel: planLabel(monthsOf(s)) }));
+    return res.json(out);
   }
 
   if (req.method !== 'POST') return res.status(405).end();
@@ -56,8 +81,14 @@ module.exports = async function(req, res) {
     }
 
     const daysLeft = Math.ceil((sub.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
-    return res.json({ valid: true, playerName: sub.playerName, plan: sub.plan,
-      expiresAt: sub.expiresAt, daysLeft, devicesUsed: sub.devices.length, maxDevices: sub.maxDevices });
+    const months = monthsOf(sub);
+    return res.json({
+      valid: true, playerName: sub.playerName,
+      months, plan: planLabel(months),           // `plan` kept as a ready-to-show label
+      expiresAt: sub.expiresAt, daysLeft,
+      devicesUsed: sub.devices.length, maxDevices: sub.maxDevices,
+      renewalDue: daysLeft <= 2                   // player app can show a polite reminder banner
+    });
   }
 
   /* ── POST action=create: admin creates a subscription ── */
@@ -65,34 +96,38 @@ module.exports = async function(req, res) {
     if (await rateLimit(req, 'createsub', 20, 3600))
       return res.status(429).json({ error: 'Too many requests' });
 
-    const { password, playerName, plan, maxDevices } = req.body;
+    const { password, playerName, months, maxDevices, phone } = req.body;
     if (!checkPassword(password, process.env.ADMIN_PASSWORD))
       return res.status(401).json({ error: 'Wrong password' });
 
     const name = String(playerName || 'Player').trim().slice(0, 50);
-    const validPlan = plan === 'yearly' ? 'yearly' : 'monthly';
+    const dur = Math.max(1, Math.min(36, parseInt(months) || 1));
     const devices = Math.max(1, Math.min(5, Number(maxDevices) || 3));
-    const days = validPlan === 'yearly' ? 365 : 30;
-    const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+    const cleanPhone = String(phone || '').replace(/\D/g, '').slice(0, 15);
+    const expiresAt = addMonths(Date.now(), dur);
 
     let key, tries = 0;
     do { key = genSubKey(); tries++; }
     while (await kv.exists(`tb:sub:${key}`) && tries < 10);
 
-    const subscription = { key, playerName: name, plan: validPlan,
-      maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt };
+    const subscription = {
+      key, playerName: name, months: dur, phone: cleanPhone,
+      maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt
+    };
 
-    await kv.set(`tb:sub:${key}`, subscription, { ex: days * 24 * 3600 + 86400 });
+    const ttlSeconds = Math.ceil((expiresAt - Date.now()) / 1000) + 86400;
+    await kv.set(`tb:sub:${key}`, subscription, { ex: ttlSeconds });
     const list = await kv.get('tb:subscriptions') || [];
     list.unshift(subscription);
     await kv.set('tb:subscriptions', list.slice(0, 500));
 
-    return res.json({ ok: true, key, playerName: name, plan: validPlan, expiresAt, maxDevices: devices, days });
+    return res.json({ ok: true, key, playerName: name, months: dur, plan: planLabel(dur), expiresAt, maxDevices: devices });
   }
 
   /* ── POST action=end: admin revokes a subscription ── */
   /* ── POST action=reset-devices: admin clears device slots ── */
-  if (action === 'end' || action === 'reset-devices') {
+  /* ── POST action=update: admin edits phone / extends duration ── */
+  if (action === 'end' || action === 'reset-devices' || action === 'update') {
     if (await rateLimit(req, 'endsub', 20, 3600))
       return res.status(429).json({ error: 'Too many requests' });
 
@@ -113,6 +148,23 @@ module.exports = async function(req, res) {
       if (idx >= 0) list[idx] = sub;
       await kv.set('tb:subscriptions', list);
       return res.json({ ok: true, action: 'devices_reset' });
+    }
+
+    if (action === 'update') {
+      const { phone, extendMonths } = req.body;
+      if (typeof phone === 'string') sub.phone = phone.replace(/\D/g, '').slice(0, 15);
+      if (extendMonths) {
+        const add = Math.max(1, Math.min(36, parseInt(extendMonths) || 0));
+        sub.months = monthsOf(sub) + add;
+        sub.expiresAt = addMonths(sub.expiresAt, add);
+        if (sub.status === 'revoked') sub.status = 'active';
+      }
+      await kv.set(`tb:sub:${clean}`, sub);
+      const list = await kv.get('tb:subscriptions') || [];
+      const idx = list.findIndex(s => s.key === clean);
+      if (idx >= 0) list[idx] = sub;
+      await kv.set('tb:subscriptions', list);
+      return res.json({ ok: true, action: 'updated', expiresAt: sub.expiresAt, months: monthsOf(sub) });
     }
 
     sub.status = 'revoked';

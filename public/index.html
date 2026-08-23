@@ -1471,6 +1471,19 @@ async function loadAppConfig(){
     const r=await fetch('/api/config');
     if(r.ok) appConfig=await r.json();
   }catch(e){}
+  applyOcrKey();
+}
+
+/* The parser ships with OCR.space's shared demo key, which is rate-limited to
+   the point of failing on a busy evening. Images and scanned PDFs are the only
+   inputs that need it. A personal key (free at ocr.space/ocrapi) can come from
+   the server config or be pasted once in this browser:
+       localStorage.setItem('tbOcrKey','YOUR_KEY')                          */
+function applyOcrKey(){
+  let key='';
+  try{ key=localStorage.getItem('tbOcrKey')||''; }catch(e){}
+  if(!key) key=appConfig.ocrApiKey||'';
+  if(key&&typeof TBFiles!=='undefined') TBFiles.config({ocrApiKey:key.trim()});
 }
 
 function buildBalls(){
@@ -1531,6 +1544,29 @@ function dpReset(){
   $('dpDesc').textContent='Single session · pay per sheet';
 }
 
+/* An upload can fail for reasons the user can actually act on. The common one
+   is a "PDF" that is really a screenshot or phone photo of the sheet: there is
+   no text in it, so nothing can be read reliably and the fix is to get the
+   original PDF from the organiser rather than to retry. Keep those separate
+   from a transient OCR outage, which IS worth retrying. */
+function classifyLoadError(err,fileName){
+  const code=err&&err.code;
+  if(code==='image-pdf')       return {kind:'scan', file:fileName, msg:err.message};
+  if(code==='image-unreadable')return {kind:'image',file:fileName, msg:err.message};
+  if(/ocr|service unavailable/i.test(err&&err.message||'')) return {kind:'ocr',file:fileName};
+  return {kind:'other',file:fileName};
+}
+
+function loadErrorMessage(problems,errs){
+  const scan=problems.find(p=>p.kind==='scan');
+  if(scan) return `${scan.file} is a photo saved as a PDF — ask the organiser for the original PDF file`;
+  const img=problems.find(p=>p.kind==='image');
+  if(img) return `Could not read ${img.file} — a PDF from the organiser works far better than a photo`;
+  if(problems.some(p=>p.kind==='ocr')) return 'Image reading service is busy — try again in a moment';
+  if(errs.length) return `Could not read: ${errs[0]}`;
+  return 'No valid tickets found';
+}
+
 async function dpHandleFiles(e){
   const files=Array.from(e.target.files);
   if(!files.length) return;
@@ -1539,7 +1575,7 @@ async function dpHandleFiles(e){
   pickBtn.disabled=true; pickBtn.textContent='Reading…';
   $('loadingOv').classList.remove('off');
   clearGame(); sheets=[];
-  let total=0,errs=[],ocrFailed=false;
+  let total=0,errs=[],ocrFailed=false;const problems=[];
   for(let fi=0;fi<files.length;fi++){
     const f=files[fi];
     $('loadMsg').textContent=files.length>1?`Reading ${fi+1}/${files.length}: ${f.name}`:`Reading ${f.name}…`;
@@ -1547,6 +1583,8 @@ async function dpHandleFiles(e){
       const result=await TBFiles.parseFile(f);
       let ns=result.sheets;
       if(result.warnings&&result.warnings.some(w=>/ocr/i.test(w))) ocrFailed=true;
+      if(result.imageOnly&&result.warnings&&result.warnings.length)
+        problems.push({kind:'scan-partial',file:f.name,msg:result.warnings[0]});
       if(!ns.length){errs.push(f.name);continue;}
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
@@ -1555,6 +1593,7 @@ async function dpHandleFiles(e){
       total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
     }catch(err){
       console.error(f.name,err);errs.push(f.name);
+      problems.push(classifyLoadError(err,f.name));
       if(/ocr|service unavailable/i.test(err.message||'')) ocrFailed=true;
     }
   }
@@ -1564,8 +1603,7 @@ async function dpHandleFiles(e){
   total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
   $('loadingOv').classList.add('off');
   pickBtn.disabled=false; pickBtn.textContent='📁 Select PDF Sheets';
-  if(!total){toast(ocrFailed?'Scanned PDF read failed — try again in a moment'
-      :errs.length?`Could not read: ${errs[0]}`:'No valid tickets found');return;}
+  if(!total){toast(loadErrorMessage(problems,errs));return;}
   save();
   if(badTickets.length) reportParseErrors(badTickets); // report silently, don't block the payment flow
   // Show step 2
@@ -2483,7 +2521,45 @@ function ticketRowCount(t){
   ).filter(Boolean).length;
 }
 function ticketNumCount(t){return t.numbers.filter(n=>n!==null).length;}
-function isTicketValid(t){return ticketRowCount(t)===3&&ticketNumCount(t)===15;}
+function ticketRowSizes(t){
+  return Array.from({length:3},(_,ri)=>
+    Array.from({length:9},(_,ci)=>t.numbers[ri*9+ci]).filter(n=>n!==null).length);
+}
+// a real ticket is 3 rows of exactly 5, and every number sits in its own decade column
+function isTicketValid(t){
+  if(ticketNumCount(t)!==15) return false;
+  if(!ticketRowSizes(t).every(n=>n===5)) return false;
+  for(let ri=0;ri<3;ri++)for(let ci=0;ci<9;ci++){
+    const n=t.numbers[ri*9+ci];
+    if(n!==null&&n2col(n)!==ci) return false;
+  }
+  return true;
+}
+
+/* A sheet of six holds 1..90 exactly once. A ticket can look perfect on its
+   own (15 numbers, 5/5/5) and still be wrong if OCR misread a digit — that
+   shows up only at sheet level, as a duplicate plus a missing number. Those
+   tickets are kept (they are playable) but reported so the user can check. */
+/* Tickets come in books of six that between them hold 1..90 exactly once.
+   A page may carry more than one book, so check each block of six on its
+   own -- lumping twelve tickets together would read every number as a
+   duplicate. A count that is not a multiple of six means the parser lost
+   or invented a ticket, which is itself the failure to report. */
+function checkSheetIntegrity(tickets){
+  if(!tickets.length) return {short:0,dups:[],missing:[]};
+  if(tickets.length%6!==0) return {short:tickets.length,dups:[],missing:[]};
+  for(let s=0;s+6<=tickets.length;s+=6){
+    const seen={};
+    for(let q=s;q<s+6;q++) tickets[q].numbers.forEach(n=>{if(n!==null)seen[n]=(seen[n]||0)+1;});
+    const dups=[],missing=[];
+    for(let n=1;n<=90;n++){
+      if(!seen[n]) missing.push(n);
+      else if(seen[n]>1) dups.push(n);
+    }
+    if(dups.length||missing.length) return {short:0,dups,missing};
+  }
+  return null;
+}
 
 function validateSheets(sheetList){
   const bad=[];
@@ -2493,10 +2569,27 @@ function validateSheets(sheetList){
       if(isTicketValid(t)) keep.push(t);
       else remove.push({sheetName:sheet.name,ticketId:t.id,
         nums:t.numbers.filter(n=>n!==null),
-        rows:ticketRowCount(t),count:ticketNumCount(t)});
+        rows:ticketRowCount(t),count:ticketNumCount(t),
+        reason:`${ticketRowCount(t)}/3 rows · ${ticketNumCount(t)}/15 numbers found`});
     });
+    // integrity is judged on everything the parser produced, before the
+    // unreadable ones are dropped -- otherwise a damaged sheet gets a pass
+    const integrity=checkSheetIntegrity(sheet.tickets);
     sheet.tickets=keep;
     bad.push(...remove);
+    if(integrity){
+      const parts=[];
+      if(integrity.short) parts.push(`only ${integrity.short} of 6 tickets read`);
+      if(integrity.dups.length) parts.push(`${integrity.dups.join(', ')} read twice`);
+      if(integrity.missing.length) parts.push(`${integrity.missing.join(', ')} missing`);
+      const reason=`sheet check failed — ${parts.join('; ')}`;
+      keep.forEach(t=>{
+        if(remove.some(r=>r.ticketId===t.id)) return;
+        bad.push({sheetName:sheet.name,ticketId:t.id,
+          nums:t.numbers.filter(n=>n!==null),
+          rows:ticketRowCount(t),count:ticketNumCount(t),reason});
+      });
+    }
   });
   return bad;
 }
@@ -2509,7 +2602,7 @@ function showParseWarning(badTickets, onContinue){
     <div class="pw-ticket-row">
       <div class="pw-ticket-info">
         <div class="pw-ticket-id">Ticket #${b.ticketId} (Sheet ${b.sheetName})</div>
-        <div class="pw-ticket-detail">${b.rows}/3 rows · ${b.count}/15 numbers found</div>
+        <div class="pw-ticket-detail">${b.reason||`${b.rows}/3 rows · ${b.count}/15 numbers found`}</div>
       </div>
       <button class="pw-print-btn" onclick='printBadTicket(${JSON.stringify(b)})'>Print</button>
     </div>`).join('');
@@ -2552,7 +2645,7 @@ async function reportParseErrors(badTickets){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'report',errors:badTickets.map(b=>({
         sheetName:b.sheetName,ticketId:b.ticketId,rows:b.rows,count:b.count,
-        nums:b.nums,reportedAt:Date.now()
+        nums:b.nums,reason:b.reason||'',reportedAt:Date.now()
       }))})
     });
   }catch(e){}
@@ -2564,7 +2657,7 @@ async function handleUpload(e){
   e.target.value='';
   $('loadingOv').classList.remove('off');
   clearGame();sheets=[];
-  let total=0,errs=[],ocrFailed=false;
+  let total=0,errs=[],ocrFailed=false;const problems=[];
   for(let fi=0;fi<files.length;fi++){
     const f=files[fi];
     $('loadMsg').textContent=files.length>1
@@ -2574,6 +2667,8 @@ async function handleUpload(e){
       const result=await TBFiles.parseFile(f);
       let ns=result.sheets;
       if(result.warnings&&result.warnings.some(w=>/ocr/i.test(w))) ocrFailed=true;
+      if(result.imageOnly&&result.warnings&&result.warnings.length)
+        problems.push({kind:'scan-partial',file:f.name,msg:result.warnings[0]});
       if(!ns.length){errs.push(f.name);continue;}
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
@@ -2582,13 +2677,13 @@ async function handleUpload(e){
       total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
     }catch(err){
       console.error(f.name,err);errs.push(f.name);
+      problems.push(classifyLoadError(err,f.name));
       if(/ocr|service unavailable/i.test(err.message||'')) ocrFailed=true;
     }
   }
   $('loadingOv').classList.add('off');
   if(!total){
-    toast(ocrFailed?'Scanned PDF read failed — try again in a moment'
-        :errs.length?`Could not read: ${errs[0]}`:'No tickets found');
+    toast(loadErrorMessage(problems,errs));
     return;
   }
   const MAX_SHEETS=150;
@@ -2600,7 +2695,9 @@ async function handleUpload(e){
   total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
   if(!total){toast('No valid tickets found after validation');return;}
   save();
-  if(errs.length) toast(`Loaded ${total} tickets (${errs.length} files failed)`);
+  const scanNote=problems.find(p=>p.kind==='scan-partial'||p.kind==='scan');
+  if(scanNote) toast(`${scanNote.file} is an image, not a real PDF — check every number, or ask for the original PDF`);
+  else if(errs.length) toast(`Loaded ${total} tickets (${errs.length} files failed)`);
   if(badTickets.length) showParseWarning(badTickets,showSetup);
   else showSetup();
 }

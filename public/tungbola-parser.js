@@ -80,8 +80,30 @@
      the answer is unrecoverable anyway — cannot stall the upload. Tunable via
      TBFiles.config({ pageBudgetMs, repairBudgetMs }).                      */
   var BUDGET = { page: 900, repair: 400 };
+  /* Digits that are not 0-9. JavaScript's \d only ever matches ASCII, so a
+     sheet printed in Devanagari (१२ ३४), Gujarati, Bengali, Tamil, Arabic-Indic
+     or full-width numerals would otherwise read as no numbers at all. Each of
+     these blocks lays its ten digits out consecutively from zero.          */
+  var DIGIT_ZEROS = [
+    0x0660, 0x06F0, 0x07C0, 0x0966, 0x09E6, 0x0A66, 0x0AE6, 0x0B66, 0x0BE6,
+    0x0C66, 0x0CE6, 0x0D66, 0x0DE6, 0x0E50, 0x0ED0, 0x0F20, 0x1040, 0x1090,
+    0x17E0, 0x1810, 0x1946, 0x19D0, 0x1A80, 0x1A90, 0x1B50, 0x1BB0, 0x1C40,
+    0x1C50, 0xA620, 0xA8D0, 0xA900, 0xA9D0, 0xA9F0, 0xAA50, 0xABF0, 0xFF10
+  ];
+  function asciiDigits(s) {
+    if (!/[^\x00-\x7F]/.test(s)) return s;
+    return s.replace(/[^\x00-\x7F]/g, function (ch) {
+      var c = ch.charCodeAt(0);
+      for (var i = 0; i < DIGIT_ZEROS.length; i++) {
+        var z = DIGIT_ZEROS[i];
+        if (c >= z && c <= z + 9) return String(c - z);
+      }
+      return ch;
+    });
+  }
   function normLig(s) {
-    return String(s).replace(/ﬀ/g, 'ff').replace(/ﬁ/g, 'fi')
+    return asciiDigits(String(s))
+      .replace(/ﬀ/g, 'ff').replace(/ﬁ/g, 'fi')
       .replace(/ﬂ/g, 'fl').replace(/ﬃ/g, 'ffi').replace(/ﬄ/g, 'ffl')
       .replace(/ /g, ' ');
   }
@@ -383,12 +405,22 @@
   }
 
   /* ── 8. SHEET LABEL ("Sheet No. 200", rotated or not) ────────────────── */
-  var LABEL_WORD = /^(sheet|sheets|sr|serial|slip|book)$/i;   // NOT "page" — that's a footer
+  /* "Sheet No. 200", "SHEET NO 200", "Sr. No. 200", "S.No. 200", "Book-200" …
+     Producers write this a dozen ways. Matched on letters only, with a
+     trailing "no"/"number" allowed to be glued on — that is what "S.No."
+     collapses to once the dots are stripped. NOT "page": that's a footer. */
+  var LABEL_WORD = /^(s|sr|srl|sheet|sheets|serial|slip|book|ticket)(nos?|number)?$/i;
   var LABEL_NOISE = /^(no|nos|num|number|#|:|\.|-)\.?$/i;
+  /* the label word and its value glued into one token, e.g. "Sheet-777" */
+  var LABEL_GLUED = /^(s|sr|srl|sheet|sheets|serial|slip|book|ticket)(?:nos?|number)?[^A-Za-z0-9]*([0-9][\w\-\/]*)$/i;
 
   function findSheetLabels(tokens, consumed) {
     var free = tokens.filter(function (t) { return !consumed.has(t); });
-    var anchors = free.filter(function (t) { return LABEL_WORD.test(t.t.replace(/[^A-Za-z]/g, '')); });
+    var anchors = free.filter(function (t) {
+      // a lone "S" is far more likely to be stray artwork than a label
+      if (t.t.replace(/[^A-Za-z0-9]/g, '').length < 2) return false;
+      return LABEL_WORD.test(t.t.replace(/[^A-Za-z]/g, '')) || LABEL_GLUED.test(t.t);
+    });
     var labels = [];
     for (var a = 0; a < anchors.length; a++) {
       var anchor = anchors[a], cluster = [anchor], added = true;
@@ -408,10 +440,13 @@
           }
         }
       }
+      // "Sheet-777" is both the word and the value; unglue it first
+      var glued = LABEL_GLUED.exec(anchor.t);
       var vals = cluster.filter(function (t) {
         var s = t.t.replace(/[^\w\-\/]/g, '');
-        return s && !LABEL_WORD.test(s) && !LABEL_NOISE.test(s) && /\w/.test(s);
+        return s && !LABEL_WORD.test(s.replace(/[^A-Za-z]/g, '')) && !LABEL_NOISE.test(s) && /\w/.test(s);
       });
+      if (glued) vals = [{ t: glued[2] }].concat(vals.filter(function (t) { return t.t !== anchor.t; }));
       // prefer a token containing a digit
       vals.sort(function (p, q) { return (/\d/.test(q.t) ? 1 : 0) - (/\d/.test(p.t) ? 1 : 0); });
       if (vals.length) {

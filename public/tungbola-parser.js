@@ -133,15 +133,15 @@
       if (parts.length === 1 || !span) {
         out.push({
           t: parts.length === 1 ? parts[0].t : s.trim(),
-          x0: it.x, x1: it.x + w, y0: it.y, y1: it.y + h, vert: vert
+          x0: it.x, x1: it.x + w, y0: it.y, y1: it.y + h, vert: vert, item: i
         });
       } else {
         var len = s.length || 1;
         for (var p = 0; p < parts.length; p++) {
           var a = parts[p].i / len, b = (parts[p].i + parts[p].t.length) / len;
           if (dir === -1) { var t0 = 1 - b; b = 1 - a; a = t0; }
-          if (vert) out.push({ t: parts[p].t, x0: it.x, x1: it.x + w, y0: it.y + a * h, y1: it.y + b * h, vert: true, est: true });
-          else      out.push({ t: parts[p].t, x0: it.x + a * w, x1: it.x + b * w, y0: it.y, y1: it.y + h, vert: false, est: true });
+          if (vert) out.push({ t: parts[p].t, x0: it.x, x1: it.x + w, y0: it.y + a * h, y1: it.y + b * h, vert: true, est: true, item: i });
+          else      out.push({ t: parts[p].t, x0: it.x + a * w, x1: it.x + b * w, y0: it.y, y1: it.y + h, vert: false, est: true, item: i });
         }
       }
     }
@@ -166,7 +166,7 @@
       return {
         t: o.t, x0: x0, x1: x1, y0: y0, y1: y1,
         cx: (x0 + x1) / 2, cy: (y0 + y1) / 2,
-        w: x1 - x0, h: y1 - y0, vert: !o.vert, est: o.est
+        w: x1 - x0, h: y1 - y0, vert: !o.vert, est: o.est, item: o.item
       };
     });
   }
@@ -820,9 +820,25 @@
   function buildSheets(tokens, opt, ctx) {
     var consumed = new Set();
 
+    /* -- protect a label's own number ("Sheet No. 46") from the ticket-number
+       pool just because its value happens to fall in 1..90. A ticket cell is
+       always its own text item; a producer that glues a label word to its
+       number in one string ("Sheet No. 46") never does that for a ticket
+       cell. So any raw item carrying a label word is off-limits entirely —
+       this is what stops a small sheet number from being scooped up as a
+       ticket number and then vanishing from the label search once consumed. */
+    var reservedItems = null;
+    for (var ri = 0; ri < tokens.length; ri++) {
+      if (tokens[ri].item == null) continue;
+      if (LABEL_WORD.test(tokens[ri].t.replace(/[^A-Za-z]/g, ''))) {
+        (reservedItems || (reservedItems = {}))[tokens[ri].item] = 1;
+      }
+    }
+
     // -- confident single/double digit numbers define the geometry
     var conf = [];
     for (var i = 0; i < tokens.length; i++) {
+      if (reservedItems && tokens[i].item != null && reservedItems[tokens[i].item]) continue;
       var v = numValue(tokens[i].t);
       if (v !== null) { tokens[i].v = v; conf.push(tokens[i]); }
     }
@@ -1016,7 +1032,7 @@
     for (var i = 0; i < HYPOS.length; i++) {
       if (i > 0 && Date.now() > deadline) break;
       var fresh = tokens.map(function (t) {          // hypotheses must not share state
-        return { t: t.t, x0: t.x0, x1: t.x1, y0: t.y0, y1: t.y1, cx: t.cx, cy: t.cy, w: t.w, h: t.h, vert: t.vert, est: t.est };
+        return { t: t.t, x0: t.x0, x1: t.x1, y0: t.y0, y1: t.y1, cx: t.cx, cy: t.cy, w: t.w, h: t.h, vert: t.vert, est: t.est, item: t.item };
       });
       var r = buildSheets(fresh, HYPOS[i], ctx);
       tried++;

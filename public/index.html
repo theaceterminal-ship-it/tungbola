@@ -2546,6 +2546,8 @@ async function handleUpload(e){
   $('loadingOv').classList.remove('off');
   clearGame();sheets=[];
   let total=0,errs=[],ocrFailed=false;const problems=[];
+  const sheetSource={};   // sheet name -> file it came from, to catch a same-name collision
+  const collisions=[];
   for(let fi=0;fi<files.length;fi++){
     const f=files[fi];
     $('loadMsg').textContent=files.length>1
@@ -2560,6 +2562,12 @@ async function handleUpload(e){
       if(!ns.length){errs.push(f.name);continue;}
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
+        // two DIFFERENT files landing on the same sheet name silently drops
+        // one of them (the later file replaces the earlier one) — worth
+        // surfacing, since it usually means a sheet number wasn't read right
+        if(i>=0&&sheetSource[s.name]&&sheetSource[s.name]!==f.name)
+          collisions.push({name:s.name,from:sheetSource[s.name],to:f.name});
+        sheetSource[s.name]=f.name;
         if(i>=0)sheets[i]=s;else sheets.push(s);
       });
       total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
@@ -2585,6 +2593,10 @@ async function handleUpload(e){
   save();
   const scanNote=problems.find(p=>p.kind==='scan-partial'||p.kind==='scan');
   if(scanNote) toast(`${scanNote.file} is an image, not a real PDF — check every number, or ask for the original PDF`);
+  else if(collisions.length){
+    const c=collisions[0];
+    toast(`"${c.to}" replaced "${c.from}" — both read as Sheet ${c.name}. Check the sheet numbers.`);
+  }
   else if(errs.length) toast(`Loaded ${total} tickets (${errs.length} files failed)`);
   if(badTickets.length) showParseWarning(badTickets,showSetup);
   else showSetup();

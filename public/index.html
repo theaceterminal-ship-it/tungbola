@@ -678,24 +678,6 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .act-btn:disabled{opacity:.5;cursor:not-allowed}
 .act-error{color:var(--error);font-size:13px;text-align:center;
   padding:4px 0;font-weight:500;display:none;margin-bottom:4px}
-.act-or{display:flex;align-items:center;gap:10px;width:100%;max-width:340px;
-  color:var(--on-surface-variant);font-size:12px;margin:0 0 14px}
-.act-or::before,.act-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
-
-/* ── DAY PASS FLOW ── */
-.act-btn-ghost{width:100%;padding:11px;background:transparent;color:var(--primary);
-  border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
-  margin-top:4px;border-radius:14px}
-.act-btn-ghost:active{background:var(--primary-container)}
-.dp-summary{background:var(--primary-container);border-radius:12px;
-  padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--primary)}
-.dp-qr-wrap{display:flex;flex-direction:column;align-items:center;
-  gap:6px;margin:12px 0}
-.dp-qr-wrap #dpQrContainer canvas,.dp-qr-wrap #dpQrContainer img{border-radius:12px;border:3px solid var(--primary-container);display:block}
-.dp-support{text-align:center;margin-top:10px}
-.dp-support-link{font-size:13px;color:var(--primary);text-decoration:none;font-weight:600}
-.dp-support-link:active{opacity:.7}
-.dp-upi-hint{font-size:12px;color:var(--on-surface-variant);text-align:center}
 /* ── PARSE WARNING OVERLAY ── */
 #parseWarn{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;
   display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom)}
@@ -715,25 +697,24 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   border-radius:12px;padding:10px 14px;margin:14px 0;line-height:1.6}
 .pw-continue{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;
   border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
-/* ── WAITING SCREEN ── */
-#dpWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:32px 24px;gap:0}
-.wait-logo{font-size:56px;margin-bottom:16px}
-.wait-title{font-size:24px;font-weight:900;color:var(--primary);margin-bottom:8px}
-.wait-sub{font-size:14px;color:var(--on-surface-variant);margin-bottom:8px;text-align:center}
-.wait-dots{display:flex;gap:8px;margin:20px 0 24px}
-.wait-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);
-  animation:wdot 1.4s ease-in-out infinite}
-.wait-dot:nth-child(1){animation-delay:0s}
-.wait-dot:nth-child(2){animation-delay:.2s}
-.wait-dot:nth-child(3){animation-delay:.4s}
-@keyframes wdot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1.1);opacity:1}}
-.wait-info{font-size:13px;color:var(--on-surface-variant);margin-bottom:24px;text-align:center;
-  background:#fff;border-radius:12px;padding:10px 16px;max-width:280px}
-.wait-cancel{background:transparent;border:2px solid var(--outline);color:var(--on-surface-variant);
-  border-radius:14px;padding:11px 28px;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit}
+/* ── RENEWAL NOTICE ── */
+.renew-notice{background:#FFF8E1;border:1.5px solid #FFCC80;border-radius:18px;
+  padding:14px 14px 12px;margin-bottom:16px;max-width:340px;width:100%;
+  box-shadow:0 2px 10px rgba(230,81,0,.08)}
+.renew-notice.hidden{display:none}
+.renew-row{display:flex;align-items:flex-start;gap:10px}
+.renew-ico{font-size:20px;color:#EF6C00;flex-shrink:0;margin-top:1px}
+.renew-body{flex:1;min-width:0}
+.renew-title{font-size:14px;font-weight:700;color:#E65100;line-height:1.35}
+.renew-sub{font-size:12.5px;color:#8D6E63;margin-top:3px;line-height:1.5}
+.renew-close{background:transparent;border:none;color:#BCAAA4;font-size:22px;
+  line-height:1;cursor:pointer;padding:0 2px;font-family:inherit;flex-shrink:0}
+.renew-close:active{color:#8D6E63}
+.renew-btn{display:block;text-align:center;margin-top:11px;padding:10px;
+  background:#EF6C00;color:#fff;border-radius:12px;font-size:13.5px;
+  font-weight:700;text-decoration:none}
+.renew-btn:active{opacity:.85}
+
 /* ── SUBSCRIPTION STATUS BAR ── */
 .sub-status-bar{display:flex;align-items:center;gap:8px;background:#E8F5E9;
   color:#2E7D32;border-radius:16px;padding:10px 16px;font-size:13px;font-weight:600;
@@ -846,6 +827,18 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     <span class="mir">verified_user</span>
     <span id="subStatusTxt"></span>
   </div>
+  <!-- Shown only in the last couple of days of a subscription. Friendly, not alarming. -->
+  <div id="renewNotice" class="renew-notice hidden">
+    <div class="renew-row">
+      <span class="mir renew-ico">favorite</span>
+      <div class="renew-body">
+        <div class="renew-title" id="renewTitle"></div>
+        <div class="renew-sub" id="renewSub"></div>
+      </div>
+      <button class="renew-close" onclick="dismissRenewNotice()" aria-label="Dismiss">&times;</button>
+    </div>
+    <a id="renewAction" class="renew-btn" href="#" target="_blank" rel="noopener">Message host to renew</a>
+  </div>
   <!-- shown when no session -->
   <button class="btn-fill" id="btnGetStarted" onclick="showActivation()">
     <span class="mir">login</span> Get Started
@@ -872,7 +865,7 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
       <span class="act-card-icon">🎫</span>
       <div>
         <div class="act-card-title">Subscription</div>
-        <div class="act-card-desc">Monthly or yearly · stays active across games</div>
+        <div class="act-card-desc">Stays active across every game until it expires</div>
       </div>
     </div>
     <input type="text" class="act-input subkey" id="subKeyInput"
@@ -881,6 +874,21 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     <div class="act-error" id="subError"></div>
     <button class="act-btn" onclick="verifySubscription()">Activate Subscription →</button>
   </div>
+</div>
+
+<!-- ══ PARSE WARNING OVERLAY ══ -->
+<div id="parseWarn" class="off">
+  <div class="pw-card">
+    <div class="pw-title">⚠️ Some tickets couldn't be loaded</div>
+    <div class="pw-sub">These tickets had incomplete or corrupted data and were removed to prevent game errors:</div>
+    <div id="pwList"></div>
+    <div class="pw-hint">
+      💡 <strong>For these tickets, use a physical sheet.</strong> You can print the numbers below and play manually.
+      The issue has been reported to the admin.
+    </div>
+    <button class="pw-continue" onclick="dismissParseWarn()">Continue Without These Tickets</button>
+  </div>
+</div>
 
 <!-- ══ SETUP ══ -->
 <div id="setup" class="off">
@@ -1186,10 +1194,9 @@ let claimed={};
 let mTab='play',dtTab='play';
 let currentWin=null;
 let redoStack=[],dtGroupStart=0,lpTimer=null;
-let appConfig={pricePerSheet:5,upiId:'',whatsappNumber:''};
+let appConfig={upiId:'',whatsappNumber:''};
 let gameSession=null;
 let subscriptionKey=null;
-let dpReqId=null,dpPollTimer=null;
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
 
@@ -1326,6 +1333,7 @@ function init(){
   try{const s=localStorage.getItem('tb_pay');if(s)gameSession=JSON.parse(s);}catch(e){}
   try{const s=localStorage.getItem('tb_sub');if(s)subscriptionKey=JSON.parse(s).key;}catch(e){}
   updateSubStatusBar();
+  updateRenewNotice();
   updateWelcomeButtons();
   if(sheets.length>0&&gameSession) $('btnContinue').classList.remove('off');
   if(gameSession?.type==='subscription') silentVerifySubscription();
@@ -1429,7 +1437,7 @@ function buildBalls(){
 
 /* ══ SCREEN TRANSITIONS ══ */
 function hideAll(){
-  ['welcome','game','activation','setup','dpWaiting'].forEach(id=>$( id)?.classList.add('off'));
+  ['welcome','game','activation','setup'].forEach(id=>$( id)?.classList.add('off'));
 }
 function showSetup(){
   hideAll();
@@ -1453,19 +1461,6 @@ function showActivation(){
   $('activation').classList.remove('off');
   const si=$('subKeyInput');if(si) si.value='';
   const se=$('subError');if(se) se.style.display='none';
-  dpReset();
-}
-
-/* ══ DAY PASS FLOW ══ */
-function dpReset(){
-  $('dp-s1').style.display='';
-  $('dp-s2').style.display='none';
-  const ne=$('dpName');if(ne) ne.value='';
-  const er=$('dpError');if(er) er.style.display='none';
-  $('dpFileInput').value='';
-  $('dpQrContainer').innerHTML='';
-  const dpSup=$('dpSupport');if(dpSup) dpSup.style.display='none';
-  $('dpDesc').textContent='Single session · pay per sheet';
 }
 
 /* An upload can fail for reasons the user can actually act on. The common one
@@ -1489,139 +1484,6 @@ function loadErrorMessage(problems,errs){
   if(problems.some(p=>p.kind==='ocr')) return 'Image reading service is busy — try again in a moment';
   if(errs.length) return `Could not read: ${errs[0]}`;
   return 'No valid tickets found';
-}
-
-async function dpHandleFiles(e){
-  const files=Array.from(e.target.files);
-  if(!files.length) return;
-  e.target.value='';
-  const pickBtn=$('dpPickBtn');
-  pickBtn.disabled=true; pickBtn.textContent='Reading…';
-  $('loadingOv').classList.remove('off');
-  clearGame(); sheets=[];
-  let total=0,errs=[],ocrFailed=false;const problems=[];
-  for(let fi=0;fi<files.length;fi++){
-    const f=files[fi];
-    $('loadMsg').textContent=files.length>1?`Reading ${fi+1}/${files.length}: ${f.name}`:`Reading ${f.name}…`;
-    try{
-      const result=await TBFiles.parseFile(f);
-      let ns=result.sheets;
-      if(result.warnings&&result.warnings.some(w=>/ocr/i.test(w))) ocrFailed=true;
-      if(result.imageOnly&&result.warnings&&result.warnings.length)
-        problems.push({kind:'scan-partial',file:f.name,msg:result.warnings[0]});
-      if(!ns.length){errs.push(f.name);continue;}
-      ns.forEach(s=>{
-        const i=sheets.findIndex(x=>x.name===s.name);
-        if(i>=0)sheets[i]=s;else sheets.push(s);
-      });
-      total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
-    }catch(err){
-      console.error(f.name,err);errs.push(f.name);
-      problems.push(classifyLoadError(err,f.name));
-      if(/ocr|service unavailable/i.test(err.message||'')) ocrFailed=true;
-    }
-  }
-  const MAX_SHEETS=150;
-  if(sheets.length>MAX_SHEETS) sheets=sheets.slice(0,MAX_SHEETS);
-  const badTickets=validateSheets(sheets);
-  total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
-  $('loadingOv').classList.add('off');
-  pickBtn.disabled=false; pickBtn.textContent='📁 Select PDF Sheets';
-  if(!total){toast(loadErrorMessage(problems,errs));return;}
-  save();
-  if(badTickets.length) reportParseErrors(badTickets); // report silently, don't block the payment flow
-  // Show step 2
-  const count=sheets.length;
-  const price=appConfig.pricePerSheet||5;
-  const amount=price*count;
-  $('dpSummary').textContent=`${count} sheet${count>1?'s':''} loaded · ₹${amount} total`;
-  $('dpDesc').textContent=`${count} sheet${count>1?'s':''} · ₹${amount} to pay`;
-  dpDrawQR(appConfig.upiId||'',amount);
-  $('dp-s1').style.display='none';
-  $('dp-s2').style.display='';
-}
-
-function dpDrawQR(upiId,amount){
-  const container=$('dpQrContainer');
-  const hint=$('dpUpiHint');
-  container.innerHTML='';
-  if(!upiId){
-    hint.textContent='UPI not configured – contact admin';
-    return;
-  }
-  const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Day+Pass`;
-  hint.textContent=`Pay ₹${amount} to ${upiId}`;
-  try{
-    new QRCode(container,{text:upiStr,width:180,height:180,
-      colorDark:'#1C1B1F',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});
-  }catch(ex){
-    hint.textContent=`Pay ₹${amount} to UPI: ${upiId}`;
-  }
-  // Show WhatsApp support links
-  const wa=appConfig.whatsappNumber||'';
-  const waUrl=wa?`https://wa.me/${wa}`:'#';
-  const showWa=!!wa;
-  const dpSup=$('dpSupport');const dpLnk=$('dpSupportLink');
-  if(dpSup&&dpLnk){dpSup.style.display=showWa?'':'none';dpLnk.href=waUrl;}
-  const wSup=$('waitSupportLink');
-  if(wSup){wSup.style.display=showWa?'':'none';wSup.href=waUrl;}
-}
-
-async function dpSubmitRequest(){
-  const name=($('dpName').value||'').trim();
-  const errEl=$('dpError');
-  errEl.style.display='none';
-  if(!name){errEl.textContent='Enter your name';errEl.style.display='block';return;}
-  const btn=$('dpSubmitBtn');
-  btn.disabled=true; btn.textContent='Submitting…';
-  try{
-    const r=await fetch('/api/payment',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'request',playerName:name,sheetCount:sheets.length})
-    });
-    const data=await r.json();
-    if(!r.ok){errEl.textContent=data.error||'Failed to submit';errEl.style.display='block';btn.disabled=false;btn.textContent='I\'ve Paid — Request Approval →';return;}
-    dpReqId=data.reqId;
-    $('dpWaitInfo').textContent=`${name} · ${sheets.length} sheet${sheets.length>1?'s':''} · ₹${data.amount}`;
-    hideAll();
-    $('dpWaiting').classList.remove('off');
-    dpStartPolling();
-  }catch(e){
-    errEl.textContent='Network error. Check connection.';errEl.style.display='block';
-    btn.disabled=false; btn.textContent='I\'ve Paid — Request Approval →';
-  }
-}
-
-function dpStartPolling(){
-  dpStopPolling();
-  dpPollTimer=setInterval(dpPoll,5000);
-}
-function dpStopPolling(){
-  if(dpPollTimer){clearInterval(dpPollTimer);dpPollTimer=null;}
-}
-async function dpPoll(){
-  if(!dpReqId) return;
-  try{
-    const r=await fetch('/api/payment',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'check',reqId:dpReqId})
-    });
-    if(r.status===404){dpStopPolling();toast('Request expired. Please try again.');showActivation();return;}
-    const data=await r.json();
-    if(data.status==='approved'&&data.code){
-      dpStopPolling();
-      dpReqId=null;
-      gameSession={type:'daypass',code:data.code,playerName:data.playerName,sheetCount:data.sheetCount,verifiedAt:Date.now()};
-      localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-      $('dpWaiting').classList.add('off');
-      showSetup();
-    }
-  }catch(e){}
-}
-function dpCancelRequest(){
-  dpStopPolling();
-  dpReqId=null;
-  showActivation();
 }
 
 /* ══ SUBSCRIPTION ══ */
@@ -1650,6 +1512,7 @@ async function verifySubscription(){
       plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
     updateSubStatusBar();
+    updateRenewNotice();
     updateWelcomeButtons();
     hideAll();
     $('welcome').classList.remove('off');
@@ -1684,8 +1547,7 @@ async function silentVerifySubscription(){
       plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
     updateSubStatusBar();
-    if(data.daysLeft<=7)
-      setTimeout(()=>toast(`⚠️ Subscription expires in ${data.daysLeft} day${data.daysLeft===1?'':'s'}`),3500);
+    updateRenewNotice();
   }catch(e){}
 }
 
@@ -1695,48 +1557,98 @@ function updateWelcomeButtons(){
   $('btnLoad').classList.toggle('off',!hasSession);
 }
 
+/* ══ RENEWAL REMINDER ══
+   Shown from two days before a subscription lapses. The tone is deliberately
+   soft — this is a paying player, not a defaulter — and it is dismissible,
+   but it comes back the next day so the last day is never a surprise. */
+const RENEWAL_NOTICE_DAYS=2;
+
+function renewDismissKey(){
+  return 'tb_renew_seen_'+new Date().toDateString();
+}
+function dismissRenewNotice(){
+  try{localStorage.setItem(renewDismissKey(),'1');}catch(e){}
+  const n=$('renewNotice');if(n) n.classList.add('hidden');
+}
+
+function updateRenewNotice(){
+  const n=$('renewNotice');
+  if(!n) return;
+  if(gameSession?.type!=='subscription'||!gameSession.expiresAt){
+    n.classList.add('hidden');return;
+  }
+  const msLeft=gameSession.expiresAt-Date.now();
+  const daysLeft=Math.ceil(msLeft/86400000);
+  if(daysLeft>RENEWAL_NOTICE_DAYS){n.classList.add('hidden');return;}
+  let seen=false;
+  try{seen=localStorage.getItem(renewDismissKey())==='1';}catch(e){}
+  if(seen){n.classList.add('hidden');return;}
+
+  const name=(gameSession.playerName||'').split(' ')[0];
+  const hi=name?`Hi ${name} — `:'';
+  const when=new Date(gameSession.expiresAt)
+    .toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  let title,sub;
+  if(msLeft<=0){
+    title=`${hi}your subscription has ended`;
+    sub=`It ran out on ${when}. Renew whenever you're ready and everything picks up right where you left off.`;
+  }else if(daysLeft<=1){
+    title=`${hi}your subscription ends today`;
+    sub=`It expires on ${when}. A quick renewal keeps your games running without a break — no rush, just a heads up.`;
+  }else{
+    title=`${hi}your subscription ends in ${daysLeft} days`;
+    sub=`It expires on ${when}. Whenever it suits you, a quick renewal keeps everything running without interruption.`;
+  }
+  $('renewTitle').textContent=title;
+  $('renewSub').textContent=sub;
+
+  const a=$('renewAction');
+  const wa=(appConfig.whatsappNumber||'').replace(/\D/g,'');
+  if(wa){
+    const msg=`Hello! I'd like to renew my Tungbola subscription`+
+      (gameSession.playerName?` for ${gameSession.playerName}`:'')+'.';
+    a.href=`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+    a.style.display='';
+  }else{
+    a.style.display='none';
+  }
+  n.classList.remove('hidden');
+}
+
 function updateSubStatusBar(){
   const bar=$('subStatusBar');
   if(!bar) return;
   if(gameSession?.type==='subscription'){
     const daysLeft=Math.max(0,Math.ceil((gameSession.expiresAt-Date.now())/86400000));
-    const plan=gameSession.plan==='yearly'?'Yearly':'Monthly';
+    // the API sends a ready label ("3 Months", "1 Year"); older keys only had a plan word
+    const plan=gameSession.plan||'Subscription';
     $('subStatusTxt').textContent=`${gameSession.playerName} · ${plan} · ${daysLeft}d left`;
+    const due=daysLeft<=RENEWAL_NOTICE_DAYS;
     const ico=bar.querySelector('.mir');
-    if(ico) ico.textContent=daysLeft<=7?'warning':'verified_user';
-    bar.style.background=daysLeft<=7?'#FFF3E0':'';
-    bar.style.color=daysLeft<=7?'#E65100':'';
+    if(ico) ico.textContent=due?'schedule':'verified_user';
+    bar.style.background=due?'#FFF3E0':'';
+    bar.style.color=due?'#E65100':'';
     bar.classList.remove('hidden');
   }else{
     bar.classList.add('hidden');
   }
 }
 
-/* ══ DAY PASS VERIFY ══ */
 /* ══ END GAME ══ */
 async function endGame(){
   if(!confirm('End this game session? This cannot be undone.')) return;
-  const isSub=gameSession?.type==='subscription';
-  if(!isSub&&gameSession){
-    try{
-      await fetch('/api/end-session',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({code:gameSession.code})
-      });
-    }catch(e){}
-  }
+  // the subscription itself survives ending a game — only the board is cleared
   ['tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
-  if(!isSub){localStorage.removeItem('tb_pay');gameSession=null;}
   sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
   active=new Set(PRIZES.map(p=>p.key));claimed={};redoStack=[];
   $('allDoneBanner').classList.remove('on');
-  dpStopPolling();dpReqId=null;
   hideAll();
   $('btnContinue').classList.add('off');
   $('welcome').classList.remove('off');
   updateSubStatusBar();
+  updateRenewNotice();
   updateWelcomeButtons();
-  toast(isSub?'Game ended. Load new tickets to play again!':'Game ended. Thanks for playing!');
+  toast('Game ended. Load new tickets to play again!');
 }
 
 /* ══ SETUP ══ */

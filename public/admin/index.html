@@ -187,6 +187,45 @@ select.field{cursor:pointer}
   padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
 
 /* ── SUBSCRIPTION CARD ── */
+/* ── COMPACT SUBSCRIBER ROW ── */
+.sub-row{border:1px solid var(--sv);border-radius:11px;margin-bottom:6px;
+  background:#fff;overflow:hidden;transition:box-shadow .15s}
+.sub-row:last-child{margin-bottom:0}
+.sub-row.is-active{border-color:rgba(103,80,164,.22)}
+.sub-row.is-warn{border-color:rgba(245,127,23,.42);background:#FFFDF8}
+.sub-row.is-inactive{background:#FAFAFA;opacity:.82}
+.sub-row.open{box-shadow:0 3px 12px rgba(103,80,164,.13)}
+.sub-row-main{display:flex;align-items:center;gap:10px;width:100%;
+  padding:9px 12px;background:transparent;border:none;cursor:pointer;
+  font-family:inherit;text-align:left}
+.sub-row-main:hover{background:rgba(103,80,164,.04)}
+.sub-dot{width:27px;height:27px;border-radius:50%;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.sub-dot.a{background:linear-gradient(135deg,var(--primary),#7C3AED);color:#fff}
+.sub-dot.w{background:linear-gradient(135deg,var(--amber),#FFB300);color:#fff}
+.sub-dot.i{background:var(--sv);color:var(--on-sv)}
+.sub-row-name{flex:1 1 auto;min-width:0;font-size:14px;font-weight:700;
+  color:var(--on-bg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub-row-plan{flex:0 0 auto;font-size:11.5px;font-weight:700;color:var(--primary);
+  background:var(--primary-c);border-radius:6px;padding:3px 8px;white-space:nowrap}
+.sub-row-status{flex:0 0 auto;display:flex}
+.sub-row-exp{flex:0 0 auto;font-size:12px;color:var(--on-sv);white-space:nowrap;
+  min-width:66px;text-align:right}
+.sub-row-dev{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--on-sv);
+  background:var(--bg);border-radius:6px;padding:2px 7px;min-width:34px;text-align:center}
+.sub-row-dev.full{background:#FFEBEE;color:var(--error)}
+.sub-chev{flex:0 0 auto;font-size:19px;color:var(--on-sv);line-height:1;
+  transition:transform .18s;transform:rotate(90deg)}
+.sub-row.open .sub-chev{transform:rotate(-90deg)}
+.sub-row-detail{display:none;padding:2px 12px 12px;border-top:1px solid var(--sv)}
+.sub-row.open .sub-row-detail{display:block}
+.sub-detail-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;
+  color:var(--on-sv);margin:8px 0 2px}
+.sub-detail-meta .muted{opacity:.6;font-style:italic}
+@media(max-width:560px){
+  .sub-row-plan,.sub-row-exp{display:none}
+}
+
 .sub-card{border:1px solid var(--sv);border-radius:12px;padding:12px 13px;
   margin-bottom:9px;background:#FAFAFA}
 .sub-card:last-child{margin-bottom:0}
@@ -241,6 +280,10 @@ select.field{cursor:pointer}
   border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-extend:hover{background:#C8E6C9}
+.btn-shorten{background:#FFF3E0;color:#E65100;border:none;
+  border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;
+  cursor:pointer;font-family:inherit}
+.btn-shorten:hover{background:#FFE0B2}
 .btn-remind{background:#E0F2F1;color:#00695C;border:none;
   border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:background .15s;text-decoration:none;display:inline-flex;align-items:center}
@@ -258,7 +301,7 @@ select.field{cursor:pointer}
 @media(max-width:860px){
   .tab-content{padding:12px}
   .sub-actions{flex-direction:column}
-  .btn-revoke,.btn-reset,.btn-extend,.btn-remind{width:100%;padding:11px;font-size:13px;text-align:center;justify-content:center}
+  .btn-revoke,.btn-reset,.btn-extend,.btn-shorten,.btn-remind{width:100%;padding:11px;font-size:13px;text-align:center;justify-content:center}
   .confirm-row{flex-direction:column;align-items:stretch}
   .confirm-lbl{margin-bottom:4px}
   .btn-yes,.btn-no{width:100%;padding:11px;font-size:13px;text-align:center}
@@ -700,65 +743,82 @@ function renderSubscriptions(list) {
   el.innerHTML = html;
 }
 
+/* One scannable line per subscriber; everything else opens on click. With
+   dozens of subscribers the old card layout showed two or three people per
+   screen — the details are all still here, just not all at once. */
+const expandedRows = new Set();
+
+function toggleSubRow(el) {
+  const key = el.dataset.key;
+  const row = el.closest('.sub-row');
+  const open = row.classList.toggle('open');
+  if (open) expandedRows.add(key); else expandedRows.delete(key);
+}
+
 function subCardHtml(s, now) {
-  const status = s._status;
+  const status  = s._status;
   const expired = status === 'expired';
   const revoked = status === 'revoked';
-  const warn = status === 'expiring';
-  const active = status === 'active';
+  const warn    = status === 'expiring';
   const daysLeft = Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
-  const devUsed = s.devices ? s.devices.length : 0;
-  const devPct = Math.round((devUsed / (s.maxDevices || 3)) * 100);
-  const init = (s.playerName || '?')[0].toUpperCase();
-  const cardCls = revoked || expired ? 'is-inactive' : warn ? 'is-warn' : 'is-active';
-  const avatarCls = revoked || expired ? 'i' : warn ? 'w' : 'a';
+  const devUsed  = s.devices ? s.devices.length : 0;
+  const maxDev   = s.maxDevices || 3;
+  const devPct   = Math.round((devUsed / maxDev) * 100);
+  const init     = (s.playerName || '?')[0].toUpperCase();
+  const dotCls   = revoked || expired ? 'i' : warn ? 'w' : 'a';
+  const isOpen   = expandedRows.has(s.key);
+  const dateOpts = { day: 'numeric', month: 'short' };
 
   const remindMsg = encodeURIComponent(
     expired
       ? `Hi ${s.playerName}! 👋 Your Tungbola subscription has expired. Renew whenever you're ready to keep playing — just let us know!`
-      : `Hi ${s.playerName}! 👋 Just a friendly reminder — your Tungbola subscription expires in ${daysLeft} day${daysLeft===1?'':'s'} (${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}). Renew anytime to keep playing without interruption. Thank you! 🎯`
+      : `Hi ${s.playerName}! 👋 Just a friendly reminder — your Tungbola subscription expires in ${daysLeft} day${daysLeft===1?'':'s'} (${new Date(s.expiresAt).toLocaleDateString('en-IN',dateOpts)}). Renew anytime to keep playing without interruption. Thank you! 🎯`
   );
   const remindBtn = s.phone
     ? `<a class="btn-remind" href="https://wa.me/${esc(s.phone)}?text=${remindMsg}" target="_blank" rel="noopener">💬 Remind</a>`
     : '';
 
+  const statusChip = revoked ? `<span class="chip revoked">✕ Revoked</span>`
+    : expired ? `<span class="chip grayed">Expired</span>`
+    : warn    ? `<span class="chip expiring">⚠ ${daysLeft}d</span>`
+              : `<span class="chip days">${daysLeft}d</span>`;
+
+  const rowCls = dotCls === 'i' ? 'is-inactive' : dotCls === 'w' ? 'is-warn' : 'is-active';
+
   return `
-    <div class="sub-card ${cardCls}">
-      <div class="sub-row1">
-        <div class="sub-avatar ${avatarCls}">${init}</div>
-        <div class="sub-name-block">
-          <div class="sub-name">${esc(s.playerName)}</div>
-          <div class="sub-created">Since ${new Date(s.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+    <div class="sub-row ${rowCls}${isOpen ? ' open' : ''}">
+      <button class="sub-row-main" data-key="${esc(s.key)}" onclick="toggleSubRow(this)">
+        <span class="sub-dot ${dotCls}">${init}</span>
+        <span class="sub-row-name">${esc(s.playerName)}</span>
+        <span class="sub-row-plan">${esc(planLabelOf(s))}</span>
+        <span class="sub-row-status">${statusChip}</span>
+        <span class="sub-row-exp">${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
+        <span class="sub-row-dev ${devUsed >= maxDev ? 'full' : ''}">${devUsed}/${maxDev}</span>
+        <span class="sub-chev">›</span>
+      </button>
+      <div class="sub-row-detail">
+        <div class="sub-key-box">
+          <span class="sub-key-text" title="${esc(s.key)}">${esc(s.key)}</span>
+          <button class="sub-key-copy" data-copyval="${esc(s.key)}" onclick="copyKeyBtn(this)">Copy</button>
         </div>
-        <div class="sub-plan-badge">${esc(planLabelOf(s))}</div>
-      </div>
-      <div class="sub-key-box">
-        <span class="sub-key-text" title="${esc(s.key)}">${esc(s.key)}</span>
-        <button class="sub-key-copy" data-copyval="${esc(s.key)}" onclick="copyKeyBtn(this)">Copy</button>
-      </div>
-      <div class="sub-devices-section">
-        <div class="sub-dev-top">
-          <span class="sub-dev-lbl">Devices</span>
-          <span class="sub-dev-count">${devUsed} / ${s.maxDevices} used</span>
+        <div class="sub-detail-meta">
+          <span>Since ${new Date(s.createdAt).toLocaleDateString('en-IN',dateOpts)}</span>
+          ${s.phone ? `<span>📱 ${esc(s.phone)}</span>` : `<span class="muted">no phone on file</span>`}
         </div>
-        <div class="sub-dev-bar"><div class="sub-dev-fill" style="width:${devPct}%"></div></div>
-      </div>
-      <div class="sub-chips">
-        ${revoked
-          ? `<span class="chip revoked">✕ Revoked</span>`
-          : expired
-            ? `<span class="chip grayed">Expired</span>`
-            : warn
-              ? `<span class="chip expiring">⚠ ${daysLeft}d left</span>`
-              : `<span class="chip days">✓ ${daysLeft}d left</span>`}
-        <span class="chip grayed">Exp ${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
-        ${s.phone ? `<span class="chip phone">📱 ${esc(s.phone)}</span>` : ''}
-      </div>
-      <div class="sub-actions" data-key="${esc(s.key)}" data-name="${esc(s.playerName)}">
-        ${remindBtn}
-        <button class="btn-extend" onclick="askExtend(this)">Extend</button>
-        ${!revoked && !expired ? `<button class="btn-revoke" onclick="askRevoke(this)">Revoke</button>` : ''}
-        <button class="btn-reset" onclick="askResetDev(this)">Reset Devices</button>
+        <div class="sub-devices-section">
+          <div class="sub-dev-top">
+            <span class="sub-dev-lbl">Devices</span>
+            <span class="sub-dev-count">${devUsed} / ${maxDev} used</span>
+          </div>
+          <div class="sub-dev-bar"><div class="sub-dev-fill" style="width:${devPct}%"></div></div>
+        </div>
+        <div class="sub-actions" data-key="${esc(s.key)}" data-name="${esc(s.playerName)}">
+          ${remindBtn}
+          <button class="btn-extend" onclick="askExtend(this,1)">+ Time</button>
+          <button class="btn-shorten" onclick="askExtend(this,-1)">− Time</button>
+          ${!revoked && !expired ? `<button class="btn-revoke" onclick="askRevoke(this)">Revoke</button>` : ''}
+          <button class="btn-reset" onclick="askResetDev(this)">Reset Devices</button>
+        </div>
       </div>
     </div>`;
 }
@@ -807,25 +867,34 @@ async function doResetDev(key, btn) {
 }
 
 /* ── EXTEND — inline confirm with month picker ── */
-function askExtend(btn) {
+/* Time moves either way: add months for a renewal, take them back when a
+   duration was keyed in wrong or a plan is downgraded. `dir` is +1 or -1. */
+function askExtend(btn, dir) {
   const el = btn.closest('.sub-actions');
   const key = el.dataset.key;
+  const sign = dir === -1 ? -1 : 1;
   el.className = 'confirm-row';
-  el.innerHTML = `<span class="confirm-lbl">Extend by</span>
+  el.innerHTML = `<span class="confirm-lbl">${sign === 1 ? 'Add' : 'Remove'}</span>
     <input class="confirm-input" id="extendMonths" type="number" min="1" max="36" value="1">
     <span class="confirm-lbl" style="flex:0">month(s)</span>
     <button class="btn-no" onclick="loadSubscriptions()">Cancel</button>
-    <button class="btn-yes ok">Confirm</button>`;
-  el.querySelector('.btn-yes').onclick = () => doExtend(key, el.querySelector('.btn-yes'));
+    <button class="btn-yes ${sign === 1 ? 'ok' : ''}">Confirm</button>`;
+  const go = el.querySelector('.btn-yes');
+  go.onclick = () => doExtend(key, go, sign);
+  el.querySelector('#extendMonths').focus();
 }
-async function doExtend(key, btn) {
-  const months = Math.max(1, Math.min(36, parseInt(document.getElementById('extendMonths').value) || 1));
+async function doExtend(key, btn, sign) {
+  const n = Math.max(1, Math.min(36, parseInt(document.getElementById('extendMonths').value) || 1));
+  const months = n * (sign === -1 ? -1 : 1);
   btn.disabled = true; btn.textContent = '…';
   try {
-    await fetch('/api/subscription', {
+    const r = await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'update', password: adminPwd, key, extendMonths: months })
     });
+    const d = await r.json().catch(() => ({}));
+    // shortening can push the end date into the past — say so rather than let it look like nothing happened
+    if (d && d.expired) alert('That key is now expired — its end date moved into the past.');
   } catch(e) {}
   loadSubscriptions();
 }

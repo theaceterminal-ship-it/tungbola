@@ -153,18 +153,31 @@ module.exports = async function(req, res) {
     if (action === 'update') {
       const { phone, extendMonths } = req.body;
       if (typeof phone === 'string') sub.phone = phone.replace(/\D/g, '').slice(0, 15);
-      if (extendMonths) {
-        const add = Math.max(1, Math.min(36, parseInt(extendMonths) || 0));
-        sub.months = monthsOf(sub) + add;
-        sub.expiresAt = addMonths(sub.expiresAt, add);
-        if (sub.status === 'revoked') sub.status = 'active';
+
+      /* extendMonths moves the end date either way: positive adds time,
+         negative takes it back (a wrong duration entered at creation, a
+         partial refund, a downgrade). Shortening can legitimately land in the
+         past — that simply expires the key, which the admin sees straight
+         away — but it must never run past 36 months in either direction. */
+      const delta = parseInt(extendMonths, 10);
+      if (delta) {
+        const move = Math.max(-36, Math.min(36, delta));
+        sub.months = Math.max(0, monthsOf(sub) + move);
+        sub.expiresAt = addMonths(sub.expiresAt, move);
+        if (move > 0 && sub.status === 'revoked') sub.status = 'active';
       }
+
       await kv.set(`tb:sub:${clean}`, sub);
       const list = await kv.get('tb:subscriptions') || [];
       const idx = list.findIndex(s => s.key === clean);
       if (idx >= 0) list[idx] = sub;
       await kv.set('tb:subscriptions', list);
-      return res.json({ ok: true, action: 'updated', expiresAt: sub.expiresAt, months: monthsOf(sub) });
+      return res.json({
+        ok: true, action: 'updated',
+        expiresAt: sub.expiresAt, months: monthsOf(sub),
+        planLabel: planLabel(monthsOf(sub)),
+        expired: Date.now() > sub.expiresAt
+      });
     }
 
     sub.status = 'revoked';

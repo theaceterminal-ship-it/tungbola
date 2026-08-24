@@ -187,6 +187,61 @@ select.field{cursor:pointer}
   padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
 
 /* ── SUBSCRIPTION CARD ── */
+/* ── LIVE TAB ── */
+.live-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;margin-bottom:14px}
+.live-stat{background:#fff;border:1px solid var(--sv);border-radius:14px;
+  padding:16px 14px;text-align:center}
+.live-stat.big{background:linear-gradient(140deg,#fff,#F6F3FF);
+  border-color:rgba(103,80,164,.25)}
+.live-num{font-size:30px;font-weight:900;color:var(--primary);line-height:1.1}
+.live-num.playing{color:#2E7D32}
+.live-lbl{font-size:11.5px;color:var(--on-sv);margin-top:5px;font-weight:600}
+.live-updated{font-size:11px;color:var(--on-sv);font-weight:500}
+.spark{display:flex;align-items:flex-end;gap:4px;height:96px;padding:6px 0 0}
+.spark-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.spark-bar{width:100%;background:linear-gradient(180deg,var(--primary),#9B7FD4);
+  border-radius:4px 4px 2px 2px;min-height:3px;transition:height .3s}
+.spark-bar.today{background:linear-gradient(180deg,#2E7D32,#66BB6A)}
+.spark-n{font-size:10px;font-weight:700;color:var(--on-bg)}
+.spark-d{font-size:9px;color:var(--on-sv);white-space:nowrap;overflow:hidden}
+.live-row{display:flex;align-items:center;gap:9px;padding:8px 2px;
+  border-bottom:1px solid var(--sv);font-size:13px}
+.live-row:last-of-type{border-bottom:none}
+.live-pip{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--sv)}
+.live-pip.on{background:#2E7D32;box-shadow:0 0 0 3px rgba(46,125,50,.15)}
+.live-name{flex:1;min-width:0;font-weight:700;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.live-badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;
+  background:var(--bg);color:var(--on-sv);white-space:nowrap}
+.live-badge.playing{background:#E8F5E9;color:#2E7D32}
+.live-when{font-size:11px;color:var(--on-sv);white-space:nowrap}
+.live-note{font-size:11.5px;color:var(--on-sv);background:var(--bg);
+  border-radius:9px;padding:9px 11px;margin-top:11px;line-height:1.6}
+
+/* ── PARSE ERROR LIST ── */
+.pe-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:11px}
+.pe-toolbar select,.pe-toolbar input[type=date]{padding:6px 9px;border:1px solid var(--sv);
+  border-radius:8px;font-size:12.5px;font-family:inherit;background:#fff;color:var(--on-bg)}
+.pe-spacer{flex:1}
+.btn-danger{background:var(--error-c);color:var(--error);border:none;border-radius:8px;
+  padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-danger:hover{background:var(--error);color:#fff}
+.pe-day{margin-bottom:12px}
+.pe-day-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pe-day-title{font-size:12.5px;font-weight:800;color:var(--on-bg)}
+.pe-day-count{font-size:11px;color:var(--on-sv);background:var(--bg);
+  border-radius:6px;padding:1px 7px;font-weight:700}
+.pe-day-clear{margin-left:auto;background:transparent;border:none;color:var(--error);
+  font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:2px 4px}
+.pe-entry{background:#FFF3E0;border-radius:10px;padding:9px 11px;margin-bottom:6px;font-size:12px}
+.pe-entry-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.pe-time{font-weight:700;color:#E65100;font-size:11.5px}
+.pe-del{margin-left:auto;background:transparent;border:none;color:#BCAAA4;
+  font-size:17px;line-height:1;cursor:pointer;font-family:inherit;padding:0 3px}
+.pe-del:hover{color:var(--error)}
+.pe-line{color:#5D4037;line-height:1.6}
+
 /* ── COMPACT SUBSCRIBER ROW ── */
 .sub-row{border:1px solid var(--sv);border-radius:11px;margin-bottom:6px;
   background:#fff;overflow:hidden;transition:box-shadow .15s}
@@ -341,6 +396,7 @@ select.field{cursor:pointer}
 
   <div class="tab-bar">
     <button class="tab-btn active" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscribers</button>
+    <button class="tab-btn" id="tabBtnLive" onclick="switchTab('live')">📡 Live</button>
     <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
 
@@ -447,6 +503,51 @@ select.field{cursor:pointer}
   </div>
 
   <!-- ── SETTINGS TAB ── -->
+  <!-- ── LIVE TAB ── -->
+  <div class="tab-content" id="tabLive">
+    <div class="live-stats">
+      <div class="live-stat big">
+        <div class="live-num" id="liveOnline">–</div>
+        <div class="live-lbl">On the site now</div>
+      </div>
+      <div class="live-stat big">
+        <div class="live-num playing" id="livePlaying">–</div>
+        <div class="live-lbl">In a game right now</div>
+      </div>
+      <div class="live-stat">
+        <div class="live-num" id="liveToday">–</div>
+        <div class="live-lbl">Visitors today</div>
+      </div>
+      <div class="live-stat">
+        <div class="live-num" id="liveYesterday">–</div>
+        <div class="live-lbl">Yesterday</div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title" style="justify-content:space-between">
+        <span>📈 Visitors per day</span>
+        <span class="live-updated" id="liveUpdated"></span>
+      </div>
+      <div class="spark" id="liveSpark"></div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title" style="justify-content:space-between">
+        <span>👥 Who's here</span>
+        <button class="refresh-btn" onclick="loadLive()">↻ Refresh</button>
+      </div>
+      <div id="livePeople">
+        <div style="font-size:13px;color:var(--on-sv)">Loading…</div>
+      </div>
+      <div class="live-note">
+        Counts unique devices. A player who opens the site on a phone and a
+        laptop shows twice. Nothing but a random device id is stored — no IP
+        addresses, no third-party tracker.
+      </div>
+    </div>
+  </div>
+
   <div class="tab-content" id="tabSettings">
     <div class="settings-wrap">
       <div class="settings-card">
@@ -535,13 +636,15 @@ function logout() {
 
 /* ── TABS ── */
 function switchTab(tab) {
-  ['subscriptions','settings'].forEach(t => {
+  ['subscriptions','live','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
     if (el) el.classList.toggle('active', t === tab);
   });
   if (tab === 'subscriptions') loadSubscriptions();
   if (tab === 'settings') loadParseErrors();
+  // the Live tab polls while it is the one on screen, and stops when it is not
+  if (tab === 'live') startLivePolling(); else stopLivePolling();
 }
 
 /* ── COLLAPSIBLE FORM ── */
@@ -908,26 +1011,196 @@ function copyToClip(text, btn) {
 }
 
 /* ── PARSE ERRORS ── */
+/* ══ LIVE ══════════════════════════════════════════════════════════════════
+   Polls only while the Live tab is open, so an idle admin page is not
+   hammering Redis in the background. */
+let _liveTimer = null;
+
+function startLivePolling() {
+  stopLivePolling();
+  loadLive();
+  _liveTimer = setInterval(() => { if (!document.hidden) loadLive(); }, 20000);
+}
+function stopLivePolling() {
+  if (_liveTimer) { clearInterval(_liveTimer); _liveTimer = null; }
+}
+
+function agoText(ms) {
+  if (!ms) return '';
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+async function loadLive() {
+  try {
+    const r = await fetch(`/api/analytics?password=${encodeURIComponent(adminPwd)}`);
+    if (!r.ok) return;
+    const d = await r.json();
+
+    document.getElementById('liveOnline').textContent = d.onlineNow;
+    document.getElementById('livePlaying').textContent = d.playingNow;
+    document.getElementById('liveToday').textContent = d.today;
+    document.getElementById('liveYesterday').textContent = d.yesterday;
+    document.getElementById('liveUpdated').textContent =
+      'updated ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    // visitors-per-day bars, oldest on the left
+    const hist = (d.history || []).slice().reverse();
+    const peak = Math.max(1, ...hist.map(h => h.visitors));
+    document.getElementById('liveSpark').innerHTML = hist.map((h, i) => {
+      const isToday = i === hist.length - 1;
+      const dt = new Date(h.day + 'T00:00:00');
+      return `<div class="spark-col" title="${h.day}: ${h.visitors} visitor(s)">
+        <div class="spark-n">${h.visitors || ''}</div>
+        <div class="spark-bar ${isToday ? 'today' : ''}" style="height:${Math.round((h.visitors / peak) * 62)}px"></div>
+        <div class="spark-d">${dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+      </div>`;
+    }).join('');
+
+    const ppl = d.people || [];
+    document.getElementById('livePeople').innerHTML = ppl.length
+      ? ppl.map(p => `<div class="live-row">
+          <span class="live-pip ${p.online ? 'on' : ''}"></span>
+          <span class="live-name">${esc(p.name)}</span>
+          ${p.plan ? `<span class="live-badge">${esc(p.plan)}</span>` : ''}
+          <span class="live-badge ${p.state === 'playing' ? 'playing' : ''}">${
+            p.state === 'playing' ? `playing · ${p.sheets} sheet${p.sheets === 1 ? '' : 's'}`
+            : p.state === 'setting-up' ? 'setting up' : 'browsing'}</span>
+          <span class="live-when">${p.online ? 'now' : agoText(p.lastSeen)}</span>
+        </div>`).join('')
+      : '<div style="font-size:13px;color:var(--on-sv)">Nobody has opened the site in the last 30 minutes.</div>';
+  } catch(e) {}
+}
+
+/* ══ PARSE ERRORS ══════════════════════════════════════════════════════════
+   Grouped by day, newest first, filterable, and clearable — one report, a
+   whole day, or everything. They pile up fast and are only ever useful while
+   the sheet that caused them is still being chased. */
+let peAll = [], peFilter = 'all', peDay = '';
+
+function peDayKey(ms) { return new Date(ms).toISOString().slice(0, 10); }
+function peDayLabel(key) {
+  const today = peDayKey(Date.now());
+  const yest = peDayKey(Date.now() - 86400000);
+  if (key === today) return 'Today';
+  if (key === yest) return 'Yesterday';
+  return new Date(key + 'T00:00:00').toLocaleDateString('en-IN',
+    { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 async function loadParseErrors() {
   const el = document.getElementById('parseErrorsList');
   try {
     const r = await fetch(`/api/payment?password=${encodeURIComponent(adminPwd)}`);
     if (!r.ok) return;
     const logs = await r.json();
-    if (!logs.parseErrors || !logs.parseErrors.length) {
-      el.innerHTML = '<div style="font-size:13px;color:var(--on-sv)">No parse errors reported yet ✓</div>';
-      return;
-    }
-    el.innerHTML = logs.parseErrors.map(log => {
-      const d = new Date(log.reportedAt);
-      return `<div style="background:#FFF3E0;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px">
-        <div style="font-weight:700;color:#E65100;margin-bottom:4px">${d.toLocaleString('en-IN')} — ${log.errors.length} ticket(s)</div>
-        ${log.errors.map(e=>`<div style="color:#5D4037">• Sheet <b>${esc(e.sheetName)}</b> Ticket <b>#${esc(e.ticketId)}</b> — ${e.rows}/3 rows, ${e.count}/15 numbers | Found: ${e.nums.sort((a,b)=>a-b).join(', ')}</div>`).join('')}
-      </div>`;
-    }).join('');
+    peAll = logs.parseErrors || [];
+    renderParseErrors();
   } catch(e) {
     el.innerHTML = '<div style="font-size:13px;color:var(--error)">Could not load</div>';
   }
+}
+
+function onPeFilter() {
+  peFilter = document.getElementById('peRange').value;
+  const dayWrap = document.getElementById('peDayPick');
+  if (dayWrap) dayWrap.style.display = peFilter === 'day' ? '' : 'none';
+  renderParseErrors();
+}
+function onPeDay() {
+  peDay = document.getElementById('peDayPick').value;
+  renderParseErrors();
+}
+
+function peInRange(log) {
+  const t = log.reportedAt || 0;
+  const now = Date.now();
+  if (peFilter === 'today') return peDayKey(t) === peDayKey(now);
+  if (peFilter === '7')     return t >= now - 7 * 86400000;
+  if (peFilter === '30')    return t >= now - 30 * 86400000;
+  if (peFilter === 'day')   return peDay ? peDayKey(t) === peDay : true;
+  return true;
+}
+
+function renderParseErrors() {
+  const el = document.getElementById('parseErrorsList');
+  const shown = peAll.filter(peInRange);
+
+  const toolbar = `
+    <div class="pe-toolbar">
+      <select id="peRange" onchange="onPeFilter()">
+        <option value="all"${peFilter==='all'?' selected':''}>All time</option>
+        <option value="today"${peFilter==='today'?' selected':''}>Today</option>
+        <option value="7"${peFilter==='7'?' selected':''}>Last 7 days</option>
+        <option value="30"${peFilter==='30'?' selected':''}>Last 30 days</option>
+        <option value="day"${peFilter==='day'?' selected':''}>Pick a date…</option>
+      </select>
+      <input type="date" id="peDayPick" value="${esc(peDay)}"
+        style="display:${peFilter==='day'?'':'none'}" onchange="onPeDay()">
+      <span class="pe-spacer"></span>
+      ${peAll.length ? `<button class="btn-danger" onclick="clearParseErrors()">Delete all (${peAll.length})</button>` : ''}
+    </div>`;
+
+  if (!peAll.length) {
+    el.innerHTML = toolbar + '<div style="font-size:13px;color:var(--on-sv)">No parse errors reported ✓</div>';
+    return;
+  }
+  if (!shown.length) {
+    el.innerHTML = toolbar + '<div style="font-size:13px;color:var(--on-sv)">Nothing reported in this range.</div>';
+    return;
+  }
+
+  // group by day, newest day first
+  const byDay = {};
+  shown.forEach(l => { (byDay[peDayKey(l.reportedAt)] = byDay[peDayKey(l.reportedAt)] || []).push(l); });
+  const days = Object.keys(byDay).sort().reverse();
+
+  el.innerHTML = toolbar + days.map(day => {
+    const items = byDay[day].sort((a, b) => b.reportedAt - a.reportedAt);
+    const tickets = items.reduce((n, l) => n + (l.errors ? l.errors.length : 0), 0);
+    return `<div class="pe-day">
+      <div class="pe-day-hdr">
+        <span class="pe-day-title">${peDayLabel(day)}</span>
+        <span class="pe-day-count">${tickets} ticket${tickets===1?'':'s'}</span>
+        <button class="pe-day-clear" onclick="clearParseErrors('${day}')">Clear this day</button>
+      </div>
+      ${items.map(l => `
+        <div class="pe-entry">
+          <div class="pe-entry-top">
+            <span class="pe-time">${new Date(l.reportedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
+            <span class="pe-day-count">${l.errors.length} ticket${l.errors.length===1?'':'s'}</span>
+            <button class="pe-del" title="Delete this report" onclick="deleteParseError('${esc(l.id)}')">&times;</button>
+          </div>
+          ${l.errors.map(e => `<div class="pe-line">• Sheet <b>${esc(e.sheetName)}</b> Ticket <b>#${esc(e.ticketId)}</b> — ${
+            esc(e.reason || `${e.rows}/3 rows, ${e.count}/15 numbers`)
+          }${e.nums && e.nums.length ? ` | Found: ${e.nums.slice().sort((a,b)=>a-b).join(', ')}` : ''}</div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function postParseErrorAction(body) {
+  try {
+    const r = await fetch('/api/payment', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, password: adminPwd })
+    });
+    if (!r.ok) { alert('Could not delete — try again.'); return false; }
+    return true;
+  } catch(e) { alert('Network error.'); return false; }
+}
+
+async function clearParseErrors(day) {
+  const what = day ? `all reports from ${peDayLabel(day)}` : `all ${peAll.length} report(s)`;
+  if (!confirm(`Delete ${what}? This cannot be undone.`)) return;
+  if (await postParseErrorAction({ action: 'clear-errors', day: day || undefined })) loadParseErrors();
+}
+
+async function deleteParseError(id) {
+  if (await postParseErrorAction({ action: 'delete-error', id })) loadParseErrors();
 }
 
 /* ── HELPERS ── */

@@ -1325,6 +1325,56 @@ function isSheetHot(sheet){
 const $=id=>document.getElementById(id);
 function isDesktop(){return window.innerWidth>=900;}
 
+/* ══ PRESENCE ══
+   A 60-second heartbeat so the host can see who is on the site and who is
+   mid-game. It sends a device id (the same one already used for subscription
+   device limits) and nothing else identifying — no IP, no third-party script.
+   The full check-in runs once a day and whenever what the player is doing
+   changes; every other tick is a single cheap ping. It pauses while the tab
+   is hidden, and every failure is swallowed — analytics must never be able to
+   interrupt a game. */
+let _presenceTimer=null,_presenceState='idle';
+
+function presenceState(){
+  if(!$('game')?.classList.contains('off')) return 'playing';
+  if(!$('setup')?.classList.contains('off')) return 'setting-up';
+  return 'idle';
+}
+function _registeredToday(){
+  try{ return localStorage.getItem('tb_seen_day')===new Date().toDateString(); }
+  catch(e){ return false; }
+}
+async function sendPresence(full){
+  try{
+    const state=presenceState();
+    if(!full && state!==_presenceState) full=true;   // state changed -> refresh meta
+    if(!full && !_registeredToday()) full=true;      // first visit of the day
+    _presenceState=state;
+    await fetch('/api/analytics',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      keepalive:true,
+      body:JSON.stringify({
+        deviceId:getDeviceId(),
+        state,
+        full:!!full,
+        playerName:gameSession?.playerName||'',
+        plan:gameSession?.plan||'',
+        sheets:sheets.length
+      })
+    });
+    if(full){ try{ localStorage.setItem('tb_seen_day',new Date().toDateString()); }catch(e){} }
+  }catch(e){}
+}
+function startPresence(){
+  stopPresence();
+  sendPresence(true);
+  _presenceTimer=setInterval(()=>{ if(!document.hidden) sendPresence(false); },60000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) sendPresence(false); });
+}
+function stopPresence(){
+  if(_presenceTimer){clearInterval(_presenceTimer);_presenceTimer=null;}
+}
+
 /* ══ INIT ══ */
 function init(){
   loadSaved();
@@ -1349,6 +1399,7 @@ function init(){
   }
   // Show install prompt after splash clears
   setTimeout(maybeShowInstall, 2700);
+  startPresence();
 }
 
 function isRunningStandalone(){
@@ -1449,6 +1500,7 @@ function startGame(){
   curIdx=0;
   $('game').classList.remove('off');
   renderAll();
+  sendPresence(true);
 }
 function showGame(){
   hideAll();

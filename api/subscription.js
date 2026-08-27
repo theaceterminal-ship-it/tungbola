@@ -1,43 +1,7 @@
 const { Redis } = require('@upstash/redis');
 const { secureHeaders, rateLimit, checkPassword } = require('./_security');
+const { genSubKey, genReferralCode, addMonths, monthsOf, subLabel, pickUnique } = require('./_subs');
 const kv = Redis.fromEnv();
-
-function genSubKey() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const part = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `SUB-${part()}-${part()}-${part()}`;
-}
-
-/* Flexible duration: 1..36 months, calendar-accurate. Clamps the day-of-month
-   so e.g. Jan 31 + 1 month lands on Feb 28, not overflows into March. */
-function addMonths(fromMs, months) {
-  const d = new Date(fromMs);
-  const day = d.getDate();
-  d.setDate(1);                       // avoid overflow while changing month
-  d.setMonth(d.getMonth() + months);
-  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  d.setDate(Math.min(day, lastDay));
-  return d.getTime();
-}
-function planLabel(months) {
-  if (!months || months < 1) return 'Custom';
-  if (months % 12 === 0) return months === 12 ? '1 Year' : `${months / 12} Years`;
-  return months === 1 ? '1 Month' : `${months} Months`;
-}
-/* Backward compatibility: subscriptions created before this update only have
-   plan:'monthly'|'yearly' and no `months` field. */
-function monthsOf(sub) {
-  if (sub.days) return 0;             // a day-based duration isn't a month count
-  if (sub.months) return sub.months;
-  return sub.plan === 'yearly' ? 12 : 1;
-}
-/* The label shown everywhere (admin list, key card, player status bar).
-   A short day-based plan (currently just "1 Week") keeps its own wording
-   instead of being forced into a fractional month.                        */
-function subLabel(sub) {
-  if (sub.days) return sub.days === 7 ? '1 Week' : `${sub.days} Day${sub.days === 1 ? '' : 's'}`;
-  return planLabel(monthsOf(sub));
-}
 
 module.exports = async function(req, res) {
   secureHeaders(res);
@@ -88,13 +52,29 @@ module.exports = async function(req, res) {
       await kv.set('tb:subscriptions', list);
     }
 
+    /* Lazy backfill: a subscriber created before referral codes existed
+       gets one on their first verify after this update, instead of needing
+       a migration script. */
+    if (!sub.referralCode) {
+      const code = await pickUnique(kv, 'tb:ref:', () => genReferralCode(sub.playerName));
+      sub.referralCode = code;
+      if (sub.walletCredit == null) sub.walletCredit = 0;
+      await kv.set(`tb:ref:${code}`, clean);   // code -> subscription key, for referral lookups
+      await kv.set(`tb:sub:${clean}`, sub);
+      const list = await kv.get('tb:subscriptions') || [];
+      const li = list.findIndex(s => s.key === clean);
+      if (li >= 0) { list[li].referralCode = code; await kv.set('tb:subscriptions', list); }
+    }
+
     const daysLeft = Math.ceil((sub.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
     return res.json({
       valid: true, playerName: sub.playerName,
       months: monthsOf(sub), plan: subLabel(sub),  // `plan` kept as a ready-to-show label
       expiresAt: sub.expiresAt, daysLeft,
       devicesUsed: sub.devices.length, maxDevices: sub.maxDevices,
-      renewalDue: daysLeft <= 2                   // player app can show a polite reminder banner
+      renewalDue: daysLeft <= 2,                  // player app can show a polite reminder banner
+      referralCode: sub.referralCode || null,
+      walletCredit: sub.walletCredit || 0
     });
   }
 
@@ -119,18 +99,19 @@ module.exports = async function(req, res) {
     const dur = Math.max(1, Math.min(36, parseInt(months) || 1));
     const expiresAt = dayCount ? Date.now() + dayCount * 86400000 : addMonths(Date.now(), dur);
 
-    let key, tries = 0;
-    do { key = genSubKey(); tries++; }
-    while (await kv.exists(`tb:sub:${key}`) && tries < 10);
+    const key = await pickUnique(kv, 'tb:sub:', genSubKey);
+    const referralCode = await pickUnique(kv, 'tb:ref:', () => genReferralCode(name));
 
     const subscription = {
       key, playerName: name, phone: cleanPhone,
       maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt,
+      referralCode, walletCredit: 0,
       ...(dayCount ? { days: dayCount } : { months: dur })
     };
 
     const ttlSeconds = Math.ceil((expiresAt - Date.now()) / 1000) + 86400;
     await kv.set(`tb:sub:${key}`, subscription, { ex: ttlSeconds });
+    await kv.set(`tb:ref:${referralCode}`, key, { ex: ttlSeconds });
     const list = await kv.get('tb:subscriptions') || [];
     list.unshift(subscription);
     await kv.set('tb:subscriptions', list.slice(0, 500));

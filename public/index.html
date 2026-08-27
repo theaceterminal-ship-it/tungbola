@@ -678,6 +678,53 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .act-btn:disabled{opacity:.5;cursor:not-allowed}
 .act-error{color:var(--error);font-size:13px;text-align:center;
   padding:4px 0;font-weight:500;display:none;margin-bottom:4px}
+.act-or{display:flex;align-items:center;gap:10px;width:100%;max-width:340px;
+  color:var(--on-surface-variant);font-size:12px;margin:0 0 14px}
+.act-or::before,.act-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
+/* ── BUY / RENEW ── */
+.buy-toggle{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:12px}
+.buy-toggle-btn{flex:1;padding:9px;border:none;background:transparent;border-radius:11px;
+  font-size:13px;font-weight:700;color:var(--on-surface-variant);cursor:pointer;font-family:inherit}
+.buy-toggle-btn.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.buy-plans{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}
+.buy-plan{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;border:2px solid var(--outline);border-radius:14px;cursor:pointer;
+  background:var(--bg);transition:border-color .15s,background .15s}
+.buy-plan.sel{border-color:var(--primary);background:var(--primary-container)}
+.buy-plan-label{font-size:14px;font-weight:700}
+.buy-plan-sub{font-size:11.5px;color:var(--on-surface-variant);margin-top:1px}
+.buy-plan-price{font-size:16px;font-weight:900;color:var(--primary);white-space:nowrap}
+.buy-plan-price small{font-size:10px;font-weight:600;color:var(--on-surface-variant)}
+.buy-pay{margin-top:6px}
+.buy-pay.off{display:none}
+.buy-amount{background:var(--primary-container);border-radius:12px;
+  padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--primary);text-align:center}
+.buy-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin:12px 0}
+.buy-qr-wrap #buyQrContainer canvas,.buy-qr-wrap #buyQrContainer img{
+  border-radius:12px;border:3px solid var(--primary-container);display:block}
+.buy-upi-hint{font-size:12px;color:var(--on-surface-variant);text-align:center}
+.buy-support{text-align:center;margin-top:10px}
+.buy-credit-note{font-size:12px;color:#2E7D32;background:#E8F5E9;border-radius:10px;
+  padding:8px 12px;margin:-2px 0 10px;text-align:center;font-weight:600}
+/* ── WAITING SCREEN (shared by buy/renew) ── */
+#buyWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;gap:0}
+.wait-logo{font-size:56px;margin-bottom:16px}
+.wait-title{font-size:24px;font-weight:900;color:var(--primary);margin-bottom:8px}
+.wait-sub{font-size:14px;color:var(--on-surface-variant);margin-bottom:8px;text-align:center}
+.wait-dots{display:flex;gap:8px;margin:20px 0 24px}
+.wait-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);
+  animation:wdot 1.4s ease-in-out infinite}
+.wait-dot:nth-child(1){animation-delay:0s}
+.wait-dot:nth-child(2){animation-delay:.2s}
+.wait-dot:nth-child(3){animation-delay:.4s}
+@keyframes wdot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1.1);opacity:1}}
+.wait-info{font-size:13px;color:var(--on-surface-variant);margin-bottom:24px;text-align:center;
+  background:#fff;border-radius:12px;padding:10px 16px;max-width:280px}
+.wait-cancel{background:transparent;border:2px solid var(--outline);color:var(--on-surface-variant);
+  border-radius:14px;padding:11px 28px;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit}
 /* ── PARSE WARNING OVERLAY ── */
 #parseWarn{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;
   display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom)}
@@ -710,16 +757,24 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .renew-close{background:transparent;border:none;color:#BCAAA4;font-size:22px;
   line-height:1;cursor:pointer;padding:0 2px;font-family:inherit;flex-shrink:0}
 .renew-close:active{color:#8D6E63}
-.renew-btn{display:block;text-align:center;margin-top:11px;padding:10px;
+.renew-btn{display:block;width:100%;text-align:center;margin-top:11px;padding:10px;
   background:#EF6C00;color:#fff;border-radius:12px;font-size:13.5px;
-  font-weight:700;text-decoration:none}
+  font-weight:700;text-decoration:none;border:none;cursor:pointer;font-family:inherit}
 .renew-btn:active{opacity:.85}
+.renew-wa-link{display:block;text-align:center;margin-top:8px;font-size:12px;
+  color:#8D6E63;text-decoration:none;font-weight:600}
+.renew-wa-link:active{opacity:.7}
 
 /* ── SUBSCRIPTION STATUS BAR ── */
 .sub-status-bar{display:flex;align-items:center;gap:8px;background:#E8F5E9;
   color:#2E7D32;border-radius:16px;padding:10px 16px;font-size:13px;font-weight:600;
   margin-bottom:16px;max-width:290px}
 .sub-status-bar .mir{font-size:18px}
+.referral-chip{display:flex;align-items:center;gap:7px;background:var(--primary-container);
+  color:var(--primary);border:none;border-radius:14px;padding:8px 14px;font-size:12px;
+  font-weight:700;margin-bottom:16px;max-width:290px;cursor:pointer;font-family:inherit}
+.referral-chip.hidden{display:none}
+.referral-chip:active{opacity:.8}
 
 /* ── END GAME BUTTON ── */
 .end-game-wrap{padding:8px 0 4px;display:flex;justify-content:center}
@@ -827,6 +882,10 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     <span class="mir">verified_user</span>
     <span id="subStatusTxt"></span>
   </div>
+  <button id="referralChip" class="referral-chip hidden" onclick="copyReferralCode()">
+    <span class="mir" style="font-size:15px">redeem</span>
+    <span id="referralChipTxt"></span>
+  </button>
   <!-- Shown only in the last couple of days of a subscription. Friendly, not alarming. -->
   <div id="renewNotice" class="renew-notice hidden">
     <div class="renew-row">
@@ -837,7 +896,8 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
       </div>
       <button class="renew-close" onclick="dismissRenewNotice()" aria-label="Dismiss">&times;</button>
     </div>
-    <a id="renewAction" class="renew-btn" href="#" target="_blank" rel="noopener">Message host to renew</a>
+    <button class="renew-btn" onclick="showActivation('renew')">Renew now →</button>
+    <a id="renewAction" class="renew-wa-link" href="#" target="_blank" rel="noopener">💬 Or message host directly</a>
   </div>
   <!-- shown when no session -->
   <button class="btn-fill" id="btnGetStarted" onclick="showActivation()">
@@ -874,6 +934,71 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
     <div class="act-error" id="subError"></div>
     <button class="act-btn" onclick="verifySubscription()">Activate Subscription →</button>
   </div>
+
+  <div class="act-or">or</div>
+
+  <!-- Buy / Renew -->
+  <div class="act-card">
+    <div class="act-card-head">
+      <span class="act-card-icon">🛒</span>
+      <div>
+        <div class="act-card-title">Buy or Renew</div>
+        <div class="act-card-desc" id="buyDesc">Pick a plan, pay, and you're in — no key needed</div>
+      </div>
+    </div>
+
+    <div class="buy-toggle" id="buyToggle">
+      <button type="button" class="buy-toggle-btn active" data-mode="new" onclick="setBuyMode('new')">New player</button>
+      <button type="button" class="buy-toggle-btn" data-mode="renew" onclick="setBuyMode('renew')">Renew mine</button>
+    </div>
+
+    <div id="buyNewFields">
+      <input type="text" class="act-input" id="buyName" placeholder="Your name" maxlength="50">
+      <input type="tel" class="act-input" id="buyPhone" placeholder="Phone (for renewal reminders)" maxlength="15" style="margin-top:8px">
+      <input type="text" class="act-input" id="buyReferral" placeholder="Referral code (optional)" maxlength="20"
+        style="margin-top:8px" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div id="buyRenewFields" style="display:none">
+      <input type="text" class="act-input subkey" id="buyRenewKey"
+        placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+    </div>
+
+    <div class="buy-plans" id="buyPlans"></div>
+
+    <div id="buyPaySection" class="buy-pay off">
+      <div class="buy-amount" id="buyAmount"></div>
+      <div class="buy-qr-wrap">
+        <div id="buyQrContainer"></div>
+        <div class="buy-upi-hint" id="buyUpiHint"></div>
+      </div>
+      <div class="act-error" id="buyError"></div>
+      <button class="act-btn" id="buySubmitBtn" onclick="submitPurchase()">I've Paid — Request Approval →</button>
+      <div class="buy-support" id="buySupport" style="display:none">
+        <a id="buySupportLink" href="#" target="_blank" rel="noopener" class="dp-support-link">
+          💬 Need help? Contact on WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BUY/RENEW WAITING ══ -->
+<div id="buyWaiting" class="off">
+  <div class="wait-logo">⏳</div>
+  <div class="wait-title">Waiting for Approval</div>
+  <div class="wait-sub">Admin is confirming your payment</div>
+  <div class="wait-dots">
+    <div class="wait-dot"></div>
+    <div class="wait-dot"></div>
+    <div class="wait-dot"></div>
+  </div>
+  <div class="wait-info" id="buyWaitInfo"></div>
+  <button class="wait-cancel" onclick="cancelPurchase()">Cancel</button>
+  <a id="buyWaitSupportLink" href="#" target="_blank" rel="noopener"
+    class="dp-support-link" style="margin-top:14px;display:none">
+    💬 Taking too long? Contact on WhatsApp
+  </a>
 </div>
 
 <!-- ══ PARSE WARNING OVERLAY ══ -->
@@ -1194,7 +1319,7 @@ let claimed={};
 let mTab='play',dtTab='play';
 let currentWin=null;
 let redoStack=[],dtGroupStart=0,lpTimer=null;
-let appConfig={upiId:'',whatsappNumber:''};
+let appConfig={upiId:'',whatsappNumber:'',pricingTiers:[]};
 let gameSession=null;
 let subscriptionKey=null;
 let deferredInstallPrompt=null;
@@ -1488,7 +1613,7 @@ function buildBalls(){
 
 /* ══ SCREEN TRANSITIONS ══ */
 function hideAll(){
-  ['welcome','game','activation','setup'].forEach(id=>$( id)?.classList.add('off'));
+  ['welcome','game','activation','setup','buyWaiting'].forEach(id=>$( id)?.classList.add('off'));
 }
 function showSetup(){
   hideAll();
@@ -1508,11 +1633,13 @@ function showGame(){
   $('game').classList.remove('off');
   renderAll();
 }
-function showActivation(){
+function showActivation(startMode){
   hideAll();
   $('activation').classList.remove('off');
   const si=$('subKeyInput');if(si) si.value='';
   const se=$('subError');if(se) se.style.display='none';
+  resetBuyForm();
+  setBuyMode(startMode==='renew'?'renew':'new');
 }
 
 /* An upload can fail for reasons the user can actually act on. The common one
@@ -1539,6 +1666,30 @@ function loadErrorMessage(problems,errs){
 }
 
 /* ══ SUBSCRIPTION ══ */
+/* Shared by "enter a key" and by a self-serve buy/renew once it's approved —
+   both end the same way: verify the key, build gameSession, land on welcome. */
+async function activateWithKey(key,welcomeMsg){
+  const r=await fetch('/api/subscription',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'verify',key,deviceId:getDeviceId()})
+  });
+  const data=await r.json();
+  if(!r.ok) return {ok:false,error:data.error||'Verification failed'};
+  subscriptionKey=key;
+  localStorage.setItem('tb_sub',JSON.stringify({key}));
+  gameSession={type:'subscription',key,playerName:data.playerName,
+    plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft,
+    referralCode:data.referralCode||null,walletCredit:data.walletCredit||0};
+  localStorage.setItem('tb_pay',JSON.stringify(gameSession));
+  updateSubStatusBar();
+  updateRenewNotice();
+  updateWelcomeButtons();
+  hideAll();
+  $('welcome').classList.remove('off');
+  toast(welcomeMsg||`Welcome, ${data.playerName}! Now load your ticket sheets.`);
+  return {ok:true,data};
+}
+
 async function verifySubscription(){
   const key=($('subKeyInput').value||'').trim().toUpperCase();
   const errEl=$('subError');
@@ -1547,33 +1698,184 @@ async function verifySubscription(){
   if(!key||key.length<10){errEl.textContent='Enter a valid subscription key';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Verifying…';
   try{
-    const r=await fetch('/api/subscription',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'verify',key,deviceId:getDeviceId()})
-    });
-    const data=await r.json();
-    if(!r.ok){
-      errEl.textContent=data.error||'Verification failed';
+    const res=await activateWithKey(key);
+    if(!res.ok){
+      errEl.textContent=res.error;
       errEl.style.display='block';
       btn.disabled=false;btn.textContent='Activate Subscription →';
       return;
     }
-    subscriptionKey=key;
-    localStorage.setItem('tb_sub',JSON.stringify({key}));
-    gameSession={type:'subscription',key,playerName:data.playerName,
-      plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
-    localStorage.setItem('tb_pay',JSON.stringify(gameSession));
-    updateSubStatusBar();
-    updateRenewNotice();
-    updateWelcomeButtons();
-    hideAll();
-    $('welcome').classList.remove('off');
-    toast(`Welcome, ${data.playerName}! Now load your ticket sheets.`);
   }catch(e){
     errEl.textContent='Network error. Check connection.';
     errEl.style.display='block';
     btn.disabled=false;btn.textContent='Activate Subscription →';
   }
+}
+
+/* ══ BUY / RENEW (self-serve) ══
+   Payment verification stays manual — the admin still confirms the UPI
+   payment landed — but the typing doesn't: a plan is picked, a request is
+   created server-side (which is also what computes the authoritative price,
+   wallet credit included, before the QR is ever drawn), and once the admin
+   approves, this device activates automatically. No key gets hand-typed or
+   copy-pasted by anyone. */
+let buyMode='new', buySelectedPlan=null, buyReqId=null, buyPollTimer=null;
+
+function resetBuyForm(){
+  stopBuyPolling();
+  if(buyReqId){ cancelPurchase(true); }
+  buyReqId=null; buySelectedPlan=null;
+  const n=$('buyName');if(n) n.value='';
+  const p=$('buyPhone');if(p) p.value='';
+  const rf=$('buyReferral');if(rf) rf.value='';
+  const rk=$('buyRenewKey');if(rk) rk.value='';
+  const err=$('buyError');if(err) err.style.display='none';
+  $('buyPaySection').classList.add('off');
+}
+
+function setBuyMode(mode){
+  buyMode=mode;
+  document.querySelectorAll('.buy-toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  $('buyNewFields').style.display=mode==='new'?'':'none';
+  $('buyRenewFields').style.display=mode==='renew'?'':'none';
+  if(mode==='renew'&&gameSession?.type==='subscription'&&$('buyRenewKey'))
+    $('buyRenewKey').value=gameSession.key;
+  buySelectedPlan=null;
+  $('buyPaySection').classList.add('off');
+  renderBuyPlans();
+}
+
+function renderBuyPlans(){
+  const el=$('buyPlans');if(!el) return;
+  const tiers=appConfig.pricingTiers||[];
+  if(!tiers.length){el.innerHTML='<div class="act-error" style="display:block">No plans configured yet — contact admin</div>';return;}
+  el.innerHTML=tiers.map(t=>{
+    const dur=t.months===12?'1 Year':t.months===1?'1 Month':`${t.months} Months`;
+    return `<div class="buy-plan${buySelectedPlan===t.id?' sel':''}" data-plan="${t.id}" onclick="selectPlan('${t.id}')">
+      <div>
+        <div class="buy-plan-label">${esc(t.label)}</div>
+        <div class="buy-plan-sub">${dur} · ${t.maxDevices} device${t.maxDevices>1?'s':''}</div>
+      </div>
+      <div class="buy-plan-price">₹${t.price}<br><small>/ ${t.months===1?'month':dur.toLowerCase()}</small></div>
+    </div>`;
+  }).join('');
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function selectPlan(planId){
+  const errEl=$('buyError');errEl.style.display='none';
+
+  if(buyMode==='new'){
+    const name=($('buyName').value||'').trim();
+    if(!name){errEl.textContent='Enter your name first';errEl.style.display='block';return;}
+  }else{
+    const key=($('buyRenewKey').value||'').trim();
+    if(!key||key.length<10){errEl.textContent='Enter your subscription key first';errEl.style.display='block';return;}
+  }
+
+  document.querySelectorAll('.buy-plan').forEach(c=>c.classList.toggle('sel',c.dataset.plan===planId));
+  buySelectedPlan=planId;
+  $('buyPaySection').classList.add('off');
+
+  // cancel any previous pending request for this session before making a new one
+  if(buyReqId) await cancelPurchase(true);
+
+  const payload={action:'request',type:buyMode,planId,
+    playerName:($('buyName').value||'').trim(),
+    phone:($('buyPhone').value||'').trim(),
+    referralCode:($('buyReferral').value||'').trim()||undefined,
+    existingKey:buyMode==='renew'?($('buyRenewKey').value||'').trim():undefined};
+
+  try{
+    const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await r.json();
+    if(!r.ok){errEl.textContent=data.error||'Could not start this request';errEl.style.display='block';buySelectedPlan=null;renderBuyPlans();return;}
+    buyReqId=data.reqId;
+    const tier=(appConfig.pricingTiers||[]).find(t=>t.id===planId);
+    $('buyAmount').innerHTML=data.credit>0
+      ? `Pay <b>₹${data.amount}</b> <span style="opacity:.7">(₹${tier?tier.price:''} − ₹${data.credit} credit)</span>`
+      : `Pay <b>₹${data.amount}</b>`;
+    drawBuyQR(data.amount);
+    $('buyPaySection').classList.remove('off');
+  }catch(e){
+    errEl.textContent='Network error. Check connection.';errEl.style.display='block';
+  }
+}
+
+function drawBuyQR(amount){
+  const container=$('buyQrContainer');const hint=$('buyUpiHint');
+  container.innerHTML='';
+  const upiId=appConfig.upiId||'';
+  if(!upiId){hint.textContent='UPI not configured – contact admin';return;}
+  const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Subscription`;
+  hint.textContent=`Pay ₹${amount} to ${upiId}`;
+  try{
+    new QRCode(container,{text:upiStr,width:180,height:180,
+      colorDark:'#1C1B1F',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});
+  }catch(ex){
+    hint.textContent=`Pay ₹${amount} to UPI: ${upiId}`;
+  }
+  const wa=appConfig.whatsappNumber||'';
+  const waUrl=wa?`https://wa.me/${wa}`:'#';
+  const sup=$('buySupport'),lnk=$('buySupportLink');
+  if(sup&&lnk){sup.style.display=wa?'':'none';lnk.href=waUrl;}
+  const wSup=$('buyWaitSupportLink');
+  if(wSup){wSup.style.display=wa?'':'none';wSup.href=waUrl;}
+}
+
+async function submitPurchase(){
+  if(!buyReqId){$('buyError').textContent='Pick a plan first';$('buyError').style.display='block';return;}
+  const btn=$('buySubmitBtn');btn.disabled=true;btn.textContent='Submitting…';
+  const name=buyMode==='new'?($('buyName').value||'').trim():(gameSession?.playerName||'there');
+  $('buyWaitInfo').textContent=`${name} · will activate automatically once approved`;
+  hideAll();
+  $('buyWaiting').classList.remove('off');
+  startBuyPolling();
+  btn.disabled=false;btn.textContent="I've Paid — Request Approval →";
+}
+
+function startBuyPolling(){
+  stopBuyPolling();
+  buyPollTimer=setInterval(pollBuyRequest,4000);
+  pollBuyRequest();
+}
+function stopBuyPolling(){
+  if(buyPollTimer){clearInterval(buyPollTimer);buyPollTimer=null;}
+}
+async function pollBuyRequest(){
+  if(!buyReqId) return;
+  try{
+    const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'check',reqId:buyReqId})});
+    if(r.status===404){stopBuyPolling();buyReqId=null;toast('Request expired. Please try again.');showActivation(buyMode);return;}
+    const data=await r.json();
+    if(data.status==='approved'&&data.key){
+      stopBuyPolling();
+      const wasRenew=buyMode==='renew';
+      buyReqId=null;
+      const res=await activateWithKey(data.key,wasRenew?'Renewed! Your subscription is active again.':'Payment confirmed — welcome!');
+      if(!res.ok) toast('Approved, but activation failed — try entering your key manually.');
+    }else if(data.status==='rejected'){
+      stopBuyPolling();buyReqId=null;
+      toast(data.reason||'Payment not confirmed. Please try again.');
+      showActivation(buyMode);
+    }else if(data.status==='expired'||data.status==='cancelled'){
+      stopBuyPolling();buyReqId=null;
+      toast('Request expired. Please try again.');
+      showActivation(buyMode);
+    }
+  }catch(e){}
+}
+
+async function cancelPurchase(silent){
+  const id=buyReqId;
+  stopBuyPolling();
+  buyReqId=null;
+  if(id){
+    try{ await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'cancel',reqId:id})}); }catch(e){}
+  }
+  if(!silent) showActivation(buyMode);
 }
 
 async function silentVerifySubscription(){
@@ -1596,7 +1898,8 @@ async function silentVerifySubscription(){
     }
     const data=await r.json();
     gameSession={type:'subscription',key:subscriptionKey,playerName:data.playerName,
-      plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft};
+      plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft,
+      referralCode:data.referralCode||null,walletCredit:data.walletCredit||0};
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
     updateSubStatusBar();
     updateRenewNotice();
@@ -1651,6 +1954,7 @@ function updateRenewNotice(){
     title=`${hi}your subscription ends in ${daysLeft} days`;
     sub=`It expires on ${when}. Whenever it suits you, a quick renewal keeps everything running without interruption.`;
   }
+  if(gameSession.walletCredit>0) sub+=` You have ₹${gameSession.walletCredit} credit ready to apply.`;
   $('renewTitle').textContent=title;
   $('renewSub').textContent=sub;
 
@@ -1684,6 +1988,24 @@ function updateSubStatusBar(){
   }else{
     bar.classList.add('hidden');
   }
+  updateReferralChip();
+}
+
+function updateReferralChip(){
+  const chip=$('referralChip');
+  if(!chip) return;
+  if(gameSession?.type==='subscription'&&gameSession.referralCode){
+    const credit=gameSession.walletCredit>0?` · ₹${gameSession.walletCredit} credit`:'';
+    $('referralChipTxt').textContent=`Refer a friend: ${gameSession.referralCode}${credit}`;
+    chip.classList.remove('hidden');
+  }else{
+    chip.classList.add('hidden');
+  }
+}
+function copyReferralCode(){
+  if(!gameSession?.referralCode) return;
+  navigator.clipboard?.writeText(gameSession.referralCode).catch(()=>{});
+  toast(`Copied "${gameSession.referralCode}" — share it, and you'll get ₹100 credit when they subscribe!`);
 }
 
 /* ══ END GAME ══ */

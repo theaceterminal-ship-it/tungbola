@@ -838,29 +838,50 @@
     /* A label's number is just as often its OWN separate text item —
        "Sheet", "No.", "17" as three distinct show-text ops, e.g. when a
        footer stamp is laid down by different software than the ticket
-       grid — not only glued into one string like "Sheet-777". Reserve any
-       bare 1-2 digit numeral sitting immediately beside a label-word
-       anchor (same text line, or stacked tight above/below it), using the
-       identical adjacency test findSheetLabels() itself uses below, so it
-       is protected here too instead of only after it has already been
-       swallowed by the ticket-number pool.                               */
+       grid — not only glued into one string like "Sheet-777". A numeral
+       sitting right beside a label-word anchor is a candidate — but
+       proximity alone isn't enough to trust: a label placed near the top
+       of a sheet can easily sit as close to row 1's real ticket numbers as
+       to its own number. The tie-breaker is the number grid every ticket
+       column already sits on (built here from ALL numeric tokens, before
+       anything is excluded) — a genuine ticket cell is always ON that
+       grid, so only an OFF-grid candidate is trusted as the label's own
+       number. That is the same invariant buildXGrid/onGrid already police
+       everywhere else in this file, just applied one step earlier.       */
+    var prelimNums = [];
+    for (var pi = 0; pi < tokens.length; pi++) {
+      if (numValue(tokens[pi].t) !== null) prelimNums.push(tokens[pi]);
+    }
+    var prelimGrid = buildXGrid(prelimNums);
+
     for (var ai = 0; ai < anchorToks.length; ai++) {
       var an = anchorToks[ai];
-      // horizontal neighbor sharing the anchor's own text line ("Sheet No. 17")
+      /* An anchor's own "line thickness" — the dimension a same-line neighbor
+         must overlap — is its HEIGHT for normal text but its WIDTH for text
+         rotated 90° (tokenize() already tracks this via .vert: a vertical
+         run's on-screen height is its text LENGTH, not its font size, so
+         using .h here for a rotated "Sheet" would treat its entire run length
+         as "one line" and reach clean across unrelated ticket rows).        */
+      var anThick = an.vert ? an.w : an.h;
       var lineReach = Math.max(an.w, an.h) * 1.4;
-      // vertical neighbor stacked immediately above/below ("Sheet" / "No." / "17"
-      // as separate lines) — kept tight (~1.6 line heights) so it cannot reach
-      // into an unrelated ticket row further down the page.
-      var stackReach = an.h * 1.6;
+      var stackReach = anThick * 1.6;
       for (var ti2 = 0; ti2 < tokens.length; ti2++) {
         var cand = tokens[ti2];
         if (cand.item == null || (reservedItems && reservedItems[cand.item])) continue;
         if (numValue(cand.t) === null) continue;
+        if (onGrid(prelimGrid, cand.cx)) continue;   // sits on a real ticket column — never a label number
         var dy = dist1d(cand.cy, an.y0, an.y1), dx = dist1d(cand.cx, an.x0, an.x1);
         var oX = Math.min(cand.x1, an.x1) - Math.max(cand.x0, an.x0);
         var oY = Math.min(cand.y1, an.y1) - Math.max(cand.y0, an.y0);
-        var sameLine = oY > Math.min(cand.h, an.h) * 0.5 && dx <= lineReach;
-        var stacked = oX > Math.min(cand.w, an.w) * 0.5 && dy <= stackReach;
+        var sameLine, stacked;
+        if (an.vert) {
+          // reading direction is Y: "same line" = shares the anchor's X column
+          sameLine = oX > Math.min(cand.w, anThick) * 0.5 && dy <= lineReach;
+          stacked  = oY > Math.min(cand.h, anThick) * 0.5 && dx <= stackReach;
+        } else {
+          sameLine = oY > Math.min(cand.h, anThick) * 0.5 && dx <= lineReach;
+          stacked  = oX > Math.min(cand.w, anThick) * 0.5 && dy <= stackReach;
+        }
         if (sameLine || stacked) (reservedItems || (reservedItems = {}))[cand.item] = 1;
       }
     }

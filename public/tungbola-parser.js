@@ -827,11 +827,41 @@
        cell. So any raw item carrying a label word is off-limits entirely —
        this is what stops a small sheet number from being scooped up as a
        ticket number and then vanishing from the label search once consumed. */
-    var reservedItems = null;
+    var reservedItems = null, anchorToks = [];
     for (var ri = 0; ri < tokens.length; ri++) {
       if (tokens[ri].item == null) continue;
       if (LABEL_WORD.test(tokens[ri].t.replace(/[^A-Za-z]/g, ''))) {
         (reservedItems || (reservedItems = {}))[tokens[ri].item] = 1;
+        anchorToks.push(tokens[ri]);
+      }
+    }
+    /* A label's number is just as often its OWN separate text item —
+       "Sheet", "No.", "17" as three distinct show-text ops, e.g. when a
+       footer stamp is laid down by different software than the ticket
+       grid — not only glued into one string like "Sheet-777". Reserve any
+       bare 1-2 digit numeral sitting immediately beside a label-word
+       anchor (same text line, or stacked tight above/below it), using the
+       identical adjacency test findSheetLabels() itself uses below, so it
+       is protected here too instead of only after it has already been
+       swallowed by the ticket-number pool.                               */
+    for (var ai = 0; ai < anchorToks.length; ai++) {
+      var an = anchorToks[ai];
+      // horizontal neighbor sharing the anchor's own text line ("Sheet No. 17")
+      var lineReach = Math.max(an.w, an.h) * 1.4;
+      // vertical neighbor stacked immediately above/below ("Sheet" / "No." / "17"
+      // as separate lines) — kept tight (~1.6 line heights) so it cannot reach
+      // into an unrelated ticket row further down the page.
+      var stackReach = an.h * 1.6;
+      for (var ti2 = 0; ti2 < tokens.length; ti2++) {
+        var cand = tokens[ti2];
+        if (cand.item == null || (reservedItems && reservedItems[cand.item])) continue;
+        if (numValue(cand.t) === null) continue;
+        var dy = dist1d(cand.cy, an.y0, an.y1), dx = dist1d(cand.cx, an.x0, an.x1);
+        var oX = Math.min(cand.x1, an.x1) - Math.max(cand.x0, an.x0);
+        var oY = Math.min(cand.y1, an.y1) - Math.max(cand.y0, an.y0);
+        var sameLine = oY > Math.min(cand.h, an.h) * 0.5 && dx <= lineReach;
+        var stacked = oX > Math.min(cand.w, an.w) * 0.5 && dy <= stackReach;
+        if (sameLine || stacked) (reservedItems || (reservedItems = {}))[cand.item] = 1;
       }
     }
 

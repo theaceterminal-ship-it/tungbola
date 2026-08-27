@@ -678,9 +678,15 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .act-btn:disabled{opacity:.5;cursor:not-allowed}
 .act-error{color:var(--error);font-size:13px;text-align:center;
   padding:4px 0;font-weight:500;display:none;margin-bottom:4px}
-.act-or{display:flex;align-items:center;gap:10px;width:100%;max-width:340px;
-  color:var(--on-surface-variant);font-size:12px;margin:0 0 14px}
-.act-or::before,.act-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
+/* Deliberately small and quiet — this is the exception path (a second
+   device on an already-paid subscription), not something a new player
+   should be drawn to before Buy/Renew. */
+.act-tucked-link{background:transparent;border:none;color:var(--on-surface-variant);
+  font-size:12.5px;font-weight:600;text-decoration:underline;cursor:pointer;
+  font-family:inherit;margin-top:6px;padding:8px}
+.act-tucked-link:active{opacity:.7}
+.act-tucked-panel{width:100%;max-width:340px;margin-top:4px}
+.act-tucked-panel.off{display:none}
 /* ── BUY / RENEW ── */
 .buy-toggle{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:12px}
 .buy-toggle-btn{flex:1;padding:9px;border:none;background:transparent;border-radius:11px;
@@ -919,24 +925,6 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="act-logo">Tungbola</div>
   <div class="act-tagline">Enter your access to start playing</div>
 
-  <!-- Subscription -->
-  <div class="act-card">
-    <div class="act-card-head">
-      <span class="act-card-icon">🎫</span>
-      <div>
-        <div class="act-card-title">Subscription</div>
-        <div class="act-card-desc">Stays active across every game until it expires</div>
-      </div>
-    </div>
-    <input type="text" class="act-input subkey" id="subKeyInput"
-      placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
-      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
-    <div class="act-error" id="subError"></div>
-    <button class="act-btn" onclick="verifySubscription()">Activate Subscription →</button>
-  </div>
-
-  <div class="act-or">or</div>
-
   <!-- Buy / Renew -->
   <div class="act-card">
     <div class="act-card-head">
@@ -980,6 +968,18 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
         </a>
       </div>
     </div>
+  </div>
+
+  <!-- Already subscribed and just adding another device — no payment, just their existing code -->
+  <button class="act-tucked-link" id="deviceLoginToggle" onclick="toggleDeviceLogin()">
+    Already subscribed? Log in another device →
+  </button>
+  <div id="deviceLoginPanel" class="act-tucked-panel off">
+    <input type="text" class="act-input subkey" id="subKeyInput"
+      placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+    <div class="act-error" id="subError"></div>
+    <button class="act-btn" onclick="verifySubscription()">Log In This Device →</button>
   </div>
 </div>
 
@@ -1638,8 +1638,15 @@ function showActivation(startMode){
   $('activation').classList.remove('off');
   const si=$('subKeyInput');if(si) si.value='';
   const se=$('subError');if(se) se.style.display='none';
+  const dp=$('deviceLoginPanel');if(dp) dp.classList.add('off');
   resetBuyForm();
   setBuyMode(startMode==='renew'?'renew':'new');
+}
+
+function toggleDeviceLogin(){
+  const panel=$('deviceLoginPanel');
+  panel.classList.toggle('off');
+  if(!panel.classList.contains('off')) $('subKeyInput').focus();
 }
 
 /* An upload can fail for reasons the user can actually act on. The common one

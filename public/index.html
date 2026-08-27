@@ -2495,7 +2495,6 @@ function showParseWarning(badTickets, onContinue){
       <button class="pw-print-btn" onclick='printBadTicket(${JSON.stringify(b)})'>Print</button>
     </div>`).join('');
   $('parseWarn').classList.remove('off');
-  reportParseErrors(badTickets);
 }
 
 function dismissParseWarn(){
@@ -2526,17 +2525,41 @@ function printBadTicket(b){
   win.document.close();
 }
 
-async function reportParseErrors(badTickets){
+const MAX_REPORT_FILE_BYTES=6*1024*1024;   // matches the server's cap; skip attaching past this
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(String(r.result).split(',')[1]||'');
+    r.onerror=()=>reject(new Error('read failed'));
+    r.readAsDataURL(file);
+  });
+}
+/* One report per FAILING FILE, each carrying the actual PDF/JPG alongside
+   its ticket-level summary — a real file that broke the parser is worth far
+   more than a description of it when it comes to fixing the parser later. */
+async function reportParseErrorsWithFiles(badTickets,sheetFileObj,sheetMethod){
   if(!badTickets.length) return;
-  try{
-    await fetch('/api/payment',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'report',errors:badTickets.map(b=>({
-        sheetName:b.sheetName,ticketId:b.ticketId,rows:b.rows,count:b.count,
-        nums:b.nums,reason:b.reason||'',reportedAt:Date.now()
-      }))})
-    });
-  }catch(e){}
+  const bySheet={};
+  badTickets.forEach(b=>(bySheet[b.sheetName]=bySheet[b.sheetName]||[]).push(b));
+  for(const sheetName of Object.keys(bySheet)){
+    const errors=bySheet[sheetName].map(b=>({
+      sheetName:b.sheetName,ticketId:b.ticketId,rows:b.rows,count:b.count,
+      nums:b.nums,reason:b.reason||''
+    }));
+    const payload={action:'report',errors};
+    const f=sheetFileObj[sheetName];
+    if(f&&f.size<=MAX_REPORT_FILE_BYTES){
+      try{
+        payload.file={name:f.name,data:await fileToBase64(f),method:sheetMethod[sheetName]||''};
+      }catch(e){ /* text-only report still goes out below */ }
+    }
+    try{
+      await fetch('/api/payment',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+    }catch(e){}
+  }
 }
 
 /* ══ FILE UPLOAD ══ */
@@ -2546,7 +2569,9 @@ async function handleUpload(e){
   $('loadingOv').classList.remove('off');
   clearGame();sheets=[];
   let total=0,errs=[],ocrFailed=false;const problems=[];
-  const sheetSource={};   // sheet name -> file it came from, to catch a same-name collision
+  const sheetSource={};   // sheet name -> filename it came from, to catch a same-name collision
+  const sheetFileObj={};  // sheet name -> the actual File, so a bad sheet's report can attach it
+  const sheetMethod={};   // sheet name -> how it was read (pdf-text/pdf-ocr/ocr-image/...)
   const collisions=[];
   for(let fi=0;fi<files.length;fi++){
     const f=files[fi];
@@ -2568,6 +2593,8 @@ async function handleUpload(e){
         if(i>=0&&sheetSource[s.name]&&sheetSource[s.name]!==f.name)
           collisions.push({name:s.name,from:sheetSource[s.name],to:f.name});
         sheetSource[s.name]=f.name;
+        sheetFileObj[s.name]=f;
+        sheetMethod[s.name]=result.method||'';
         if(i>=0)sheets[i]=s;else sheets.push(s);
       });
       total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
@@ -2598,8 +2625,10 @@ async function handleUpload(e){
     toast(`"${c.to}" replaced "${c.from}" — both read as Sheet ${c.name}. Check the sheet numbers.`);
   }
   else if(errs.length) toast(`Loaded ${total} tickets (${errs.length} files failed)`);
-  if(badTickets.length) showParseWarning(badTickets,showSetup);
-  else showSetup();
+  if(badTickets.length){
+    reportParseErrorsWithFiles(badTickets,sheetFileObj,sheetMethod);
+    showParseWarning(badTickets,showSetup);
+  }else showSetup();
 }
 
 /* ══ PDF → TEXT ══ */

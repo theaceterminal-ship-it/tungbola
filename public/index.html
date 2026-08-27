@@ -238,6 +238,12 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .dial-panel{position:fixed;bottom:80px;left:12px;right:12px;background:var(--surface);
   border-radius:24px;padding:18px 16px 16px;
   box-shadow:0 -2px 32px rgba(0,0,0,.18);z-index:50;display:none}
+/* .dt-input-ov is this same "number being keyed in" indicator for desktop —
+   hidden by default here (below 900px this element would otherwise fall
+   back to the browser's plain display:block/position:static and sit visibly
+   in the page flow); the desktop media query below gives it its real fixed,
+   off-screen-until-active layout. */
+.dt-input-ov{display:none}
 .dial-panel.on{display:block}
 .dial-display{text-align:center;margin-bottom:14px}
 .dial-last-txt{font-size:13px;color:var(--on-surface-variant);margin-bottom:4px}
@@ -651,7 +657,6 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .ip-later{background:none;border:none;color:var(--on-surface-variant);
   font-size:14px;font-weight:500;cursor:pointer;padding:8px;
   width:100%;font-family:inherit;opacity:.7}
-  40%{transform:scale(1.5);background:rgba(255,255,255,.85)}}
 
 /* ══ ACTIVATION SCREEN ══ */
 #activation{height:100vh;height:100dvh;overflow-y:auto;

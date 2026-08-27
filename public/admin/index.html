@@ -424,6 +424,7 @@ select.field{cursor:pointer}
             <div class="field-wrap">
               <div class="field-label">Duration</div>
               <div class="duration-presets" id="durationPresets">
+                <button type="button" class="preset-chip" data-m="w" onclick="pickDuration('w')">1 Week</button>
                 <button type="button" class="preset-chip" data-m="1" onclick="pickDuration(1)">1 Month</button>
                 <button type="button" class="preset-chip" data-m="2" onclick="pickDuration(2)">2 Months</button>
                 <button type="button" class="preset-chip" data-m="3" onclick="pickDuration(3)">3 Months</button>
@@ -596,6 +597,7 @@ let searchQuery = '';
 let sortMode = 'expiry';
 let lastSubsList = [];
 let selectedMonths = 12;
+let selectedDays = null;   // set only for the short, day-based "1 Week" plan
 let searchDebounce = null;
 
 if (adminPwd) bootAdmin();
@@ -659,8 +661,14 @@ function toggleForm(bodyId, chevId) {
 
 /* ── DURATION PICKER ── */
 function pickDuration(m) {
-  document.querySelectorAll('.preset-chip').forEach(c => c.classList.toggle('active', Number(c.dataset.m) === m));
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.toggle('active', String(c.dataset.m) === String(m)));
   const custom = document.getElementById('subMonthsCustom');
+  if (m === 'w') {
+    custom.style.display = 'none';
+    selectedDays = 7;
+    return;
+  }
+  selectedDays = null;
   if (m === 0) {
     custom.style.display = '';
     custom.classList.remove('off');
@@ -707,7 +715,8 @@ async function createSubscription() {
   const name = document.getElementById('subName').value.trim();
   const phone = document.getElementById('subPhone').value.trim();
   const devices = parseInt(document.getElementById('subDevices').value) || 3;
-  const months = selectedMonths;
+  const days = selectedDays;
+  const months = days ? undefined : selectedMonths;
   const errEl = document.getElementById('subCreateError');
   const btn = document.getElementById('createSubBtn');
   errEl.style.display = 'none';
@@ -716,7 +725,7 @@ async function createSubscription() {
   try {
     const r = await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', password: adminPwd, playerName: name, months, maxDevices: devices, phone })
+      body: JSON.stringify({ action: 'create', password: adminPwd, playerName: name, months, days, maxDevices: devices, phone })
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }

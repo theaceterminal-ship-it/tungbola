@@ -27,8 +27,16 @@ function planLabel(months) {
 /* Backward compatibility: subscriptions created before this update only have
    plan:'monthly'|'yearly' and no `months` field. */
 function monthsOf(sub) {
+  if (sub.days) return 0;             // a day-based duration isn't a month count
   if (sub.months) return sub.months;
   return sub.plan === 'yearly' ? 12 : 1;
+}
+/* The label shown everywhere (admin list, key card, player status bar).
+   A short day-based plan (currently just "1 Week") keeps its own wording
+   instead of being forced into a fractional month.                        */
+function subLabel(sub) {
+  if (sub.days) return sub.days === 7 ? '1 Week' : `${sub.days} Day${sub.days === 1 ? '' : 's'}`;
+  return planLabel(monthsOf(sub));
 }
 
 module.exports = async function(req, res) {
@@ -44,7 +52,7 @@ module.exports = async function(req, res) {
       return res.status(401).json({ error: 'Wrong password' });
     const list = await kv.get('tb:subscriptions') || [];
     // normalize so the admin UI always has `months` + a human label to show
-    const out = list.map(s => ({ ...s, months: monthsOf(s), planLabel: planLabel(monthsOf(s)) }));
+    const out = list.map(s => ({ ...s, months: monthsOf(s), planLabel: subLabel(s) }));
     return res.json(out);
   }
 
@@ -81,10 +89,9 @@ module.exports = async function(req, res) {
     }
 
     const daysLeft = Math.ceil((sub.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
-    const months = monthsOf(sub);
     return res.json({
       valid: true, playerName: sub.playerName,
-      months, plan: planLabel(months),           // `plan` kept as a ready-to-show label
+      months: monthsOf(sub), plan: subLabel(sub),  // `plan` kept as a ready-to-show label
       expiresAt: sub.expiresAt, daysLeft,
       devicesUsed: sub.devices.length, maxDevices: sub.maxDevices,
       renewalDue: daysLeft <= 2                   // player app can show a polite reminder banner
@@ -96,23 +103,30 @@ module.exports = async function(req, res) {
     if (await rateLimit(req, 'createsub', 20, 3600))
       return res.status(429).json({ error: 'Too many requests' });
 
-    const { password, playerName, months, maxDevices, phone } = req.body;
+    const { password, playerName, months, days, maxDevices, phone } = req.body;
     if (!checkPassword(password, process.env.ADMIN_PASSWORD))
       return res.status(401).json({ error: 'Wrong password' });
 
     const name = String(playerName || 'Player').trim().slice(0, 50);
-    const dur = Math.max(1, Math.min(36, parseInt(months) || 1));
     const devices = Math.max(1, Math.min(5, Number(maxDevices) || 3));
     const cleanPhone = String(phone || '').replace(/\D/g, '').slice(0, 15);
-    const expiresAt = addMonths(Date.now(), dur);
+
+    /* Two duration shapes: whole months (the usual plans) or a short day
+       count (currently just the "1 Week" preset). `days` takes priority
+       when the admin panel sends it. */
+    const dayCount = Number.isFinite(parseInt(days)) && parseInt(days) > 0
+      ? Math.max(1, Math.min(31, parseInt(days))) : 0;
+    const dur = Math.max(1, Math.min(36, parseInt(months) || 1));
+    const expiresAt = dayCount ? Date.now() + dayCount * 86400000 : addMonths(Date.now(), dur);
 
     let key, tries = 0;
     do { key = genSubKey(); tries++; }
     while (await kv.exists(`tb:sub:${key}`) && tries < 10);
 
     const subscription = {
-      key, playerName: name, months: dur, phone: cleanPhone,
-      maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt
+      key, playerName: name, phone: cleanPhone,
+      maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt,
+      ...(dayCount ? { days: dayCount } : { months: dur })
     };
 
     const ttlSeconds = Math.ceil((expiresAt - Date.now()) / 1000) + 86400;
@@ -121,7 +135,10 @@ module.exports = async function(req, res) {
     list.unshift(subscription);
     await kv.set('tb:subscriptions', list.slice(0, 500));
 
-    return res.json({ ok: true, key, playerName: name, months: dur, plan: planLabel(dur), expiresAt, maxDevices: devices });
+    return res.json({
+      ok: true, key, playerName: name, months: monthsOf(subscription), days: subscription.days || 0,
+      plan: subLabel(subscription), expiresAt, maxDevices: devices
+    });
   }
 
   /* ── POST action=end: admin revokes a subscription ── */
@@ -164,6 +181,7 @@ module.exports = async function(req, res) {
         const move = Math.max(-36, Math.min(36, delta));
         sub.months = Math.max(0, monthsOf(sub) + move);
         sub.expiresAt = addMonths(sub.expiresAt, move);
+        delete sub.days;   // a whole-month adjustment retires the short "1 Week"-style label
         if (move > 0 && sub.status === 'revoked') sub.status = 'active';
       }
 
@@ -175,7 +193,7 @@ module.exports = async function(req, res) {
       return res.json({
         ok: true, action: 'updated',
         expiresAt: sub.expiresAt, months: monthsOf(sub),
-        planLabel: planLabel(monthsOf(sub)),
+        planLabel: subLabel(sub),
         expired: Date.now() > sub.expiresAt
       });
     }

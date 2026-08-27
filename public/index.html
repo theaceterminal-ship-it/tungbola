@@ -1677,6 +1677,11 @@ function showActivation(startMode){
   const dp=$('deviceLoginPanel');if(dp) dp.classList.add('off');
   resetBuyForm();
   setBuyMode(startMode==='renew'?'renew':'new');
+  // Pricing is only fetched once at app boot (loadAppConfig() on load) — if
+  // the admin edits it later while this tab stays open, the cached plan
+  // list quietly goes stale. Refresh it whenever a player actually opens
+  // this screen, so what they see is current, not whatever loaded hours ago.
+  loadAppConfig().then(()=>{ if(!$('activation').classList.contains('off')) renderBuyPlans(); });
 }
 
 function toggleDeviceLogin(){
@@ -1853,7 +1858,18 @@ async function proceedToPay(){
   try{
     const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await r.json();
-    if(!r.ok){errEl.textContent=data.error||'Could not start this request';errEl.style.display='block';return;}
+    if(!r.ok){
+      errEl.textContent=data.error||'Could not start this request';errEl.style.display='block';
+      // The plan list shown was fetched once and can go stale if the admin
+      // edits pricing while this tab stays open — re-picking from the SAME
+      // stale list would just fail again. Refresh it so "pick again" works.
+      if(/plan is no longer available/i.test(data.error||'')){
+        buySelectedPlan=null;
+        await loadAppConfig();
+        renderBuyPlans();
+      }
+      return;
+    }
     buyReqId=data.reqId; buyReqSig=sig;
     showBuyAmount(data.amount,data.credit);
     drawBuyQR(data.amount);

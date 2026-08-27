@@ -59,7 +59,11 @@ module.exports = async function(req, res) {
 
   /* ── POST action=request: player submits a purchase/renewal request ── */
   if (action === 'request') {
-    if (await rateLimit(req, 'purchreq', 10, 3600))
+    // Generous on purpose: this fires on every "Proceed to Pay" click, and a
+    // player closing the popup to switch plans, or several players on the
+    // same office/hostel wifi, can easily rack up a handful of these each —
+    // this is a public, IP-shared, expected-to-retry action, not a login.
+    if (await rateLimit(req, 'purchreq', 40, 3600))
       return res.status(429).json({ error: 'Too many requests. Try again later.' });
 
     const { type, playerName, phone, planId, referralCode, existingKey } = req.body;

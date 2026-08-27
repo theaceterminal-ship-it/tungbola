@@ -1763,11 +1763,12 @@ async function verifySubscription(){
    approves, this device activates automatically. No key gets hand-typed or
    copy-pasted by anyone. */
 let buyMode='new', buySelectedPlan=null, buyReqId=null, buyPollTimer=null;
+let buyReqSig=null, buyLastAmount=null, buyLastCredit=0;
 
 function resetBuyForm(){
   stopBuyPolling();
   if(buyReqId){ cancelPurchase(true); }
-  buyReqId=null; buySelectedPlan=null;
+  buyReqId=null; buySelectedPlan=null; buyReqSig=null;
   const n=$('buyName');if(n) n.value='';
   const p=$('buyPhone');if(p) p.value='';
   const rf=$('buyReferral');if(rf) rf.value='';
@@ -1827,26 +1828,34 @@ async function proceedToPay(){
   }
   if(!appConfig.upiId){errEl.textContent='Payment isn\'t set up yet — contact admin';errEl.style.display='block';return;}
 
-  const btn=$('buyProceedBtn');btn.disabled=true;btn.textContent='Preparing…';
-
-  // cancel any previous pending request for this session before making a new one
-  if(buyReqId) await cancelPurchase(true);
-
   const payload={action:'request',type:buyMode,planId:buySelectedPlan,
     playerName:($('buyName').value||'').trim(),
     phone:($('buyPhone').value||'').trim(),
     referralCode:($('buyReferral').value||'').trim()||undefined,
     existingKey:buyMode==='renew'?($('buyRenewKey').value||'').trim():undefined};
 
+  // Reopening for the exact same plan/details as the still-pending request
+  // (e.g. closed the popup to double-check something, or the UPI app didn't
+  // open) shouldn't create a fresh request — just show it again.
+  const sig=JSON.stringify(payload);
+  if(buyReqId&&sig===buyReqSig){
+    showBuyAmount(buyLastAmount,buyLastCredit);
+    $('payModal').classList.remove('off');
+    return;
+  }
+
+  const btn=$('buyProceedBtn');btn.disabled=true;btn.textContent='Preparing…';
+
+  // a genuinely different request (different plan, or details changed) —
+  // cancel whatever was pending before making the new one
+  if(buyReqId) await cancelPurchase(true);
+
   try{
     const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok){errEl.textContent=data.error||'Could not start this request';errEl.style.display='block';return;}
-    buyReqId=data.reqId;
-    const tier=(appConfig.pricingTiers||[]).find(t=>t.id===buySelectedPlan);
-    $('buyAmount').innerHTML=data.credit>0
-      ? `Pay <b>₹${data.amount}</b> <span style="opacity:.7">(₹${tier?tier.price:''} − ₹${data.credit} credit)</span>`
-      : `Pay <b>₹${data.amount}</b>`;
+    buyReqId=data.reqId; buyReqSig=sig;
+    showBuyAmount(data.amount,data.credit);
     drawBuyQR(data.amount);
     $('payModal').classList.remove('off');
   }catch(e){
@@ -1854,6 +1863,14 @@ async function proceedToPay(){
   }finally{
     btn.disabled=false;btn.textContent='Proceed to Pay →';
   }
+}
+
+function showBuyAmount(amount,credit){
+  buyLastAmount=amount; buyLastCredit=credit;
+  const tier=(appConfig.pricingTiers||[]).find(t=>t.id===buySelectedPlan);
+  $('buyAmount').innerHTML=credit>0
+    ? `Pay <b>₹${amount}</b> <span style="opacity:.7">(₹${tier?tier.price:''} − ₹${credit} credit)</span>`
+    : `Pay <b>₹${amount}</b>`;
 }
 
 function closePayModal(){

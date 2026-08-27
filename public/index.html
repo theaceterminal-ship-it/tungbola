@@ -664,12 +664,6 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   display:flex;flex-direction:column;align-items:center;padding:28px 20px 40px}
 .act-logo{font-size:38px;font-weight:900;color:var(--primary);margin-bottom:4px}
 .act-tagline{font-size:14px;color:var(--on-surface-variant);margin-bottom:24px}
-.act-card{background:#fff;border-radius:24px;padding:22px 20px;
-  width:100%;max-width:340px;box-shadow:var(--shadow-lg);margin-bottom:14px}
-.act-card-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-.act-card-icon{font-size:30px;line-height:1}
-.act-card-title{font-size:17px;font-weight:700}
-.act-card-desc{font-size:12px;color:var(--on-surface-variant);margin-top:2px}
 .act-input{width:100%;padding:13px 16px;border:2px solid var(--outline);
   border-radius:14px;font-size:15px;font-family:inherit;outline:none;
   background:var(--bg);margin-bottom:10px;transition:border-color .2s}
@@ -683,15 +677,24 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .act-btn:disabled{opacity:.5;cursor:not-allowed}
 .act-error{color:var(--error);font-size:13px;text-align:center;
   padding:4px 0;font-weight:500;display:none;margin-bottom:4px}
-/* Deliberately small and quiet — this is the exception path (a second
-   device on an already-paid subscription), not something a new player
-   should be drawn to before Buy/Renew. */
-.act-tucked-link{background:transparent;border:none;color:var(--on-surface-variant);
-  font-size:12.5px;font-weight:600;text-decoration:underline;cursor:pointer;
-  font-family:inherit;margin-top:6px;padding:8px}
-.act-tucked-link:active{opacity:.7}
-.act-tucked-panel{width:100%;max-width:340px;margin-top:4px}
-.act-tucked-panel.off{display:none}
+/* ── ACCORDION (Activate Subscription / Buy or Renew) ──
+   Both start collapsed; opening one closes the other, so the screen is
+   never showing two competing forms at once. */
+.acc-group{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px}
+.acc-item{background:#fff;border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden}
+.acc-head{display:flex;align-items:center;gap:12px;width:100%;padding:18px 20px;
+  background:transparent;border:none;cursor:pointer;font-family:inherit;text-align:left}
+.acc-head-ico{font-size:26px;line-height:1;flex-shrink:0}
+.acc-head-text{flex:1;min-width:0}
+.acc-head-title{display:block;font-size:16px;font-weight:700;color:var(--on-bg)}
+.acc-head-sub{display:block;font-size:12px;color:var(--on-surface-variant);margin-top:1px}
+.acc-chev{font-size:22px;color:var(--on-surface-variant);flex-shrink:0;
+  transform:rotate(90deg);transition:transform .2s}
+.acc-item.open .acc-chev{transform:rotate(-90deg)}
+.acc-item.open .acc-head{padding-bottom:8px}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.acc-item.open .acc-body{max-height:900px}
+.acc-body-inner{padding:0 20px 22px}
 /* ── BUY / RENEW ── */
 .buy-toggle{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:12px}
 .buy-toggle-btn{flex:1;padding:9px;border:none;background:transparent;border-radius:11px;
@@ -727,30 +730,15 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;
   color:var(--on-surface-variant);cursor:pointer;font-family:inherit}
 .pm-title{font-size:18px;font-weight:900;color:var(--on-bg);margin-bottom:14px;padding-right:36px}
-.pm-upi-btn{background:#00875A;margin-bottom:14px}
-.pm-or{display:flex;align-items:center;gap:10px;color:var(--on-surface-variant);
-  font-size:12px;margin-bottom:4px}
-.pm-or::before,.pm-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
 .pm-hint{font-size:12px;color:var(--on-surface-variant);text-align:center;margin-bottom:10px}
-/* ── WAITING SCREEN (shared by buy/renew) ── */
-#buyWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
+/* ── REQUEST SUBMITTED (no polling — the code arrives on WhatsApp once the
+   admin approves; this is just a calm confirmation, not a live wait) ── */
+#buySubmitted{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:32px 24px;gap:0}
 .wait-logo{font-size:56px;margin-bottom:16px}
 .wait-title{font-size:24px;font-weight:900;color:var(--primary);margin-bottom:8px}
-.wait-sub{font-size:14px;color:var(--on-surface-variant);margin-bottom:8px;text-align:center}
-.wait-dots{display:flex;gap:8px;margin:20px 0 24px}
-.wait-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);
-  animation:wdot 1.4s ease-in-out infinite}
-.wait-dot:nth-child(1){animation-delay:0s}
-.wait-dot:nth-child(2){animation-delay:.2s}
-.wait-dot:nth-child(3){animation-delay:.4s}
-@keyframes wdot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1.1);opacity:1}}
-.wait-info{font-size:13px;color:var(--on-surface-variant);margin-bottom:24px;text-align:center;
-  background:#fff;border-radius:12px;padding:10px 16px;max-width:280px}
-.wait-cancel{background:transparent;border:2px solid var(--outline);color:var(--on-surface-variant);
-  border-radius:14px;padding:11px 28px;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit}
+.wait-sub{font-size:14px;color:var(--on-surface-variant);margin-bottom:8px;text-align:center;max-width:300px}
 /* ── PARSE WARNING OVERLAY ── */
 #parseWarn{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;
   display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom)}
@@ -945,49 +933,65 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="act-logo">Tungbola</div>
   <div class="act-tagline">Enter your access to start playing</div>
 
-  <!-- Buy / Renew -->
-  <div class="act-card">
-    <div class="act-card-head">
-      <span class="act-card-icon">🛒</span>
-      <div>
-        <div class="act-card-title">Buy or Renew</div>
-        <div class="act-card-desc" id="buyDesc">Pick a plan, pay, and you're in — no key needed</div>
+  <!-- Two collapsed options — tapping one opens it and closes the other -->
+  <div class="acc-group">
+    <!-- Activate Subscription: a code already in hand (new via WhatsApp, or another device) -->
+    <div class="acc-item" id="accActivate">
+      <button type="button" class="acc-head" onclick="toggleAccordion('activate')">
+        <span class="acc-head-ico">🎫</span>
+        <span class="acc-head-text">
+          <span class="acc-head-title">Activate Subscription</span>
+          <span class="acc-head-sub">Have a code? Enter it here</span>
+        </span>
+        <span class="acc-chev">›</span>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <input type="text" class="act-input subkey" id="subKeyInput"
+            placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
+            oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+          <div class="act-error" id="subError"></div>
+          <button class="act-btn" onclick="verifySubscription()">Activate →</button>
+        </div>
       </div>
     </div>
 
-    <div class="buy-toggle" id="buyToggle">
-      <button type="button" class="buy-toggle-btn active" data-mode="new" onclick="setBuyMode('new')">New player</button>
-      <button type="button" class="buy-toggle-btn" data-mode="renew" onclick="setBuyMode('renew')">Renew mine</button>
+    <!-- Buy or Renew: pay, then wait for the code -->
+    <div class="acc-item" id="accBuy">
+      <button type="button" class="acc-head" onclick="toggleAccordion('buy')">
+        <span class="acc-head-ico">🛒</span>
+        <span class="acc-head-text">
+          <span class="acc-head-title">Buy or Renew</span>
+          <span class="acc-head-sub">Pick a plan and pay</span>
+        </span>
+        <span class="acc-chev">›</span>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div class="buy-toggle" id="buyToggle">
+            <button type="button" class="buy-toggle-btn active" data-mode="new" onclick="setBuyMode('new')">New player</button>
+            <button type="button" class="buy-toggle-btn" data-mode="renew" onclick="setBuyMode('renew')">Renew mine</button>
+          </div>
+
+          <div id="buyNewFields">
+            <input type="text" class="act-input" id="buyName" placeholder="Your name" maxlength="50">
+            <input type="tel" class="act-input" id="buyPhone" placeholder="Phone (your code is sent here)" maxlength="15" style="margin-top:8px">
+            <input type="text" class="act-input" id="buyReferral" placeholder="Referral code (optional)" maxlength="20"
+              style="margin-top:8px" oninput="this.value=this.value.toUpperCase()">
+          </div>
+          <div id="buyRenewFields" style="display:none">
+            <input type="text" class="act-input subkey" id="buyRenewKey"
+              placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
+              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+          </div>
+
+          <div class="buy-plans" id="buyPlans"></div>
+
+          <div class="act-error" id="buyError"></div>
+          <button class="act-btn" id="buyProceedBtn" onclick="proceedToPay()">Proceed to Pay →</button>
+        </div>
+      </div>
     </div>
-
-    <div id="buyNewFields">
-      <input type="text" class="act-input" id="buyName" placeholder="Your name" maxlength="50">
-      <input type="tel" class="act-input" id="buyPhone" placeholder="Phone (for renewal reminders)" maxlength="15" style="margin-top:8px">
-      <input type="text" class="act-input" id="buyReferral" placeholder="Referral code (optional)" maxlength="20"
-        style="margin-top:8px" oninput="this.value=this.value.toUpperCase()">
-    </div>
-    <div id="buyRenewFields" style="display:none">
-      <input type="text" class="act-input subkey" id="buyRenewKey"
-        placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
-    </div>
-
-    <div class="buy-plans" id="buyPlans"></div>
-
-    <div class="act-error" id="buyError"></div>
-    <button class="act-btn" id="buyProceedBtn" onclick="proceedToPay()">Proceed to Pay →</button>
-  </div>
-
-  <!-- Already subscribed and just adding another device — no payment, just their existing code -->
-  <button class="act-tucked-link" id="deviceLoginToggle" onclick="toggleDeviceLogin()">
-    Already subscribed? Log in another device →
-  </button>
-  <div id="deviceLoginPanel" class="act-tucked-panel off">
-    <input type="text" class="act-input subkey" id="subKeyInput"
-      placeholder="SUB-XXXX-XXXX-XXXX" maxlength="18"
-      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
-    <div class="act-error" id="subError"></div>
-    <button class="act-btn" onclick="verifySubscription()">Log In This Device →</button>
   </div>
 </div>
 
@@ -996,19 +1000,15 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="pm-backdrop" onclick="closePayModal()"></div>
   <div class="pm-card">
     <button class="pm-close" onclick="closePayModal()" aria-label="Close">&times;</button>
-    <div class="pm-title">Complete Payment</div>
+    <div class="pm-title">Scan to Pay</div>
     <div class="buy-amount" id="buyAmount"></div>
 
-    <a id="payUpiBtn" class="act-btn pm-upi-btn" href="#" target="_blank" rel="noopener">
-      📱 Open UPI App to Pay →
-    </a>
-    <div class="pm-or"><span>or scan from another device</span></div>
     <div class="buy-qr-wrap">
       <div id="buyQrContainer"></div>
       <div class="buy-upi-hint" id="buyUpiHint"></div>
     </div>
 
-    <div class="pm-hint">Come back here after paying and tap below.</div>
+    <div class="pm-hint">Paid? Tap below to send your request.</div>
     <button class="act-btn" id="buySubmitBtn" onclick="submitPurchase()">I've Paid — Request Approval →</button>
     <div class="buy-support" id="buySupport" style="display:none">
       <a id="buySupportLink" href="#" target="_blank" rel="noopener" class="dp-support-link">
@@ -1018,21 +1018,15 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   </div>
 </div>
 
-<!-- ══ BUY/RENEW WAITING ══ -->
-<div id="buyWaiting" class="off">
-  <div class="wait-logo">⏳</div>
-  <div class="wait-title">Waiting for Approval</div>
-  <div class="wait-sub">Admin is confirming your payment</div>
-  <div class="wait-dots">
-    <div class="wait-dot"></div>
-    <div class="wait-dot"></div>
-    <div class="wait-dot"></div>
-  </div>
-  <div class="wait-info" id="buyWaitInfo"></div>
-  <button class="wait-cancel" onclick="cancelPurchase()">Cancel</button>
+<!-- ══ REQUEST SUBMITTED ══ -->
+<div id="buySubmitted" class="off">
+  <div class="wait-logo">✅</div>
+  <div class="wait-title">Request Sent!</div>
+  <div class="wait-sub" id="buySubmittedMsg"></div>
+  <button class="act-btn" style="max-width:280px;margin-top:20px" onclick="hideAll();$('welcome').classList.remove('off')">Back to Home</button>
   <a id="buyWaitSupportLink" href="#" target="_blank" rel="noopener"
     class="dp-support-link" style="margin-top:14px;display:none">
-    💬 Taking too long? Contact on WhatsApp
+    💬 Questions? Contact on WhatsApp
   </a>
 </div>
 
@@ -1648,7 +1642,7 @@ function buildBalls(){
 
 /* ══ SCREEN TRANSITIONS ══ */
 function hideAll(){
-  ['welcome','game','activation','setup','buyWaiting'].forEach(id=>$( id)?.classList.add('off'));
+  ['welcome','game','activation','setup','buySubmitted'].forEach(id=>$( id)?.classList.add('off'));
   closePayModal();
 }
 function showSetup(){
@@ -1674,9 +1668,14 @@ function showActivation(startMode){
   $('activation').classList.remove('off');
   const si=$('subKeyInput');if(si) si.value='';
   const se=$('subError');if(se) se.style.display='none';
-  const dp=$('deviceLoginPanel');if(dp) dp.classList.add('off');
   resetBuyForm();
-  setBuyMode(startMode==='renew'?'renew':'new');
+  if(startMode==='renew'){
+    setBuyMode('renew');
+    openAccordion('buy');
+  }else{
+    setBuyMode('new');
+    closeAccordions();
+  }
   // Pricing is only fetched once at app boot (loadAppConfig() on load) — if
   // the admin edits it later while this tab stays open, the cached plan
   // list quietly goes stale. Refresh it whenever a player actually opens
@@ -1684,10 +1683,20 @@ function showActivation(startMode){
   loadAppConfig().then(()=>{ if(!$('activation').classList.contains('off')) renderBuyPlans(); });
 }
 
-function toggleDeviceLogin(){
-  const panel=$('deviceLoginPanel');
-  panel.classList.toggle('off');
-  if(!panel.classList.contains('off')) $('subKeyInput').focus();
+/* Activate Subscription / Buy or Renew — collapsed by default, opening one
+   closes the other so the screen never shows two competing forms at once. */
+function toggleAccordion(which){
+  const id=which==='activate'?'accActivate':'accBuy';
+  const wasOpen=$(id).classList.contains('open');
+  closeAccordions();
+  if(!wasOpen) $(id).classList.add('open');
+}
+function openAccordion(which){
+  closeAccordions();
+  $(which==='activate'?'accActivate':'accBuy').classList.add('open');
+}
+function closeAccordions(){
+  ['accActivate','accBuy'].forEach(id=>$(id)?.classList.remove('open'));
 }
 
 /* An upload can fail for reasons the user can actually act on. The common one
@@ -1750,13 +1759,13 @@ async function verifySubscription(){
     if(!res.ok){
       errEl.textContent=res.error;
       errEl.style.display='block';
-      btn.disabled=false;btn.textContent='Activate Subscription →';
+      btn.disabled=false;btn.textContent='Activate →';
       return;
     }
   }catch(e){
     errEl.textContent='Network error. Check connection.';
     errEl.style.display='block';
-    btn.disabled=false;btn.textContent='Activate Subscription →';
+    btn.disabled=false;btn.textContent='Activate →';
   }
 }
 
@@ -1767,19 +1776,30 @@ async function verifySubscription(){
    wallet credit included, before the QR is ever drawn), and once the admin
    approves, this device activates automatically. No key gets hand-typed or
    copy-pasted by anyone. */
-let buyMode='new', buySelectedPlan=null, buyReqId=null, buyPollTimer=null;
+let buyMode='new', buySelectedPlan=null, buyReqId=null;
 let buyReqSig=null, buyLastAmount=null, buyLastCredit=0;
 
 function resetBuyForm(){
-  stopBuyPolling();
-  if(buyReqId){ cancelPurchase(true); }
-  buyReqId=null; buySelectedPlan=null; buyReqSig=null;
+  if(buyReqId) cancelPendingRequest();
+  buySelectedPlan=null;
   const n=$('buyName');if(n) n.value='';
   const p=$('buyPhone');if(p) p.value='';
   const rf=$('buyReferral');if(rf) rf.value='';
   const rk=$('buyRenewKey');if(rk) rk.value='';
   const err=$('buyError');if(err) err.style.display='none';
   closePayModal();
+}
+
+/* Silently drops a request that's no longer relevant — switching plans,
+   switching new/renew, or leaving the screen. Nothing left to poll for or
+   resume, so this is fire-and-forget. */
+async function cancelPendingRequest(){
+  const id=buyReqId;
+  buyReqId=null; buyReqSig=null;
+  if(id){
+    try{ await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'cancel',reqId:id})}); }catch(e){}
+  }
 }
 
 function setBuyMode(mode){
@@ -1853,7 +1873,7 @@ async function proceedToPay(){
 
   // a genuinely different request (different plan, or details changed) —
   // cancel whatever was pending before making the new one
-  if(buyReqId) await cancelPurchase(true);
+  if(buyReqId) await cancelPendingRequest();
 
   try{
     const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -1897,15 +1917,9 @@ function drawBuyQR(amount){
   const container=$('buyQrContainer');const hint=$('buyUpiHint');
   container.innerHTML='';
   const upiId=appConfig.upiId||'';
-  const upiBtn=$('payUpiBtn');
-  if(!upiId){
-    hint.textContent='UPI not configured – contact admin';
-    if(upiBtn){upiBtn.style.display='none';}
-    return;
-  }
+  if(!upiId){hint.textContent='UPI not configured – contact admin';return;}
   const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Subscription`;
   hint.textContent=`Pay ₹${amount} to ${upiId}`;
-  if(upiBtn){upiBtn.style.display='';upiBtn.href=upiStr;}
   try{
     new QRCode(container,{text:upiStr,width:180,height:180,
       colorDark:'#1C1B1F',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});
@@ -1916,63 +1930,27 @@ function drawBuyQR(amount){
   const waUrl=wa?`https://wa.me/${wa}`:'#';
   const sup=$('buySupport'),lnk=$('buySupportLink');
   if(sup&&lnk){sup.style.display=wa?'':'none';lnk.href=waUrl;}
-  const wSup=$('buyWaitSupportLink');
-  if(wSup){wSup.style.display=wa?'':'none';wSup.href=waUrl;}
 }
 
-async function submitPurchase(){
+/* No polling. The request already exists (created back in proceedToPay,
+   which is also what got the QR its correct amount) — this just tells the
+   player what happens next and gets out of their way. A new subscriber's
+   code arrives on WhatsApp once the admin approves; a renewer's existing
+   session just updates itself next time it's checked, nothing to hand over. */
+function submitPurchase(){
   if(!buyReqId){$('buyError').textContent='Pick a plan first';$('buyError').style.display='block';return;}
-  const btn=$('buySubmitBtn');btn.disabled=true;btn.textContent='Submitting…';
-  const name=buyMode==='new'?($('buyName').value||'').trim():(gameSession?.playerName||'there');
-  $('buyWaitInfo').textContent=`${name} · will activate automatically once approved`;
+  const wasRenew=buyMode==='renew';
+  const msg=wasRenew
+    ? `Your renewal is with the admin for approval. Once it's confirmed, it'll apply automatically — nothing else to do.`
+    : `Your subscription code will be sent to your WhatsApp once the admin approves your payment — usually within a few minutes.`;
+  buyReqId=null; buyReqSig=null; buySelectedPlan=null;
+  closePayModal();
   hideAll();
-  $('buyWaiting').classList.remove('off');
-  startBuyPolling();
-  btn.disabled=false;btn.textContent="I've Paid — Request Approval →";
-}
-
-function startBuyPolling(){
-  stopBuyPolling();
-  buyPollTimer=setInterval(pollBuyRequest,4000);
-  pollBuyRequest();
-}
-function stopBuyPolling(){
-  if(buyPollTimer){clearInterval(buyPollTimer);buyPollTimer=null;}
-}
-async function pollBuyRequest(){
-  if(!buyReqId) return;
-  try{
-    const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'check',reqId:buyReqId})});
-    if(r.status===404){stopBuyPolling();buyReqId=null;toast('Request expired. Please try again.');showActivation(buyMode);return;}
-    const data=await r.json();
-    if(data.status==='approved'&&data.key){
-      stopBuyPolling();
-      const wasRenew=buyMode==='renew';
-      buyReqId=null;
-      const res=await activateWithKey(data.key,wasRenew?'Renewed! Your subscription is active again.':'Payment confirmed — welcome!');
-      if(!res.ok) toast('Approved, but activation failed — try entering your key manually.');
-    }else if(data.status==='rejected'){
-      stopBuyPolling();buyReqId=null;
-      toast(data.reason||'Payment not confirmed. Please try again.');
-      showActivation(buyMode);
-    }else if(data.status==='expired'||data.status==='cancelled'){
-      stopBuyPolling();buyReqId=null;
-      toast('Request expired. Please try again.');
-      showActivation(buyMode);
-    }
-  }catch(e){}
-}
-
-async function cancelPurchase(silent){
-  const id=buyReqId;
-  stopBuyPolling();
-  buyReqId=null;
-  if(id){
-    try{ await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'cancel',reqId:id})}); }catch(e){}
-  }
-  if(!silent) showActivation(buyMode);
+  $('buySubmittedMsg').textContent=msg;
+  $('buySubmitted').classList.remove('off');
+  const wa=appConfig.whatsappNumber||'';
+  const wSup=$('buyWaitSupportLink');
+  if(wSup){wSup.style.display=wa?'':'none';wSup.href=wa?`https://wa.me/${wa}`:'#';}
 }
 
 async function silentVerifySubscription(){

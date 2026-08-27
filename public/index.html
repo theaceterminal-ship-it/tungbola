@@ -706,17 +706,32 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .buy-plan-sub{font-size:11.5px;color:var(--on-surface-variant);margin-top:1px}
 .buy-plan-price{font-size:16px;font-weight:900;color:var(--primary);white-space:nowrap}
 .buy-plan-price small{font-size:10px;font-weight:600;color:var(--on-surface-variant)}
-.buy-pay{margin-top:6px}
-.buy-pay.off{display:none}
 .buy-amount{background:var(--primary-container);border-radius:12px;
-  padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--primary);text-align:center}
-.buy-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin:12px 0}
+  padding:12px 16px;margin-bottom:14px;font-size:14px;font-weight:600;color:var(--primary);text-align:center}
+.buy-qr-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 14px}
 .buy-qr-wrap #buyQrContainer canvas,.buy-qr-wrap #buyQrContainer img{
   border-radius:12px;border:3px solid var(--primary-container);display:block}
 .buy-upi-hint{font-size:12px;color:var(--on-surface-variant);text-align:center}
 .buy-support{text-align:center;margin-top:10px}
 .buy-credit-note{font-size:12px;color:#2E7D32;background:#E8F5E9;border-radius:10px;
   padding:8px 12px;margin:-2px 0 10px;text-align:center;font-weight:600}
+/* ── PAYMENT MODAL ── */
+#payModal{position:fixed;inset:0;z-index:9000;
+  display:flex;align-items:flex-end;justify-content:center}
+#payModal.off{display:none!important}
+.pm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.pm-card{position:relative;background:#fff;border-radius:28px 28px 0 0;
+  padding:24px 20px calc(28px + env(safe-area-inset-bottom));
+  width:100%;max-width:400px;max-height:88vh;overflow-y:auto}
+.pm-close{position:absolute;top:14px;right:16px;background:var(--bg);border:none;
+  width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;
+  color:var(--on-surface-variant);cursor:pointer;font-family:inherit}
+.pm-title{font-size:18px;font-weight:900;color:var(--on-bg);margin-bottom:14px;padding-right:36px}
+.pm-upi-btn{background:#00875A;margin-bottom:14px}
+.pm-or{display:flex;align-items:center;gap:10px;color:var(--on-surface-variant);
+  font-size:12px;margin-bottom:4px}
+.pm-or::before,.pm-or::after{content:'';flex:1;height:1px;background:var(--outline);opacity:.35}
+.pm-hint{font-size:12px;color:var(--on-surface-variant);text-align:center;margin-bottom:10px}
 /* ── WAITING SCREEN (shared by buy/renew) ── */
 #buyWaiting{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -959,20 +974,8 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 
     <div class="buy-plans" id="buyPlans"></div>
 
-    <div id="buyPaySection" class="buy-pay off">
-      <div class="buy-amount" id="buyAmount"></div>
-      <div class="buy-qr-wrap">
-        <div id="buyQrContainer"></div>
-        <div class="buy-upi-hint" id="buyUpiHint"></div>
-      </div>
-      <div class="act-error" id="buyError"></div>
-      <button class="act-btn" id="buySubmitBtn" onclick="submitPurchase()">I've Paid — Request Approval →</button>
-      <div class="buy-support" id="buySupport" style="display:none">
-        <a id="buySupportLink" href="#" target="_blank" rel="noopener" class="dp-support-link">
-          💬 Need help? Contact on WhatsApp
-        </a>
-      </div>
-    </div>
+    <div class="act-error" id="buyError"></div>
+    <button class="act-btn" id="buyProceedBtn" onclick="proceedToPay()">Proceed to Pay →</button>
   </div>
 
   <!-- Already subscribed and just adding another device — no payment, just their existing code -->
@@ -985,6 +988,33 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
       oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
     <div class="act-error" id="subError"></div>
     <button class="act-btn" onclick="verifySubscription()">Log In This Device →</button>
+  </div>
+</div>
+
+<!-- ══ PAYMENT MODAL ══ -->
+<div id="payModal" class="off">
+  <div class="pm-backdrop" onclick="closePayModal()"></div>
+  <div class="pm-card">
+    <button class="pm-close" onclick="closePayModal()" aria-label="Close">&times;</button>
+    <div class="pm-title">Complete Payment</div>
+    <div class="buy-amount" id="buyAmount"></div>
+
+    <a id="payUpiBtn" class="act-btn pm-upi-btn" href="#" target="_blank" rel="noopener">
+      📱 Open UPI App to Pay →
+    </a>
+    <div class="pm-or"><span>or scan from another device</span></div>
+    <div class="buy-qr-wrap">
+      <div id="buyQrContainer"></div>
+      <div class="buy-upi-hint" id="buyUpiHint"></div>
+    </div>
+
+    <div class="pm-hint">Come back here after paying and tap below.</div>
+    <button class="act-btn" id="buySubmitBtn" onclick="submitPurchase()">I've Paid — Request Approval →</button>
+    <div class="buy-support" id="buySupport" style="display:none">
+      <a id="buySupportLink" href="#" target="_blank" rel="noopener" class="dp-support-link">
+        💬 Need help? Contact on WhatsApp
+      </a>
+    </div>
   </div>
 </div>
 
@@ -1619,6 +1649,7 @@ function buildBalls(){
 /* ══ SCREEN TRANSITIONS ══ */
 function hideAll(){
   ['welcome','game','activation','setup','buyWaiting'].forEach(id=>$( id)?.classList.add('off'));
+  closePayModal();
 }
 function showSetup(){
   hideAll();
@@ -1742,7 +1773,7 @@ function resetBuyForm(){
   const rf=$('buyReferral');if(rf) rf.value='';
   const rk=$('buyRenewKey');if(rk) rk.value='';
   const err=$('buyError');if(err) err.style.display='none';
-  $('buyPaySection').classList.add('off');
+  closePayModal();
 }
 
 function setBuyMode(mode){
@@ -1753,7 +1784,7 @@ function setBuyMode(mode){
   if(mode==='renew'&&gameSession?.type==='subscription'&&$('buyRenewKey'))
     $('buyRenewKey').value=gameSession.key;
   buySelectedPlan=null;
-  $('buyPaySection').classList.add('off');
+  closePayModal();
   renderBuyPlans();
 }
 
@@ -1763,7 +1794,7 @@ function renderBuyPlans(){
   if(!tiers.length){el.innerHTML='<div class="act-error" style="display:block">No plans configured yet — contact admin</div>';return;}
   el.innerHTML=tiers.map(t=>{
     const dur=t.months===12?'1 Year':t.months===1?'1 Month':`${t.months} Months`;
-    return `<div class="buy-plan${buySelectedPlan===t.id?' sel':''}" data-plan="${t.id}" onclick="selectPlan('${t.id}')">
+    return `<div class="buy-plan${buySelectedPlan===t.id?' sel':''}" data-plan="${t.id}" onclick="pickPlan('${t.id}')">
       <div>
         <div class="buy-plan-label">${esc(t.label)}</div>
         <div class="buy-plan-sub">${dur} · ${t.maxDevices} device${t.maxDevices>1?'s':''}</div>
@@ -1774,9 +1805,19 @@ function renderBuyPlans(){
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-async function selectPlan(planId){
+/* Clicking a plan only selects it — no network call, no validation, just a
+   clear "this one's picked" state. Payment only starts once the player
+   deliberately hits Proceed to Pay. */
+function pickPlan(planId){
+  buySelectedPlan=planId;
+  document.querySelectorAll('.buy-plan').forEach(c=>c.classList.toggle('sel',c.dataset.plan===planId));
+  const err=$('buyError');if(err) err.style.display='none';
+}
+
+async function proceedToPay(){
   const errEl=$('buyError');errEl.style.display='none';
 
+  if(!buySelectedPlan){errEl.textContent='Pick a plan above first';errEl.style.display='block';return;}
   if(buyMode==='new'){
     const name=($('buyName').value||'').trim();
     if(!name){errEl.textContent='Enter your name first';errEl.style.display='block';return;}
@@ -1784,15 +1825,14 @@ async function selectPlan(planId){
     const key=($('buyRenewKey').value||'').trim();
     if(!key||key.length<10){errEl.textContent='Enter your subscription key first';errEl.style.display='block';return;}
   }
+  if(!appConfig.upiId){errEl.textContent='Payment isn\'t set up yet — contact admin';errEl.style.display='block';return;}
 
-  document.querySelectorAll('.buy-plan').forEach(c=>c.classList.toggle('sel',c.dataset.plan===planId));
-  buySelectedPlan=planId;
-  $('buyPaySection').classList.add('off');
+  const btn=$('buyProceedBtn');btn.disabled=true;btn.textContent='Preparing…';
 
   // cancel any previous pending request for this session before making a new one
   if(buyReqId) await cancelPurchase(true);
 
-  const payload={action:'request',type:buyMode,planId,
+  const payload={action:'request',type:buyMode,planId:buySelectedPlan,
     playerName:($('buyName').value||'').trim(),
     phone:($('buyPhone').value||'').trim(),
     referralCode:($('buyReferral').value||'').trim()||undefined,
@@ -1801,26 +1841,38 @@ async function selectPlan(planId){
   try{
     const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await r.json();
-    if(!r.ok){errEl.textContent=data.error||'Could not start this request';errEl.style.display='block';buySelectedPlan=null;renderBuyPlans();return;}
+    if(!r.ok){errEl.textContent=data.error||'Could not start this request';errEl.style.display='block';return;}
     buyReqId=data.reqId;
-    const tier=(appConfig.pricingTiers||[]).find(t=>t.id===planId);
+    const tier=(appConfig.pricingTiers||[]).find(t=>t.id===buySelectedPlan);
     $('buyAmount').innerHTML=data.credit>0
       ? `Pay <b>₹${data.amount}</b> <span style="opacity:.7">(₹${tier?tier.price:''} − ₹${data.credit} credit)</span>`
       : `Pay <b>₹${data.amount}</b>`;
     drawBuyQR(data.amount);
-    $('buyPaySection').classList.remove('off');
+    $('payModal').classList.remove('off');
   }catch(e){
     errEl.textContent='Network error. Check connection.';errEl.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Proceed to Pay →';
   }
+}
+
+function closePayModal(){
+  $('payModal').classList.add('off');
 }
 
 function drawBuyQR(amount){
   const container=$('buyQrContainer');const hint=$('buyUpiHint');
   container.innerHTML='';
   const upiId=appConfig.upiId||'';
-  if(!upiId){hint.textContent='UPI not configured – contact admin';return;}
+  const upiBtn=$('payUpiBtn');
+  if(!upiId){
+    hint.textContent='UPI not configured – contact admin';
+    if(upiBtn){upiBtn.style.display='none';}
+    return;
+  }
   const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Subscription`;
   hint.textContent=`Pay ₹${amount} to ${upiId}`;
+  if(upiBtn){upiBtn.style.display='';upiBtn.href=upiStr;}
   try{
     new QRCode(container,{text:upiStr,width:180,height:180,
       colorDark:'#1C1B1F',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});

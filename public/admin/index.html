@@ -58,10 +58,60 @@ select.field{cursor:pointer}
   border-bottom:3px solid transparent;margin-bottom:-2px;
   font-family:inherit;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;margin-left:5px;border-radius:9px;
+  background:var(--error);color:#fff;font-size:10.5px;font-weight:800}
+.tab-badge.off{display:none}
 
 /* ── CONTENT ── */
 .tab-content{display:none;padding:16px;width:100%;max-width:1300px;margin:0 auto}
 .tab-content.active{display:block}
+
+/* ── REQUESTS ── */
+.req-row{background:#fff;border:1px solid var(--sv);border-radius:14px;
+  padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.req-row.is-renew{border-left:4px solid var(--primary)}
+.req-row.is-new{border-left:4px solid #2E7D32}
+.req-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.req-name{font-size:15px;font-weight:800;color:var(--on-bg)}
+.req-type{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;
+  padding:2px 7px;border-radius:6px;background:var(--bg);color:var(--on-sv)}
+.req-type.new{background:#E8F5E9;color:#2E7D32}
+.req-type.renew{background:var(--primary-c);color:var(--primary)}
+.req-wait{margin-left:auto;font-size:11px;color:var(--on-sv)}
+.req-meta{font-size:12.5px;color:var(--on-sv);margin-bottom:10px;line-height:1.6}
+.req-meta b{color:var(--on-bg)}
+.req-actions{display:flex;gap:8px}
+.btn-approve{flex:1;background:#2E7D32;color:#fff;border:none;border-radius:10px;
+  padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-approve:hover{background:#1B5E20}
+.btn-reject{flex:1;background:var(--error-c);color:var(--error);border:none;border-radius:10px;
+  padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reject:hover{background:var(--error);color:#fff}
+.req-resolved{font-size:12px;color:var(--on-sv);font-style:italic}
+
+/* ── PRICING TIERS ── */
+.tier-row{display:grid;grid-template-columns:1.4fr .8fr .7fr .8fr auto;gap:8px;
+  align-items:center;margin-bottom:8px}
+.tier-row input{padding:9px 10px;border:1.5px solid var(--sv);border-radius:9px;
+  font-size:13px;font-family:inherit;background:var(--bg)}
+.tier-row .tier-del{background:transparent;border:none;color:var(--on-sv);
+  font-size:19px;cursor:pointer;padding:0 4px}
+.tier-row .tier-del:hover{color:var(--error)}
+.tier-add{background:var(--primary-c);color:var(--primary);border:none;
+  border-radius:9px;padding:9px 14px;font-size:12.5px;font-weight:700;
+  cursor:pointer;font-family:inherit;margin-top:2px}
+@media(max-width:520px){.tier-row{grid-template-columns:1fr 1fr;grid-template-areas:"label label" "months devices" "price del"}
+  .tier-row input:nth-child(1){grid-area:label}.tier-row input:nth-child(2){grid-area:months}
+  .tier-row input:nth-child(3){grid-area:devices}.tier-row input:nth-child(4){grid-area:price}
+  .tier-row .tier-del{grid-area:del;justify-self:end}}
+
+/* ── REFERRALS TABLE ── */
+.ref-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--sv);font-size:12.5px}
+.ref-row:last-child{border-bottom:none}
+.ref-arrow{color:var(--on-sv)}
+.ref-amount{margin-left:auto;font-weight:800;color:#2E7D32}
 
 /* ── SPLIT ── */
 .split{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
@@ -400,13 +450,30 @@ select.field{cursor:pointer}
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscribers</button>
+    <button class="tab-btn active" id="tabBtnRequests" onclick="switchTab('requests')">🛒 Requests<span class="tab-badge off" id="reqBadge">0</span></button>
+    <button class="tab-btn" id="tabBtnSubscriptions" onclick="switchTab('subscriptions')">🎫 Subscribers</button>
     <button class="tab-btn" id="tabBtnLive" onclick="switchTab('live')">📡 Live</button>
     <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
 
+  <!-- ── REQUESTS TAB ── -->
+  <div class="tab-content active" id="tabRequests">
+    <div class="list-panel" style="max-width:760px;margin:0 auto">
+      <div class="list-hdr">
+        <div class="list-hdr-left">
+          <div class="list-hdr-title">Purchase &amp; Renewal Requests</div>
+          <div class="list-count" id="reqCount">0</div>
+        </div>
+        <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
+      </div>
+      <div id="requestsList">
+        <div class="empty"><div class="empty-ico">🛒</div><div class="empty-txt">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── SUBSCRIBERS TAB ── -->
-  <div class="tab-content active" id="tabSubscriptions">
+  <div class="tab-content" id="tabSubscriptions">
     <div class="split">
 
       <div class="form-panel">
@@ -561,7 +628,7 @@ select.field{cursor:pointer}
         <div class="field-wrap">
           <div class="field-label">UPI ID</div>
           <input class="field" id="cfgUpi" placeholder="yourname@paytm" type="text">
-          <div class="field-hint">Used for the Marketplace sheet-purchase QR code.</div>
+          <div class="field-hint">Used for every payment QR code — Marketplace sheets and player self-serve purchases.</div>
         </div>
         <div class="field-wrap">
           <div class="field-label">WhatsApp Number (with country code, no +)</div>
@@ -577,6 +644,26 @@ select.field{cursor:pointer}
         <div style="font-size:12px;color:#6D4C41;line-height:1.7">
           Vercel project → Settings → Environment Variables →
           Add <strong>ADMIN_PASSWORD</strong> → Redeploy.
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title">🛒 Pricing Plans</div>
+        <div class="field-hint" style="margin:-4px 0 12px">
+          What players see and pay for in the app's self-serve Buy/Renew screen.
+        </div>
+        <div id="tierRows"></div>
+        <button class="tier-add" onclick="addPricingTier()">+ Add a plan</button>
+        <button class="btn-gen" style="margin-top:12px" onclick="savePricingTiers()">Save Plans</button>
+        <div class="save-msg" id="tierSaveMsg">✓ Plans saved!</div>
+        <div class="error-msg" id="tierError"></div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title" style="justify-content:space-between">
+          <span>🎁 Referrals</span>
+          <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
+        </div>
+        <div id="referralsList">
+          <div style="font-size:13px;color:var(--on-sv)">Loading…</div>
         </div>
       </div>
       <div class="settings-card">
@@ -631,6 +718,7 @@ function bootAdmin() {
   loadConfig();
   loadSubscriptions();
   loadParseErrors();
+  loadRequests();
 }
 
 function logout() {
@@ -643,13 +731,14 @@ function logout() {
 
 /* ── TABS ── */
 function switchTab(tab) {
-  ['subscriptions','live','settings'].forEach(t => {
+  ['requests','subscriptions','live','settings'].forEach(t => {
     document.getElementById('tabBtn' + t[0].toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
     const el = document.getElementById('tab' + t[0].toUpperCase() + t.slice(1));
     if (el) el.classList.toggle('active', t === tab);
   });
+  if (tab === 'requests') loadRequests();
   if (tab === 'subscriptions') loadSubscriptions();
-  if (tab === 'settings') loadParseErrors();
+  if (tab === 'settings') { loadParseErrors(); loadRequests(); }
   // the Live tab polls while it is the one on screen, and stops when it is not
   if (tab === 'live') startLivePolling(); else stopLivePolling();
 }
@@ -693,6 +782,7 @@ async function loadConfig() {
     document.getElementById('cfgUpi').value = cfg.upiId || '';
     document.getElementById('cfgWa').value = cfg.whatsappNumber || '';
     document.getElementById('headerSub').textContent = cfg.upiId ? `UPI: ${cfg.upiId}` : 'UPI not set';
+    renderPricingEditor(cfg.pricingTiers || []);
   } catch(e) {}
 }
 
@@ -708,11 +798,182 @@ async function saveConfig() {
       body: JSON.stringify({ password: adminPwd, upiId: upi, whatsappNumber: wa })
     });
     if (!r.ok) { const d = await r.json(); errEl.textContent = d.error; errEl.style.display = 'block'; return; }
-    cfg = { upiId: upi, whatsappNumber: wa };
+    cfg = { ...cfg, upiId: upi, whatsappNumber: wa };
     msgEl.style.display = 'block';
     document.getElementById('headerSub').textContent = upi ? `UPI: ${upi}` : 'UPI not set';
     setTimeout(() => msgEl.style.display = 'none', 3000);
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+}
+
+/* ── PRICING PLANS ── */
+/* A tier's id is what a pending purchase request points at (planId). It has
+   to survive an unrelated edit elsewhere in the list — re-deriving it from
+   the label on every save would silently orphan any request still in
+   flight against the old id the moment the admin tweaks a different row. */
+function newTierId() {
+  return 'tier-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function renderPricingEditor(tiers) {
+  const el = document.getElementById('tierRows');
+  if (!el) return;
+  if (!tiers.length) tiers = [{ id: newTierId(), label: '', months: 1, maxDevices: 1, price: '' }];
+  el.innerHTML = tiers.map(t => `
+    <div class="tier-row" data-id="${esc(t.id || newTierId())}">
+      <input placeholder="Plan name" value="${esc(t.label || '')}" data-f="label">
+      <input type="number" min="1" max="36" placeholder="Months" value="${t.months || 1}" data-f="months">
+      <input type="number" min="1" max="5" placeholder="Devices" value="${t.maxDevices || 1}" data-f="maxDevices">
+      <input type="number" min="0" placeholder="₹ Price" value="${t.price || ''}" data-f="price">
+      <button class="tier-del" onclick="this.closest('.tier-row').remove()" title="Remove">&times;</button>
+    </div>`).join('');
+}
+function addPricingTier() {
+  const el = document.getElementById('tierRows');
+  el.insertAdjacentHTML('beforeend', `
+    <div class="tier-row" data-id="${newTierId()}">
+      <input placeholder="Plan name" data-f="label">
+      <input type="number" min="1" max="36" placeholder="Months" value="1" data-f="months">
+      <input type="number" min="1" max="5" placeholder="Devices" value="1" data-f="maxDevices">
+      <input type="number" min="0" placeholder="₹ Price" data-f="price">
+      <button class="tier-del" onclick="this.closest('.tier-row').remove()" title="Remove">&times;</button>
+    </div>`);
+}
+async function savePricingTiers() {
+  const errEl = document.getElementById('tierError');
+  const msgEl = document.getElementById('tierSaveMsg');
+  errEl.style.display = 'none'; msgEl.style.display = 'none';
+  const rows = [...document.querySelectorAll('#tierRows .tier-row')];
+  const tiers = rows.map(row => {
+    const get = f => row.querySelector(`[data-f="${f}"]`).value;
+    return { id: row.dataset.id || newTierId(),
+      label: get('label'), months: parseInt(get('months')) || 1,
+      maxDevices: parseInt(get('maxDevices')) || 1, price: parseInt(get('price')) || 0 };
+  }).filter(t => t.label && t.price > 0);
+
+  if (!tiers.length) { errEl.textContent = 'Add at least one plan with a name and price'; errEl.style.display = 'block'; return; }
+
+  try {
+    const r = await fetch('/api/save-config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPwd, upiId: cfg.upiId || '', whatsappNumber: cfg.whatsappNumber || '', pricingTiers: tiers })
+    });
+    if (!r.ok) { const d = await r.json(); errEl.textContent = d.error; errEl.style.display = 'block'; return; }
+    cfg.pricingTiers = tiers;
+    renderPricingEditor(tiers);
+    msgEl.style.display = 'block';
+    setTimeout(() => msgEl.style.display = 'none', 3000);
+  } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
+}
+
+/* ── PURCHASE / RENEWAL REQUESTS ── */
+let lastRequests = [], lastReferrals = [];
+
+async function loadRequests() {
+  try {
+    const r = await fetch(`/api/purchase?password=${encodeURIComponent(adminPwd)}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    lastRequests = data.requests || [];
+    lastReferrals = data.referrals || [];
+    renderRequests();
+    renderReferrals();
+    const pending = lastRequests.filter(r => r.status === 'pending').length;
+    const badge = document.getElementById('reqBadge');
+    if (badge) { badge.textContent = pending; badge.classList.toggle('off', pending === 0); }
+  } catch(e) {}
+}
+
+function reqAgo(ms) {
+  const mins = Math.floor((Date.now() - ms) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function renderRequests() {
+  const el = document.getElementById('requestsList');
+  const countEl = document.getElementById('reqCount');
+  const pending = lastRequests.filter(r => r.status === 'pending');
+  const resolved = lastRequests.filter(r => r.status !== 'pending').slice(0, 15);
+  countEl.textContent = pending.length;
+  countEl.className = 'list-count' + (pending.length ? ' has-active' : '');
+
+  if (!lastRequests.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🛒</div><div class="empty-txt">No requests yet</div></div>';
+    return;
+  }
+
+  const row = r => {
+    const isRenew = r.type === 'renew';
+    const priceLine = r.credit > 0
+      ? `₹${r.amount} <span style="opacity:.6">(₹${r.price} − ₹${r.credit} credit)</span>` : `₹${r.amount}`;
+    const actions = r.status === 'pending'
+      ? `<div class="req-actions">
+          <button class="btn-approve" onclick="approveRequest('${r.id}')">✓ Approve</button>
+          <button class="btn-reject" onclick="rejectRequest('${r.id}')">✕ Reject</button>
+        </div>`
+      : `<div class="req-resolved">${r.status === 'approved' ? '✓ Approved' : r.status === 'rejected' ? '✕ Rejected — ' + esc(r.reason || '') : r.status}${r.resolvedAt ? ' · ' + reqAgo(r.resolvedAt) : ''}</div>`;
+    return `
+      <div class="req-row ${isRenew ? 'is-renew' : 'is-new'}">
+        <div class="req-top">
+          <span class="req-name">${esc(r.playerName)}</span>
+          <span class="req-type ${isRenew ? 'renew' : 'new'}">${isRenew ? 'Renewal' : 'New'}</span>
+          <span class="req-wait">${reqAgo(r.createdAt)}</span>
+        </div>
+        <div class="req-meta">
+          <b>${esc(r.planLabel)}</b> · ${priceLine}
+          ${r.phone ? ` · 📱 ${esc(r.phone)}` : ''}
+          ${r.referralCode ? ` · referred by <b>${esc(r.referralCode)}</b>` : ''}
+          ${isRenew ? ` · key <code>${esc(r.existingKey || '')}</code>` : ''}
+        </div>
+        ${actions}
+      </div>`;
+  };
+
+  let html = '';
+  if (pending.length) html += pending.map(row).join('');
+  else html += '<div class="empty"><div class="empty-ico">✓</div><div class="empty-txt">Nothing waiting on you</div></div>';
+  if (resolved.length) html += `<div class="group-hdr">Recently resolved</div>` + resolved.map(row).join('');
+  el.innerHTML = html;
+}
+
+async function approveRequest(id) {
+  const r = await postPurchaseAction({ action: 'approve', reqId: id });
+  if (r && r.error) { alert(r.error); return; }
+  loadRequests(); loadSubscriptions();
+}
+async function rejectRequest(id) {
+  const reason = prompt('Reason (shown to the player), or leave blank for the default message:');
+  if (reason === null) return;   // cancelled
+  await postPurchaseAction({ action: 'reject', reqId: id, reason: reason || undefined });
+  loadRequests();
+}
+async function postPurchaseAction(body) {
+  try {
+    const r = await fetch('/api/purchase', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, password: adminPwd })
+    });
+    return await r.json();
+  } catch(e) { alert('Network error.'); return null; }
+}
+
+/* ── REFERRALS ── */
+function renderReferrals() {
+  const el = document.getElementById('referralsList');
+  if (!el) return;
+  if (!lastReferrals.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--on-sv)">No referrals yet — a subscriber\'s code shows in their own app once they have one.</div>';
+    return;
+  }
+  el.innerHTML = lastReferrals.map(r => `
+    <div class="ref-row">
+      <span>${esc(r.referrerName)}</span>
+      <span class="ref-arrow">→</span>
+      <span>${esc(r.referredName)}</span>
+      <span class="ref-amount">+₹${r.amount}</span>
+    </div>`).join('');
 }
 
 /* ── SUBSCRIPTIONS: CREATE ── */

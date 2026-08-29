@@ -2973,6 +2973,24 @@ async function reportParseErrorsWithFiles(badTickets,sheetFileObj,sheetMethod){
   }
 }
 
+/* A file that produced NO sheets at all — nothing to extract a ticket-level
+   reason from, but this is exactly the case where having the actual file to
+   look at matters most: it's a total parser failure, not a few bad cells. */
+async function reportFileFailure(file,method,reason){
+  const baseName=(file.name||'file').replace(/\.[^/.]+$/,'');
+  const payload={action:'report',errors:[{
+    sheetName:baseName,ticketId:'(whole file)',rows:0,count:0,nums:[],
+    reason:reason||'Could not read any tickets from this file'
+  }]};
+  if(file.size<=MAX_REPORT_FILE_BYTES){
+    try{ payload.file={name:file.name,data:await fileToBase64(file),method:method||''}; }
+    catch(e){ /* text-only report still goes out below */ }
+  }
+  try{
+    await fetch('/api/payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  }catch(e){}
+}
+
 /* ══ FILE UPLOAD ══ */
 async function handleUpload(e){
   const files=Array.from(e.target.files);if(!files.length)return;
@@ -2995,7 +3013,11 @@ async function handleUpload(e){
       if(result.warnings&&result.warnings.some(w=>/ocr/i.test(w))) ocrFailed=true;
       if(result.imageOnly&&result.warnings&&result.warnings.length)
         problems.push({kind:'scan-partial',file:f.name,msg:result.warnings[0]});
-      if(!ns.length){errs.push(f.name);continue;}
+      if(!ns.length){
+        errs.push(f.name);
+        reportFileFailure(f,result.method,(result.warnings&&result.warnings[0])||'No readable tickets found in this file');
+        continue;
+      }
       ns.forEach(s=>{
         const i=sheets.findIndex(x=>x.name===s.name);
         // two DIFFERENT files landing on the same sheet name silently drops
@@ -3013,6 +3035,11 @@ async function handleUpload(e){
       console.error(f.name,err);errs.push(f.name);
       problems.push(classifyLoadError(err,f.name));
       if(/ocr|service unavailable/i.test(err.message||'')) ocrFailed=true;
+      // A file that throws entirely (unreadable PDF, a photo mistaken for
+      // one, a network hiccup mid-OCR) is exactly the case an admin most
+      // wants the actual file for — capture it here too, not just the ones
+      // that partially parsed.
+      reportFileFailure(f,'',err.message||'Could not read this file');
     }
   }
   $('loadingOv').classList.add('off');

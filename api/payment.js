@@ -57,7 +57,10 @@ module.exports = async function(req, res) {
      a failed or oversized upload still saves the text summary, since that
      was the entire behaviour before this existed. */
   if (action === 'report') {
-    if (await rateLimit(req, 'parsereport', 20, 3600))
+    // One report per FAILING FILE now, not one per batch — a single large
+    // upload with a lot of trouble in it can legitimately fire many of
+    // these in a row, so this needs real headroom, not a login-style limit.
+    if (await rateLimit(req, 'parsereport', 60, 3600))
       return res.status(429).json({ ok: false });
     const { errors, file } = req.body;
     if (!Array.isArray(errors) || !errors.length) return res.status(400).json({ ok: false });

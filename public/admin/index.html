@@ -299,9 +299,10 @@ select.field{cursor:pointer}
 .pe-del:hover{color:var(--error)}
 .pe-line{color:#5D4037;line-height:1.6}
 .pe-file-link{margin-left:auto;font-size:11px;font-weight:700;color:#EF6C00;
-  background:#FFE0B2;border-radius:6px;padding:2px 8px;text-decoration:none;
-  white-space:nowrap}
+  background:#FFE0B2;border-radius:6px;padding:3px 9px;border:none;
+  cursor:pointer;font-family:inherit;white-space:nowrap}
 .pe-file-link:hover{background:#FFCC80}
+.pe-file-link:disabled{opacity:.6;cursor:wait}
 .pe-entry-top .pe-file-link + .pe-del{margin-left:0}
 
 /* ── COMPACT SUBSCRIBER ROW ── */
@@ -1392,6 +1393,32 @@ function peFileSize(n) {
   if (!n) return '';
   return n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
+
+/* A plain <a href> to the stored blob just navigates to view it (PDFs open
+   in the browser's own viewer) — the browser's download attribute is
+   ignored for cross-origin links like the blob storage URL, so it never
+   actually acted like a download button. Fetching the bytes and saving
+   from a local blob: URL works regardless of the file's origin. */
+async function downloadParseErrorFile(btn) {
+  const url = btn.dataset.url, name = btn.dataset.name || 'sheet.pdf';
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('fetch failed');
+    const blob = await r.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+  } catch (e) {
+    // fall back to just opening it — still better than nothing
+    window.open(url, '_blank', 'noopener');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
 function peDayKey(ms) { return new Date(ms).toISOString().slice(0, 10); }
 function peDayLabel(key) {
   const today = peDayKey(Date.now());
@@ -1483,7 +1510,8 @@ function renderParseErrors() {
           <div class="pe-entry-top">
             <span class="pe-time">${new Date(l.reportedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
             <span class="pe-day-count">${l.errors.length} ticket${l.errors.length===1?'':'s'}</span>
-            ${l.fileUrl ? `<a class="pe-file-link" href="${esc(l.fileUrl)}" target="_blank" rel="noopener" title="${esc(l.fileName||'')} · ${peFileSize(l.fileSize)}">📎 ${esc(l.method||'file')}</a>` : ''}
+            ${l.fileUrl ? `<button class="pe-file-link" data-url="${esc(l.fileUrl)}" data-name="${esc(l.fileName||'sheet.pdf')}"
+                onclick="downloadParseErrorFile(this)" title="${esc(l.fileName||'')} · ${peFileSize(l.fileSize)}">⬇ ${esc(l.method||'file')}</button>` : ''}
             <button class="pe-del" title="Delete this report" onclick="deleteParseError('${esc(l.id)}')">&times;</button>
           </div>
           ${l.errors.map(e => `<div class="pe-line">• Sheet <b>${esc(e.sheetName)}</b> Ticket <b>#${esc(e.ticketId)}</b> — ${

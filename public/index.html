@@ -1365,11 +1365,25 @@ function getDeviceId(){
 }
 
 /* ══ STORAGE ══ */
+/* A big load (100+ sheets) can push the saved state past the browser's
+   localStorage quota, and setItem throws when that happens. Uncaught, that
+   silently killed everything AFTER this call in handleUpload() — the loading
+   spinner would clear but showSetup()/showGame() never ran, which looked
+   exactly like "loading just stops working" past some sheet count that
+   varies by device. Returns whether the save actually stuck, so a caller
+   that cares (handleUpload does) can tell the player plainly instead of the
+   game silently continuing on state nothing agrees is actually saved. */
 function save(){
-  localStorage.setItem('tb_s',JSON.stringify(sheets));
-  localStorage.setItem('tb_c',JSON.stringify(called));
-  localStorage.setItem('tb_a',JSON.stringify([...active]));
-  localStorage.setItem('tb_cl',JSON.stringify(claimed));
+  try{
+    localStorage.setItem('tb_s',JSON.stringify(sheets));
+    localStorage.setItem('tb_c',JSON.stringify(called));
+    localStorage.setItem('tb_a',JSON.stringify([...active]));
+    localStorage.setItem('tb_cl',JSON.stringify(claimed));
+    return true;
+  }catch(e){
+    console.error('save() failed',e);
+    return false;
+  }
 }
 function loadSaved(){
   try{
@@ -3014,9 +3028,15 @@ async function handleUpload(e){
   const badTickets=validateSheets(sheets);
   total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
   if(!total){toast('No valid tickets found after validation');return;}
-  save();
+  // A save() failure (storage quota, private-browsing restrictions) must
+  // never abort the load — the sheets are already in memory and playable
+  // this session, just not guaranteed to survive a refresh. Say so plainly
+  // rather than let the flow silently die here, past whatever sheet count
+  // happens to tip this device's quota over.
+  const saved=save();
   const scanNote=problems.find(p=>p.kind==='scan-partial'||p.kind==='scan');
-  if(scanNote) toast(`${scanNote.file} is an image, not a real PDF — check every number, or ask for the original PDF`);
+  if(!saved) toast(`Loaded, but couldn't save to this device (storage full) — don't refresh mid-game or you'll lose progress`);
+  else if(scanNote) toast(`${scanNote.file} is an image, not a real PDF — check every number, or ask for the original PDF`);
   else if(collisions.length){
     const c=collisions[0];
     toast(`"${c.to}" replaced "${c.from}" — both read as Sheet ${c.name}. Check the sheet numbers.`);

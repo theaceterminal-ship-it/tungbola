@@ -210,6 +210,15 @@ module.exports = async function(req, res) {
     sub.expiresAt = advanceExpiry(sub.expiresAt, plan);
     sub.months = plan.months; delete sub.days;
     sub.maxDevices = plan.maxDevices;
+    /* A fresh renewal cycle gets a fresh device count. Without this, a
+       subscriber who lost/changed a device (or whose subscription lapsed
+       and got logged out) renews, then finds their OWN first device
+       rejected as "device limit reached" — the slot is still held by a
+       stale device id from before, invisible to them, since nothing about
+       self-serve renewal ever cleared it. Any device still in regular use
+       just re-registers itself on its next verify — this is a no-op for
+       anyone who didn't need it. */
+    sub.devices = [];
     if (sub.status === 'revoked') sub.status = 'active';
     if (r.credit > 0) sub.walletCredit = Math.max(0, (sub.walletCredit || 0) - r.credit);
     await saveSub(sub);

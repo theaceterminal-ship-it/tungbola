@@ -216,7 +216,13 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .drawer-handle{width:32px;height:4px;background:var(--outline);border-radius:2px;
   margin:12px auto 4px}
 .drawer-title{font-size:18px;font-weight:600;padding:10px 20px 14px;
-  border-bottom:1px solid var(--surface-variant)}
+  border-bottom:1px solid var(--surface-variant);
+  display:flex;align-items:center;justify-content:space-between;gap:10px}
+.drawer-add-btn{display:flex;align-items:center;gap:3px;flex-shrink:0;
+  padding:6px 12px;border:none;border-radius:20px;
+  background:var(--primary-container);color:var(--primary);
+  font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.drawer-add-btn .mir{font-size:16px}
 .drawer-search-wrap{padding:12px 16px}
 .drawer-search-input{width:100%;padding:10px 16px;border:1px solid var(--outline);
   border-radius:28px;font-size:14px;outline:none;font-family:inherit;background:var(--bg)}
@@ -1157,9 +1163,9 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
         <input type="text" class="dt-sb-search" id="dtSearch"
           placeholder="Search sheets…" oninput="dtFilterSheets()">
         <input type="file" id="fi2" accept=".pdf,.txt,.json" multiple
-          style="display:none" onchange="handleUpload(event)">
-        <button class="dt-load-btn" onclick="fi2.click()">
-          <span class="mir">upload_file</span> Load Sheets
+          style="display:none" onchange="handleAddSheets(event)">
+        <button class="dt-load-btn" onclick="fi2.click()" title="Add more sheets without losing called numbers or progress">
+          <span class="mir">add</span> Add Sheets
         </button>
       </div>
       <div class="dt-sheet-list" id="dtSheetList"></div>
@@ -1237,7 +1243,13 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
 <div class="sheet-drawer" id="sheetDrawer">
   <div class="drawer-handle"></div>
-  <div class="drawer-title">Select Sheet</div>
+  <div class="drawer-title">
+    <span>Select Sheet</span>
+    <input type="file" id="fi3" accept=".pdf,.txt,.json" multiple style="display:none" onchange="handleAddSheets(event)">
+    <button class="drawer-add-btn" onclick="fi3.click()" title="Add more sheets without losing called numbers or progress">
+      <span class="mir">add</span> Add Sheets
+    </button>
+  </div>
   <div class="drawer-search-wrap">
     <input type="text" class="drawer-search-input" id="drawerSearch"
       placeholder="Search sheets…" oninput="filterDrawer()">
@@ -2991,13 +3003,18 @@ async function reportFileFailure(file,method,reason){
   }catch(e){}
 }
 
-/* ══ FILE UPLOAD ══ */
-async function handleUpload(e){
-  const files=Array.from(e.target.files);if(!files.length)return;
-  e.target.value='';
-  $('loadingOv').classList.remove('off');
-  clearGame();sheets=[];
+const MAX_SHEETS=150;
+
+/* ══ FILE PARSING (shared) ══
+   Turns a FileList into parsed sheets plus every bit of diagnostic detail
+   the two callers need — handleUpload() (fresh load, replaces everything)
+   and handleAddSheets() (mid-game, merges on top of what's already loaded).
+   Collision tracking here is only WITHIN this one batch of files; a clash
+   against sheets already in the game is each caller's own business, since
+   "replace" and "merge" disagree about what to do with it. */
+async function parseSheetFiles(files){
   let total=0,errs=[],ocrFailed=false;const problems=[];
+  const parsed=[];
   const sheetSource={};   // sheet name -> filename it came from, to catch a same-name collision
   const sheetFileObj={};  // sheet name -> the actual File, so a bad sheet's report can attach it
   const sheetMethod={};   // sheet name -> how it was read (pdf-text/pdf-ocr/ocr-image/...)
@@ -3019,7 +3036,7 @@ async function handleUpload(e){
         continue;
       }
       ns.forEach(s=>{
-        const i=sheets.findIndex(x=>x.name===s.name);
+        const i=parsed.findIndex(x=>x.name===s.name);
         // two DIFFERENT files landing on the same sheet name silently drops
         // one of them (the later file replaces the earlier one) — worth
         // surfacing, since it usually means a sheet number wasn't read right
@@ -3028,7 +3045,7 @@ async function handleUpload(e){
         sheetSource[s.name]=f.name;
         sheetFileObj[s.name]=f;
         sheetMethod[s.name]=result.method||'';
-        if(i>=0)sheets[i]=s;else sheets.push(s);
+        if(i>=0)parsed[i]=s;else parsed.push(s);
       });
       total+=ns.reduce((s,sh)=>s+sh.tickets.length,0);
     }catch(err){
@@ -3042,18 +3059,28 @@ async function handleUpload(e){
       reportFileFailure(f,'',err.message||'Could not read this file');
     }
   }
+  return {sheets:parsed,total,errs,problems,ocrFailed,sheetSource,sheetFileObj,sheetMethod,collisions};
+}
+
+/* ══ FILE UPLOAD (fresh load — replaces everything) ══ */
+async function handleUpload(e){
+  const files=Array.from(e.target.files);if(!files.length)return;
+  e.target.value='';
+  $('loadingOv').classList.remove('off');
+  clearGame();sheets=[];
+  const r=await parseSheetFiles(files);
   $('loadingOv').classList.add('off');
-  if(!total){
-    toast(loadErrorMessage(problems,errs));
+  if(!r.total){
+    toast(loadErrorMessage(r.problems,r.errs));
     return;
   }
-  const MAX_SHEETS=150;
+  sheets=r.sheets;
   if(sheets.length>MAX_SHEETS){
     sheets=sheets.slice(0,MAX_SHEETS);
     toast(`Limit: only first ${MAX_SHEETS} sheets loaded for best performance`);
   }
   const badTickets=validateSheets(sheets);
-  total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
+  const total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
   if(!total){toast('No valid tickets found after validation');return;}
   // A save() failure (storage quota, private-browsing restrictions) must
   // never abort the load — the sheets are already in memory and playable
@@ -3061,18 +3088,92 @@ async function handleUpload(e){
   // rather than let the flow silently die here, past whatever sheet count
   // happens to tip this device's quota over.
   const saved=save();
-  const scanNote=problems.find(p=>p.kind==='scan-partial'||p.kind==='scan');
+  const scanNote=r.problems.find(p=>p.kind==='scan-partial'||p.kind==='scan');
   if(!saved) toast(`Loaded, but couldn't save to this device (storage full) — don't refresh mid-game or you'll lose progress`);
   else if(scanNote) toast(`${scanNote.file} is an image, not a real PDF — check every number, or ask for the original PDF`);
-  else if(collisions.length){
-    const c=collisions[0];
+  else if(r.collisions.length){
+    const c=r.collisions[0];
     toast(`"${c.to}" replaced "${c.from}" — both read as Sheet ${c.name}. Check the sheet numbers.`);
   }
-  else if(errs.length) toast(`Loaded ${total} tickets (${errs.length} files failed)`);
+  else if(r.errs.length) toast(`Loaded ${total} tickets (${r.errs.length} files failed)`);
   if(badTickets.length){
-    reportParseErrorsWithFiles(badTickets,sheetFileObj,sheetMethod);
+    reportParseErrorsWithFiles(badTickets,r.sheetFileObj,r.sheetMethod);
     showParseWarning(badTickets,showSetup);
   }else showSetup();
+}
+
+/* ══ ADD SHEETS MID-GAME ══
+   An operator often doesn't have every sheet in hand when the game starts —
+   a late-arriving player, or just a smaller stack handed out first. This
+   merges more sheets into the game that's already running, instead of
+   handleUpload()'s clearGame()+replace, and immediately marks every number
+   that's already been called on each new ticket so a latecomer's sheet is
+   caught up to the live game rather than starting from zero.
+   checkWins() afterwards is already safe to call as-is: every prize here is
+   claimed once per GAME (claimed[key], not per ticket), so a freshly-caught-up
+   ticket can only win a prize nobody has claimed yet — exactly like handing
+   someone a sheet mid-game at a real tambola hall, never retroactively. */
+async function handleAddSheets(e){
+  const files=Array.from(e.target.files);if(!files.length)return;
+  e.target.value='';
+  if(sheets.length>=MAX_SHEETS){
+    toast(`Already at the ${MAX_SHEETS}-sheet limit — remove some before adding more`);
+    return;
+  }
+  $('loadingOv').classList.remove('off');
+  $('loadMsg').textContent='Reading new sheets…';
+  const r=await parseSheetFiles(files);
+  $('loadingOv').classList.add('off');
+  if(!r.total){
+    toast(loadErrorMessage(r.problems,r.errs));
+    return;
+  }
+
+  // A sheet NAME already in this game is a real conflict, not a dup to
+  // silently overwrite — overwriting would wipe that sheet's marks and
+  // win history mid-game. Skip it and say so, keep the rest.
+  const existingNames=new Set(sheets.map(s=>s.name));
+  const clashes=r.sheets.filter(s=>existingNames.has(s.name));
+  let incoming=r.sheets.filter(s=>!existingNames.has(s.name));
+
+  const room=MAX_SHEETS-sheets.length;
+  let trimmed=false;
+  if(incoming.length>room){ incoming=incoming.slice(0,room); trimmed=true; }
+
+  if(!incoming.length){
+    toast(clashes.length
+      ? `Sheet ${clashes.map(c=>c.name).join(', ')} ${clashes.length>1?'are':'is'} already in this game`
+      : 'Nothing new to add');
+    return;
+  }
+
+  const badTickets=validateSheets(incoming);
+  const calledSet=new Set(called);
+  let caughtUp=0,newTickets=0;
+  incoming.forEach(sh=>{
+    sh.tickets.forEach(t=>{
+      newTickets++;
+      t.numbers.forEach((v,i)=>{ if(v!==null&&calledSet.has(v)&&!t.marked[i]){t.marked[i]=true;caughtUp++;} });
+    });
+  });
+
+  sheets.push(...incoming);
+  const saved=save();
+  renderAll();
+  checkWins();
+
+  const parts=[`Added ${incoming.length} sheet${incoming.length!==1?'s':''} (${newTickets} ticket${newTickets!==1?'s':''})`];
+  if(called.length) parts.push(`caught up to ${called.length} called number${called.length!==1?'s':''}`);
+  let msg=parts.join(' · ');
+  if(!saved) msg+=" — couldn't save to this device (storage full)";
+  else if(clashes.length) msg+=` · skipped ${clashes.map(c=>c.name).join(', ')} (already in game)`;
+  else if(trimmed) msg+=` · stopped at the ${MAX_SHEETS}-sheet limit`;
+  toast(msg);
+
+  if(badTickets.length){
+    reportParseErrorsWithFiles(badTickets,r.sheetFileObj,r.sheetMethod);
+    showParseWarning(badTickets,()=>{});
+  }
 }
 
 /* ══ PDF → TEXT ══ */

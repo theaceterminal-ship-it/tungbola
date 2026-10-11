@@ -1751,6 +1751,21 @@ function loadErrorMessage(problems,errs){
 /* ══ SUBSCRIPTION ══ */
 /* Shared by "enter a key" and by a self-serve buy/renew once it's approved —
    both end the same way: verify the key, build gameSession, land on welcome. */
+/* Builds gameSession from a /api/subscription verify response — shared by
+   activateWithKey (first activation) and silentVerifySubscription (every
+   later resume), so the two billing-type shapes (calendar subscription vs.
+   wallet balance) are only branched in one place. */
+function gameSessionFromVerify(key,data){
+  if(data.billingType==='wallet'){
+    return {type:'wallet',key,playerName:data.playerName,
+      walletBalance:data.walletBalance||0,pendingLock:data.pendingLock||null,
+      referralCode:data.referralCode||null};
+  }
+  return {type:'subscription',key,playerName:data.playerName,
+    plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft,
+    referralCode:data.referralCode||null,walletCredit:data.walletCredit||0};
+}
+
 async function activateWithKey(key,welcomeMsg){
   const r=await fetch('/api/subscription',{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -1760,9 +1775,7 @@ async function activateWithKey(key,welcomeMsg){
   if(!r.ok) return {ok:false,error:data.error||'Verification failed'};
   subscriptionKey=key;
   localStorage.setItem('tb_sub',JSON.stringify({key}));
-  gameSession={type:'subscription',key,playerName:data.playerName,
-    plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft,
-    referralCode:data.referralCode||null,walletCredit:data.walletCredit||0};
+  gameSession=gameSessionFromVerify(key,data);
   localStorage.setItem('tb_pay',JSON.stringify(gameSession));
   updateSubStatusBar();
   updateRenewNotice();
@@ -1989,7 +2002,7 @@ async function silentVerifySubscription(){
     if(!r.ok){
       localStorage.removeItem('tb_sub');
       subscriptionKey=null;
-      if(gameSession?.type==='subscription'){
+      if(gameSession){
         gameSession=null;
         localStorage.removeItem('tb_pay');
         $('btnContinue').classList.add('off');
@@ -1998,9 +2011,7 @@ async function silentVerifySubscription(){
       return;
     }
     const data=await r.json();
-    gameSession={type:'subscription',key:subscriptionKey,playerName:data.playerName,
-      plan:data.plan,expiresAt:data.expiresAt,daysLeft:data.daysLeft,
-      referralCode:data.referralCode||null,walletCredit:data.walletCredit||0};
+    gameSession=gameSessionFromVerify(subscriptionKey,data);
     localStorage.setItem('tb_pay',JSON.stringify(gameSession));
     updateSubStatusBar();
     updateRenewNotice();
@@ -2072,10 +2083,27 @@ function updateRenewNotice(){
   n.classList.remove('hidden');
 }
 
+// A wallet session shows a live balance instead of a calendar countdown;
+// "low" mirrors the spirit of RENEWAL_NOTICE_DAYS (a heads-up before you
+// actually run out, not after) — enough for a handful of sheets at a
+// typical per-sheet price, not an exact one.
+const WALLET_LOW_BALANCE=20;
+
 function updateSubStatusBar(){
   const bar=$('subStatusBar');
   if(!bar) return;
-  if(gameSession?.type==='subscription'){
+  if(gameSession?.type==='wallet'){
+    const bal=gameSession.walletBalance||0;
+    const locked=gameSession.pendingLock?.amount||0;
+    const lockedTxt=locked>0?` (₹${locked} locked)`:'';
+    $('subStatusTxt').textContent=`${gameSession.playerName} · ₹${bal} balance${lockedTxt}`;
+    const low=bal<=WALLET_LOW_BALANCE;
+    const ico=bar.querySelector('.mir');
+    if(ico) ico.textContent=low?'account_balance_wallet':'verified_user';
+    bar.style.background=low?'#FFF3E0':'';
+    bar.style.color=low?'#E65100':'';
+    bar.classList.remove('hidden');
+  }else if(gameSession?.type==='subscription'){
     const daysLeft=Math.max(0,Math.ceil((gameSession.expiresAt-Date.now())/86400000));
     // the API sends a ready label ("3 Months", "1 Year"); older keys only had a plan word
     const plan=gameSession.plan||'Subscription';
@@ -2112,6 +2140,11 @@ function copyReferralCode(){
 /* ══ END GAME ══ */
 async function endGame(){
   if(!confirm('End this game session? This cannot be undone.')) return;
+  // Nothing was ever called in this session -> nothing was ever "played".
+  // Give the reservation back rather than quietly keeping it locked forever.
+  if(gameSession?.type==='wallet'&&gameSession.pendingLock&&called.length===0){
+    await releaseWalletLock();
+  }
   // the subscription itself survives ending a game — only the board is cleared
   ['tb_s','tb_c','tb_a','tb_cl'].forEach(k=>localStorage.removeItem(k));
   sheets=[];called=[];winQ=[];winLog=[];winShowing=false;currentWin=null;
@@ -2473,6 +2506,9 @@ function doMark(){
 function callNumber(n,fromRedo=false){
   if(!fromRedo) redoStack=[];
   called.push(n);
+  // The game's first call turns this session's reservation into a real
+  // debit — fire-and-forget, never let billing stall calling numbers.
+  if(gameSession?.type==='wallet'&&gameSession.pendingLock) captureWalletLock();
   let hits=0;
   sheets.forEach(sh=>sh.tickets.forEach(t=>{
     t.numbers.forEach((v,i)=>{if(v===n){t.marked[i]=true;hits++;}});
@@ -3003,6 +3039,70 @@ async function reportFileFailure(file,method,reason){
   }catch(e){}
 }
 
+/* ══ WALLET BILLING (pay-per-sheet) ══
+   Only active when gameSession.type==='wallet'. A subscription session never
+   calls any of this — every function below checks the type itself, so the
+   call sites in handleUpload/handleAddSheets/callNumber/endGame stay a
+   single `if` each rather than needing to know the mechanics.
+
+   lock    — fresh load (handleUpload): reserves the cost up front, refunding
+             whatever lock already existed first — see api/wallet.js, "lock"
+             always supersedes rather than adding on top.
+   extend  — more sheets added before the game's first call (handleAddSheets):
+             grows that same reservation.
+   charge  — more sheets added AFTER the first call: the game's already
+             running, so this debits immediately instead of reserving.
+   capture — fired once, the moment the session's first number is called:
+             turns the reservation into a real, permanent debit.
+   release — backing out of an empty, not-yet-started game (End Game with
+             nothing called): gives the reservation back.             */
+async function walletApi(action,extra){
+  if(!subscriptionKey) return {ok:false,error:'Not signed in'};
+  try{
+    const r=await fetch('/api/wallet',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,key:subscriptionKey,deviceId:getDeviceId(),...extra})
+    });
+    const data=await r.json();
+    if(!r.ok) return {ok:false,error:data.error||'Wallet request failed'};
+    return {ok:true,...data};
+  }catch(e){ return {ok:false,error:'Network error — check your connection and try again'}; }
+}
+function applyWalletResult(res){
+  if(!gameSession||gameSession.type!=='wallet') return;
+  if('balance' in res) gameSession.walletBalance=res.balance;
+  localStorage.setItem('tb_pay',JSON.stringify(gameSession));
+  updateSubStatusBar();
+}
+async function walletLockSheets(n){
+  const res=await walletApi('lock',{sheets:n});
+  if(res.ok){ gameSession.pendingLock={amount:res.locked,sheets:res.totalSheets}; applyWalletResult(res); }
+  return res;
+}
+async function walletExtendOrCharge(n,afterFirstCall){
+  const res=await walletApi(afterFirstCall?'charge':'extend',{sheets:n});
+  if(res.ok){
+    if(!afterFirstCall) gameSession.pendingLock={amount:res.locked,sheets:res.totalSheets};
+    applyWalletResult(res);
+  }
+  return res;
+}
+// Fire-and-forget on purpose — calling numbers must never stall on a network
+// round trip. A failure here just leaves pendingLock in place; the next
+// number called tries again (capture is idempotent — see api/wallet.js).
+function captureWalletLock(){
+  walletApi('capture',{}).then(res=>{
+    if(!res.ok) return;
+    if(gameSession?.type==='wallet') gameSession.pendingLock=null;
+    applyWalletResult(res);
+  }).catch(()=>{});
+}
+async function releaseWalletLock(){
+  const res=await walletApi('release',{});
+  if(res.ok&&gameSession?.type==='wallet'){ gameSession.pendingLock=null; applyWalletResult(res); }
+  return res;
+}
+
 const MAX_SHEETS=150;
 
 /* ══ FILE PARSING (shared) ══
@@ -3082,6 +3182,19 @@ async function handleUpload(e){
   const badTickets=validateSheets(sheets);
   const total=sheets.reduce((s,sh)=>s+sh.tickets.length,0);
   if(!total){toast('No valid tickets found after validation');return;}
+
+  // Wallet billing: reserve the cost before this load becomes the live
+  // game. Any lock from a now-abandoned previous session is refunded
+  // automatically as part of computing this one — see api/wallet.js.
+  if(gameSession?.type==='wallet'){
+    const lockRes=await walletLockSheets(sheets.length);
+    if(!lockRes.ok){
+      sheets=[];
+      toast(lockRes.error);
+      return;
+    }
+  }
+
   // A save() failure (storage quota, private-browsing restrictions) must
   // never abort the load — the sheets are already in memory and playable
   // this session, just not guaranteed to survive a refresh. Say so plainly
@@ -3145,6 +3258,18 @@ async function handleAddSheets(e){
       ? `Sheet ${clashes.map(c=>c.name).join(', ')} ${clashes.length>1?'are':'is'} already in this game`
       : 'Nothing new to add');
     return;
+  }
+
+  // Wallet billing: before the first call this extends the pending lock
+  // (still just reserved); after it, the game's genuinely running, so this
+  // debits immediately. Either way, a shortfall blocks the WHOLE add —
+  // nothing merges into the live game half-paid-for.
+  if(gameSession?.type==='wallet'){
+    const chargeRes=await walletExtendOrCharge(incoming.length,called.length>0);
+    if(!chargeRes.ok){
+      toast(chargeRes.error);
+      return;
+    }
   }
 
   const badTickets=validateSheets(incoming);

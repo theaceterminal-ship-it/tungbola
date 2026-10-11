@@ -10,7 +10,7 @@ module.exports = async function(req, res) {
   if (await rateLimit(req, 'saveconfig', 20, 3600))
     return res.status(429).json({ error: 'Too many requests' });
 
-  const { password, upiId, whatsappNumber, pricingTiers } = req.body || {};
+  const { password, upiId, whatsappNumber, pricingTiers, pricePerSheet } = req.body || {};
 
   if (!checkPassword(password, process.env.ADMIN_PASSWORD))
     return res.status(401).json({ error: 'Wrong password' });
@@ -22,7 +22,14 @@ module.exports = async function(req, res) {
     whatsappNumber: String(whatsappNumber || '').replace(/\D/g, '').slice(0, 15),
     // omitted entirely -> keep whatever was there; sent -> replace (lets the
     // Settings form save UPI/WhatsApp and pricing independently if it wants to)
-    pricingTiers: Array.isArray(pricingTiers) ? sanitizeTiers(pricingTiers) : (prev.pricingTiers || [])
+    pricingTiers: Array.isArray(pricingTiers) ? sanitizeTiers(pricingTiers) : (prev.pricingTiers || []),
+    // Same omitted-keeps-previous rule. 0/blank explicitly CLEARS it (admin
+    // turning wallet billing back off), distinct from the field never being
+    // sent at all — the Game Settings form always sends it, so in practice
+    // this only stays untouched if some other future caller omits it.
+    pricePerSheet: pricePerSheet === undefined
+      ? (prev.pricePerSheet || null)
+      : (Math.max(0, Math.min(500, Math.round(Number(pricePerSheet) || 0))) || null)
   };
 
   await kv.set('tb:config', cfg);

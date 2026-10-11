@@ -25,7 +25,11 @@ module.exports = async function(req, res) {
     res.json({
       upiId: cfg.upiId || '',
       whatsappNumber: cfg.whatsappNumber || '',
-      pricingTiers: Array.isArray(cfg.pricingTiers) && cfg.pricingTiers.length ? cfg.pricingTiers : DEFAULT_TIERS
+      pricingTiers: Array.isArray(cfg.pricingTiers) && cfg.pricingTiers.length ? cfg.pricingTiers : DEFAULT_TIERS,
+      // Unset on purpose, not defaulted — a wallet account can't be metered
+      // against a guessed number, so api/wallet.js refuses to lock/charge
+      // until the admin sets this explicitly in Settings.
+      pricePerSheet: Number.isFinite(cfg.pricePerSheet) && cfg.pricePerSheet > 0 ? cfg.pricePerSheet : null
     });
   } catch(e) {
     res.json({ upiId: '', whatsappNumber: '', pricingTiers: DEFAULT_TIERS });

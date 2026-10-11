@@ -1,7 +1,9 @@
 # Wallet / pay-per-sheet — design brainstorm
 
-Status: **not implemented yet** — this is the design to react to before any
-data-model or billing code gets written. Branch: `wallet-pay-per-sheet`.
+Status: **v1 implemented on this branch**, pending real-world review. The
+open questions below were resolved in conversation and are recorded here as
+the decisions actually built, not as options still on the table. See
+"What got built" at the end for the concrete shape.
 
 ## The pivot in one line
 
@@ -75,75 +77,47 @@ tb:wallet_tx:<walletKey> = [
 
 ## Open questions — these change the shape of the code, not just the copy
 
-### Q1 — What exactly gets billed, and when?
+### Q1 — What exactly gets billed, and when? — RESOLVED: lock, then capture on first call
 
-Three real candidates, in order of how much they resemble "pay per sheet
-*played*" vs. "pay per sheet *loaded*":
+Neither of the three options this doc originally proposed, quite. The
+actual answer (yours, better than any of the three): **hold the cost at
+load time, only make it a real debit when the game's first number gets
+called.**
 
-- **(a) Debit on load.** Every sheet that enters `sheets[]` via
-  `handleUpload` or `handleAddSheets` debits immediately, success or not
-  tied to anything downstream. Simplest to build — it's one call site
-  (`parseSheetFiles`'s caller) and nothing else in the game loop needs to
-  know about money. Weakness: an operator who loads 150 sheets for a game
-  that only 80 players actually show up for pays for 150. A misclick
-  (load, realize wrong file, reload) double-charges unless reload also
-  refunds the replaced batch.
-- **(b) Debit on first number called that hits that sheet.** Closer to
-  "played" — a loaded-but-never-marked sheet costs nothing. Needs
-  `callNumber` to know about billing (it currently doesn't touch the
-  network at all), and needs a batched/debounced debit so you're not
-  firing a billing API call on every single number call across every
-  sheet — probably "debit any newly-touched sheets once per `callNumber`
-  tick" rather than per-ticket.
-- **(c) Debit at `endGame()` for whatever sheets were loaded in that
-  session.** One debit per game instead of N, easy to show as a single
-  line in the wallet ledger ("Diwali Night — 42 sheets — ₹84"). Weakness:
-  the balance isn't checked *before* sheets are loaded, so you can't block
-  a game from starting on insufficient funds — you'd find out you're
-  overdrawn only at the end, which is the worst possible moment to tell
-  an operator they can't download/keep their results.
+- `handleUpload`/`handleAddSheets` reserve (subtract) the cost immediately
+  — insufficient balance is caught *before* a game starts, not discovered
+  mid-game or after.
+- Nothing is permanently spent yet. Load sheets, never call a number,
+  reload something else instead, end an empty session — the reservation
+  is released and nothing was ever charged.
+- The moment `callNumber`'s first call fires, the reservation becomes a
+  real, permanent debit.
+- Sheets added via Add Sheets *before* that first call extend the same
+  reservation; added *after*, they debit immediately — the game's
+  genuinely running by then.
+- `showGame()` ("Continue Last Game") never touches any of this — it
+  doesn't call `handleUpload`/`handleAddSheets` at all, so resuming a
+  saved game can never re-reserve or re-charge what's already accounted
+  for, by construction rather than a special case.
 
-My read: **(a), with an explicit "undo on reload"** — simplest, matches
-"pay per sheet number they play per sheet" in the literal sense of your
-message, and it's the one `handleUpload`/`handleAddSheets` are already
-built to support cleanly (they're the only two places that touch `sheets`
-at all). (c) is worth a look if "billed once per game, like a tab" reads
-better to operators than "billed the instant I click load," but it means
-balance can go negative mid-game, which needs its own decision (see Q4).
+### Q2 — How does a recharge get approved? — RESOLVED: manual, admin-dashboard, no self-serve flow
 
-### Q2 — How does a recharge get approved?
+Not the purchase-request/approve flow `api/purchase.js` already has for
+subscriptions — deliberately simpler than that. An operator pays the
+admin directly (UPI, outside the app) and confirms over WhatsApp/call/
+chat, same as today. The admin then types the amount straight into the
+Subscribers row — a `+ Balance` action right next to the existing
+`+ Time`, same inline-confirm shape, same trust model the rest of this
+panel already runs on. No QR code for the wallet itself, no pending-
+request queue, no second approval surface to maintain.
 
-This is the one most likely to break the business case, not just the UX.
-The current purchase flow is **manual by design** — the code comment is
-explicit that a UPI deep link has no webhook, so "paid" is never trusted
-automatically, only admin-confirmed. That was fine for monthly renewals:
-maybe a few dozen approvals a day across all subscribers.
-
-A wallet model inverts the frequency. If an operator runs 1000 sheets/day
-at ₹2, a ₹200 top-up lasts them *one hundred sheets* — a few hours, maybe
-less on a busy night. At real multi-operator volume this is tens of
-manual-approval clicks a day, every day, forever — the admin becomes the
-bottleneck the wallet model was supposed to remove, and a stalled
-approval means a host staring at a blocked app mid-event.
-
-Two ways out:
-- **Keep manual approval, but batch the pain** — nudge operators to
-  recharge in bigger chunks (₹500+ instead of ₹100) so approvals stay
-  infrequent even at high sheet volume. Zero integration work, but it's a
-  policy nudge, not a fix — it caps the problem, doesn't remove it.
-- **Add a real payment gateway with a webhook** (Razorpay/Cashfree/PhonePe
-  PG — any of them do UPI collect + webhook). Recharges confirm themselves
-  in seconds, no admin step at all. This is real integration work (API
-  keys, a webhook endpoint, reconciliation, ~2% gateway fee eating into
-  the margin your own math is counting on) but it's what actually makes
-  "pay as you go" live up to the name at the volume you're describing.
-
-I'd want to build the wallet's *data model* gateway-agnostic either way
-(balance, ledger, debit logic — none of that cares how the balance got
-topped up), so this can start manual and swap to a gateway later without
-touching the billing logic at all. But which one you want determines how
-much of this first branch is "ship it" vs. "ship the plumbing, gateway
-is phase 2" — worth deciding now rather than discovering it under load.
+This is intentionally the cheap option from the original Q2 writeup — a
+real payment gateway (Razorpay/Cashfree/webhook-driven, no admin step at
+all) is still the right call *if* recharge volume ever makes manual
+crediting the bottleneck, but that's a real integration (API keys, a
+webhook endpoint, ~2% fee) worth doing only once it's actually needed.
+The wallet's data model doesn't care how a balance got topped up, so
+swapping this later costs nothing on the billing-logic side.
 
 ### Q3 — Does the wallet replace subscriptions, or sit alongside them?
 
@@ -190,22 +164,85 @@ clear answer for even if the honest answer is "most operators won't
 bother, the convenience of the app is worth more than the per-sheet cost"
 — I'd rather that be a stated bet than an unexamined assumption.
 
-## Suggested phasing
+### Q4 — What happens at zero balance? — RESOLVED, as a side effect of Q1's design
 
-1. **Branch 1 (this one): data model + admin controls only.** Wallet
-   record, ledger, `pricePerSheet`/threshold in Settings, admin wallet
-   list (balance, recent debits) parallel to the existing subscriptions
-   list. No debit logic wired into the game loop yet — nothing user-facing
-   changes. Low-risk, reviewable on its own, and it's where Q1–Q4 get
-   locked in before anything touches real money.
-2. **Branch 2: recharge flow.** Reuses `api/purchase.js`'s request/approve
-   shape with a `type:'wallet-recharge'` request, manual approval to
-   start (per Q2) — or a gateway integration if that's the call.
-3. **Branch 3: debit wiring.** Hook into `handleUpload`/`handleAddSheets`
-   (Q1), the low-balance banner (parallel to `updateRenewNotice`), and the
-   zero-balance gate (Q4).
-4. **Pilot** on a small number of new operators before this becomes the
-   only signup path, so Q5's bet gets tested at low stakes first.
+Turned out stricter than any of the three sub-cases this section
+originally weighed. Because `lock`/`extend`/`charge` all check affordability
+*before* moving any money, and every write clamps at `Math.max(0, …)`, the
+balance can never actually go negative — there's no "mid-game overdraft"
+state to design a policy for. What happens instead: a game already running
+is never interrupted (the check only runs at load/add time, never mid-call),
+and the *next* load or Add Sheets attempt is what gets blocked if the
+balance can't cover it — which is exactly the "never strand a live event"
+outcome this section was reaching for, just arrived at structurally rather
+than by a runtime negative-balance policy.
+
+## Status of the original phasing plan
+
+The three branches below were meant to be sequential; in practice Q1–Q4
+all resolved together and got built in one pass instead, since the lock/
+capture mechanism made most of branch 3 fall out of branch 1's data model
+for free. Branch 2 (a self-serve recharge flow) didn't happen at all — Q2
+was resolved as "admin-dashboard only," so there's no request/approve
+surface to build. What's left of this plan is just the last line:
+
+- **Pilot** on a small number of new operators before this becomes the
+  only signup path, so Q5's bet gets tested at low stakes first. Still
+  not done — see "What got built" below.
+
+## What got built
+
+- `api/wallet.js` — `lock`/`extend`/`capture`/`charge`/`release`, plus an
+  admin-only `history` action for the ledger. One reservation per account
+  at a time, stored inline on the subscription record. A device not
+  linked to the account (`sub.devices`) can't spend its money.
+- `api/subscription.js` — `billingType: 'subscription' | 'wallet'` on the
+  same record shape subscriptions already use (same key format, same
+  `verify`/device-linking/revoke/reset-devices). `action=create` takes
+  `billingType`+`initialBalance` instead of months/days for a wallet
+  account; `action=update` takes `addBalance` instead of `extendMonths`.
+  A wallet account has no Redis TTL (subscriptions do, sized to their
+  expiry) — it has no calendar lifetime to derive one from.
+- `api/_subs.js` — `appendWalletTx`, the one shared ledger-append used by
+  every debit/credit path, so there's a single transaction shape and cap
+  policy rather than two drifting copies.
+- `api/config.js` / `api/save-config.js` — `pricePerSheet`, admin-set,
+  unset by default. Wallet actions refuse to lock or charge against an
+  unset price rather than guessing one.
+- `public/index.html` — `walletLockSheets`/`walletExtendOrCharge`/
+  `captureWalletLock`/`releaseWalletLock` wired into `handleUpload`,
+  `handleAddSheets`, `callNumber`, and `endGame` respectively. Status bar
+  shows a live balance (and "₹X locked" while a reservation is open)
+  instead of a day countdown for wallet sessions.
+- `public/admin/index.html` — a Billing toggle on the create form
+  (swaps Duration for Starting Balance), wallet-aware row rendering
+  (`₹ balance` instead of a date, "Out of funds"/"running low" reusing
+  the existing Expired/Expiring buckets and stat chips rather than adding
+  new ones), and `+ Balance`/`− Balance` replacing `+ Time`/`− Time` on a
+  wallet row. Settings gained the price-per-sheet field.
+
+**Verified directly against the real handlers** (an in-memory KV mock
+standing in for Upstash Redis, driven through an actual HTTP server by
+the real browser-rendered client — not hand-rolled fakes): lock → capture
+→ charge → release in sequence; a fresh load superseding a still-open
+lock from an abandoned session (refunded automatically); insufficient
+balance blocking a load *before* anything is committed, leaving an
+unrelated still-open lock on the same account untouched; a device not
+linked to the account rejected; and — found and fixed during this pass —
+the ledger not reconciling line-to-line when a lock was superseded or
+captured (balance movement was always correct; the audit trail briefly
+wasn't). Re-verified afterward: every transaction type's `amount` now
+correctly predicts the next line's `balanceAfter`, checked against a
+replayed ledger, not just inspected by eye. The admin panel's own UI
+(billing toggle, wallet row, `+ Balance` flow, Settings field) was
+clicked through in a real browser against the same server, not just
+syntax-checked.
+
+**Not yet done, deliberately**: no pilot has run with a real operator;
+the admin's wallet-row ledger/history view (the `history` action exists
+server-side, nothing in the UI calls it yet — useful for a support
+conversation, built but not surfaced); Q5's anti-gaming bet is still just
+a bet, unmeasured.
 
 ## What this doc is not
 

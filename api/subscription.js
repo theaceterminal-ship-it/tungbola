@@ -1,6 +1,6 @@
 const { Redis } = require('@upstash/redis');
 const { secureHeaders, rateLimit, checkPassword } = require('./_security');
-const { genSubKey, genReferralCode, addMonths, monthsOf, subLabel, pickUnique } = require('./_subs');
+const { genSubKey, genReferralCode, addMonths, monthsOf, subLabel, pickUnique, appendWalletTx } = require('./_subs');
 const kv = Redis.fromEnv();
 
 module.exports = async function(req, res) {
@@ -39,7 +39,10 @@ module.exports = async function(req, res) {
 
     if (!sub) return res.status(404).json({ error: 'Subscription key not found. Check with your host.' });
     if (sub.status === 'revoked') return res.status(410).json({ error: 'This subscription has been cancelled.' });
-    if (Date.now() > sub.expiresAt) return res.status(410).json({ error: 'Subscription expired. Please renew.' });
+    // A wallet account has no calendar expiry — it runs until the balance
+    // does, which api/wallet.js gates at lock/charge time, not here.
+    if (sub.billingType !== 'wallet' && Date.now() > sub.expiresAt)
+      return res.status(410).json({ error: 'Subscription expired. Please renew.' });
 
     if (did && !sub.devices.includes(did)) {
       if (sub.devices.length >= sub.maxDevices)
@@ -66,9 +69,22 @@ module.exports = async function(req, res) {
       if (li >= 0) { list[li].referralCode = code; await kv.set('tb:subscriptions', list); }
     }
 
+    if (sub.billingType === 'wallet') {
+      return res.json({
+        valid: true, playerName: sub.playerName, billingType: 'wallet',
+        devicesUsed: sub.devices.length, maxDevices: sub.maxDevices,
+        walletBalance: sub.walletBalance || 0,
+        // The client reconciles against this on every resume — e.g. after
+        // "Continue Last Game" on a device that crashed mid-session — so a
+        // lock taken before a crash is never silently lost or double-spent.
+        pendingLock: sub.pendingLock || null,
+        referralCode: sub.referralCode || null
+      });
+    }
+
     const daysLeft = Math.ceil((sub.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
     return res.json({
-      valid: true, playerName: sub.playerName,
+      valid: true, playerName: sub.playerName, billingType: 'subscription',
       months: monthsOf(sub), plan: subLabel(sub),  // `plan` kept as a ready-to-show label
       expiresAt: sub.expiresAt, daysLeft,
       devicesUsed: sub.devices.length, maxDevices: sub.maxDevices,
@@ -83,43 +99,61 @@ module.exports = async function(req, res) {
     if (await rateLimit(req, 'createsub', 20, 3600))
       return res.status(429).json({ error: 'Too many requests' });
 
-    const { password, playerName, months, days, maxDevices, phone } = req.body;
+    const { password, playerName, months, days, maxDevices, phone, billingType, initialBalance } = req.body;
     if (!checkPassword(password, process.env.ADMIN_PASSWORD))
       return res.status(401).json({ error: 'Wrong password' });
 
     const name = String(playerName || 'Player').trim().slice(0, 50);
     const devices = Math.max(1, Math.min(5, Number(maxDevices) || 3));
     const cleanPhone = String(phone || '').replace(/\D/g, '').slice(0, 15);
-
-    /* Two duration shapes: whole months (the usual plans) or a short day
-       count (currently just the "1 Week" preset). `days` takes priority
-       when the admin panel sends it. */
-    const dayCount = Number.isFinite(parseInt(days)) && parseInt(days) > 0
-      ? Math.max(1, Math.min(31, parseInt(days))) : 0;
-    const dur = Math.max(1, Math.min(36, parseInt(months) || 1));
-    const expiresAt = dayCount ? Date.now() + dayCount * 86400000 : addMonths(Date.now(), dur);
+    const isWallet = billingType === 'wallet';
 
     const key = await pickUnique(kv, 'tb:sub:', genSubKey);
     const referralCode = await pickUnique(kv, 'tb:ref:', () => genReferralCode(name));
 
-    const subscription = {
-      key, playerName: name, phone: cleanPhone,
-      maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt,
-      referralCode, walletCredit: 0,
-      ...(dayCount ? { days: dayCount } : { months: dur })
-    };
+    let subscription;
+    if (isWallet) {
+      const balance = Math.max(0, Math.min(1000000, Math.round(Number(initialBalance) || 0)));
+      subscription = {
+        key, playerName: name, phone: cleanPhone, billingType: 'wallet',
+        maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(),
+        walletBalance: balance, pendingLock: null,
+        referralCode, walletCredit: 0
+        // No expiresAt, no `ex` on the kv.set below — a wallet account has
+        // no calendar lifetime and must not be evicted by a Redis TTL just
+        // because no admin-chosen end date exists to derive one from.
+      };
+      await kv.set(`tb:sub:${key}`, subscription);
+      await kv.set(`tb:ref:${referralCode}`, key);
+    } else {
+      /* Two duration shapes: whole months (the usual plans) or a short day
+         count (currently just the "1 Week" preset). `days` takes priority
+         when the admin panel sends it. */
+      const dayCount = Number.isFinite(parseInt(days)) && parseInt(days) > 0
+        ? Math.max(1, Math.min(31, parseInt(days))) : 0;
+      const dur = Math.max(1, Math.min(36, parseInt(months) || 1));
+      const expiresAt = dayCount ? Date.now() + dayCount * 86400000 : addMonths(Date.now(), dur);
 
-    const ttlSeconds = Math.ceil((expiresAt - Date.now()) / 1000) + 86400;
-    await kv.set(`tb:sub:${key}`, subscription, { ex: ttlSeconds });
-    await kv.set(`tb:ref:${referralCode}`, key, { ex: ttlSeconds });
+      subscription = {
+        key, playerName: name, phone: cleanPhone, billingType: 'subscription',
+        maxDevices: devices, devices: [], status: 'active', createdAt: Date.now(), expiresAt,
+        referralCode, walletCredit: 0,
+        ...(dayCount ? { days: dayCount } : { months: dur })
+      };
+
+      const ttlSeconds = Math.ceil((expiresAt - Date.now()) / 1000) + 86400;
+      await kv.set(`tb:sub:${key}`, subscription, { ex: ttlSeconds });
+      await kv.set(`tb:ref:${referralCode}`, key, { ex: ttlSeconds });
+    }
+
     const list = await kv.get('tb:subscriptions') || [];
     list.unshift(subscription);
     await kv.set('tb:subscriptions', list.slice(0, 500));
 
-    return res.json({
-      ok: true, key, playerName: name, months: monthsOf(subscription), days: subscription.days || 0,
-      plan: subLabel(subscription), expiresAt, maxDevices: devices
-    });
+    return res.json(isWallet
+      ? { ok: true, key, playerName: name, billingType: 'wallet', walletBalance: subscription.walletBalance, maxDevices: devices }
+      : { ok: true, key, playerName: name, billingType: 'subscription', months: monthsOf(subscription), days: subscription.days || 0,
+          plan: subLabel(subscription), expiresAt: subscription.expiresAt, maxDevices: devices });
   }
 
   /* ── POST action=end: admin revokes a subscription ── */
@@ -149,8 +183,33 @@ module.exports = async function(req, res) {
     }
 
     if (action === 'update') {
-      const { phone, extendMonths } = req.body;
+      const { phone, extendMonths, addBalance } = req.body;
       if (typeof phone === 'string') sub.phone = phone.replace(/\D/g, '').slice(0, 15);
+
+      if (sub.billingType === 'wallet') {
+        /* addBalance moves the balance either way: positive is a recharge
+           (confirmed over WhatsApp/call, typed in here same as extending a
+           subscription today), negative is a correction or partial refund.
+           Never lets the balance itself go negative — a correction larger
+           than what's left just zeroes it out rather than going negative,
+           same spirit as extendMonths clamping at 36 either direction. */
+        const delta = Math.round(Number(addBalance) || 0);
+        if (delta) {
+          const before = sub.walletBalance || 0;
+          sub.walletBalance = Math.max(0, before + delta);
+          if (delta > 0 && sub.status === 'revoked') sub.status = 'active';
+          await appendWalletTx(kv, clean, {
+            type: delta > 0 ? 'admin-credit' : 'admin-correction',
+            amount: delta, balanceAfter: sub.walletBalance
+          });
+        }
+        await kv.set(`tb:sub:${clean}`, sub);
+        const list = await kv.get('tb:subscriptions') || [];
+        const idx = list.findIndex(s => s.key === clean);
+        if (idx >= 0) list[idx] = sub;
+        await kv.set('tb:subscriptions', list);
+        return res.json({ ok: true, action: 'updated', billingType: 'wallet', walletBalance: sub.walletBalance });
+      }
 
       /* extendMonths moves the end date either way: positive adds time,
          negative takes it back (a wrong duration entered at creation, a

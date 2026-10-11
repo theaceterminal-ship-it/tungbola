@@ -66,4 +66,19 @@ async function pickUnique(kv, keyPrefix, genFn, tries = 10) {
   return value;   // exhausted retries: astronomically unlikely, take the last one
 }
 
-module.exports = { genSubKey, genReferralCode, addMonths, planLabel, monthsOf, subLabel, advanceExpiry, pickUnique };
+/* Append-only wallet transaction log, shared by api/subscription.js (admin
+   credits/debits) and api/wallet.js (gameplay locks/captures/charges) so
+   there's exactly one ledger shape and one cap policy, not two that could
+   quietly drift. Newest first, capped — this is an audit trail for support
+   conversations, not a source of truth the balance is ever recomputed from. */
+function genTxId() {
+  return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+async function appendWalletTx(kv, key, tx) {
+  const listKey = `tb:wallet_tx:${key}`;
+  const list = await kv.get(listKey) || [];
+  list.unshift({ id: genTxId(), at: Date.now(), ...tx });
+  await kv.set(listKey, list.slice(0, 500));
+}
+
+module.exports = { genSubKey, genReferralCode, addMonths, planLabel, monthsOf, subLabel, advanceExpiry, pickUnique, appendWalletTx };

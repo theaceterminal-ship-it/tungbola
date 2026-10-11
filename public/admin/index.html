@@ -502,6 +502,13 @@ select.field{cursor:pointer}
               <div class="field-hint">Lets you send a one-tap renewal reminder later.</div>
             </div>
             <div class="field-wrap">
+              <div class="field-label">Billing</div>
+              <div class="duration-presets" id="billingTypeChips">
+                <button type="button" class="preset-chip active" data-bt="subscription" onclick="pickBillingType('subscription')">📅 Subscription</button>
+                <button type="button" class="preset-chip" data-bt="wallet" onclick="pickBillingType('wallet')">💰 Wallet (pay per sheet)</button>
+              </div>
+            </div>
+            <div class="field-wrap" id="durationFieldWrap">
               <div class="field-label">Duration</div>
               <div class="duration-presets" id="durationPresets">
                 <button type="button" class="preset-chip" data-m="w" onclick="pickDuration('w')">1 Week</button>
@@ -514,6 +521,11 @@ select.field{cursor:pointer}
               </div>
               <input class="field off" id="subMonthsCustom" type="number" min="1" max="36" value="1"
                 placeholder="Number of months" style="display:none">
+            </div>
+            <div class="field-wrap off" id="walletBalanceFieldWrap">
+              <div class="field-label">Starting Balance (₹)</div>
+              <input class="field" id="subInitialBalance" type="number" min="0" max="1000000" value="0" placeholder="e.g. 200">
+              <div class="field-hint">They can play until this runs out. Top it up any time from their row below — same way you'd extend a subscription.</div>
             </div>
             <div class="field-wrap">
               <div class="field-label">Max Devices (1 – 5)</div>
@@ -643,6 +655,11 @@ select.field{cursor:pointer}
           <input class="field" id="cfgWa" placeholder="919876543210" type="tel">
           <div class="field-hint">Your own support number, shown to players who need help.</div>
         </div>
+        <div class="field-wrap">
+          <div class="field-label">Price per Sheet — Wallet accounts (₹)</div>
+          <input class="field" id="cfgPricePerSheet" placeholder="e.g. 2" type="number" min="0" max="500">
+          <div class="field-hint">What a wallet account is charged per sheet played. Leave blank to turn wallet billing off — any wallet account just won't be able to load sheets until this is set.</div>
+        </div>
         <button class="btn-gen" onclick="saveConfig()">Save Settings</button>
         <div class="save-msg" id="saveMsg">✓ Settings saved!</div>
         <div class="error-msg" id="settingsError"></div>
@@ -698,6 +715,13 @@ let sortMode = 'expiry';
 let lastSubsList = [];
 let selectedMonths = 12;
 let selectedDays = null;   // set only for the short, day-based "1 Week" plan
+let selectedBillingType = 'subscription';
+function pickBillingType(bt) {
+  selectedBillingType = bt;
+  document.querySelectorAll('#billingTypeChips .preset-chip').forEach(c => c.classList.toggle('active', c.dataset.bt === bt));
+  document.getElementById('durationFieldWrap').classList.toggle('off', bt === 'wallet');
+  document.getElementById('walletBalanceFieldWrap').classList.toggle('off', bt !== 'wallet');
+}
 let searchDebounce = null;
 
 if (adminPwd) bootAdmin();
@@ -789,6 +813,7 @@ async function loadConfig() {
     cfg = await r.json();
     document.getElementById('cfgUpi').value = cfg.upiId || '';
     document.getElementById('cfgWa').value = cfg.whatsappNumber || '';
+    document.getElementById('cfgPricePerSheet').value = cfg.pricePerSheet || '';
     document.getElementById('headerSub').textContent = cfg.upiId ? `UPI: ${cfg.upiId}` : 'UPI not set';
     renderPricingEditor(cfg.pricingTiers || []);
   } catch(e) {}
@@ -797,16 +822,18 @@ async function loadConfig() {
 async function saveConfig() {
   const upi = document.getElementById('cfgUpi').value.trim();
   const wa = document.getElementById('cfgWa').value.trim();
+  const pricePerSheetRaw = document.getElementById('cfgPricePerSheet').value;
+  const pricePerSheet = pricePerSheetRaw === '' ? 0 : Math.max(0, Math.min(500, parseInt(pricePerSheetRaw) || 0));
   const errEl = document.getElementById('settingsError');
   const msgEl = document.getElementById('saveMsg');
   errEl.style.display = 'none'; msgEl.style.display = 'none';
   try {
     const r = await fetch('/api/save-config', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPwd, upiId: upi, whatsappNumber: wa })
+      body: JSON.stringify({ password: adminPwd, upiId: upi, whatsappNumber: wa, pricePerSheet })
     });
     if (!r.ok) { const d = await r.json(); errEl.textContent = d.error; errEl.style.display = 'block'; return; }
-    cfg = { ...cfg, upiId: upi, whatsappNumber: wa };
+    cfg = { ...cfg, upiId: upi, whatsappNumber: wa, pricePerSheet: pricePerSheet || null };
     msgEl.style.display = 'block';
     document.getElementById('headerSub').textContent = upi ? `UPI: ${upi}` : 'UPI not set';
     setTimeout(() => msgEl.style.display = 'none', 3000);
@@ -1014,8 +1041,10 @@ async function createSubscription() {
   const name = document.getElementById('subName').value.trim();
   const phone = document.getElementById('subPhone').value.trim();
   const devices = parseInt(document.getElementById('subDevices').value) || 3;
-  const days = selectedDays;
-  const months = days ? undefined : selectedMonths;
+  const isWallet = selectedBillingType === 'wallet';
+  const days = isWallet ? undefined : selectedDays;
+  const months = isWallet || days ? undefined : selectedMonths;
+  const initialBalance = isWallet ? Math.max(0, parseInt(document.getElementById('subInitialBalance').value) || 0) : undefined;
   const errEl = document.getElementById('subCreateError');
   const btn = document.getElementById('createSubBtn');
   errEl.style.display = 'none';
@@ -1024,18 +1053,23 @@ async function createSubscription() {
   try {
     const r = await fetch('/api/subscription', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', password: adminPwd, playerName: name, months, days, maxDevices: devices, phone })
+      body: JSON.stringify({
+        action: 'create', password: adminPwd, playerName: name, maxDevices: devices, phone,
+        billingType: selectedBillingType, months, days, initialBalance
+      })
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
     document.getElementById('subKeyBig').textContent = data.key;
-    document.getElementById('subKeyMeta').textContent =
-      `${name} · ${data.plan} · up to ${devices} device${devices>1?'s':''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+    document.getElementById('subKeyMeta').textContent = isWallet
+      ? `${name} · Wallet · ₹${data.walletBalance} balance · up to ${devices} device${devices>1?'s':''}`
+      : `${name} · ${data.plan} · up to ${devices} device${devices>1?'s':''}\nExpires ${new Date(data.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
     document.getElementById('subKeyResult').style.display = 'block';
     document.getElementById('copySubKeyBtn').textContent = '📋 Copy Key';
     document.getElementById('subName').value = '';
     document.getElementById('subPhone').value = '';
     document.getElementById('subDevices').value = '3';
+    document.getElementById('subInitialBalance').value = '0';
     loadSubscriptions();
   } catch(e) { errEl.textContent = 'Network error'; errEl.style.display = 'block'; }
   finally { btn.disabled = false; btn.textContent = 'Create Subscription →'; }
@@ -1083,15 +1117,27 @@ function setStatFilter(f) {
   renderSubscriptions(lastSubsList);
 }
 
+const WALLET_LOW_BALANCE = 20; // matches the player app's own low-balance threshold
+
 function planLabelOf(s) {
+  if (s.billingType === 'wallet') return `₹${s.walletBalance || 0} balance`;
   if (s.planLabel) return s.planLabel;
   const m = s.months || (s.plan === 'yearly' ? 12 : 1);
   if (m % 12 === 0) return m === 12 ? '1 Year' : `${m/12} Years`;
   return m === 1 ? '1 Month' : `${m} Months`;
 }
 
+// A wallet account has no calendar — "expiring"/"expired" are reused here as
+// "running low"/"out of funds" so the existing stat chips, filters and
+// sorting all keep working without a parallel set just for wallet rows.
 function classify(s, now) {
   if (s.status === 'revoked') return 'revoked';
+  if (s.billingType === 'wallet') {
+    const bal = s.walletBalance || 0;
+    if (bal <= 0) return 'expired';
+    if (bal <= WALLET_LOW_BALANCE) return 'expiring';
+    return 'active';
+  }
   if (now > s.expiresAt) return 'expired';
   if (Math.ceil((s.expiresAt - now) / 86400000) <= 3) return 'expiring';
   return 'active';
@@ -1132,7 +1178,7 @@ function renderSubscriptions(list) {
     (s.key || '').toLowerCase().includes(searchQuery) ||
     (s.phone || '').includes(searchQuery));
 
-  if (sortMode === 'expiry') filtered.sort((a, b) => a.expiresAt - b.expiresAt);
+  if (sortMode === 'expiry') filtered.sort((a, b) => (a.expiresAt ?? Infinity) - (b.expiresAt ?? Infinity));
   else if (sortMode === 'newest') filtered.sort((a, b) => b.createdAt - a.createdAt);
   else if (sortMode === 'name') filtered.sort((a, b) => (a.playerName||'').localeCompare(b.playerName||''));
 
@@ -1167,11 +1213,12 @@ function toggleSubRow(el) {
 }
 
 function subCardHtml(s, now) {
-  const status  = s._status;
-  const expired = status === 'expired';
-  const revoked = status === 'revoked';
-  const warn    = status === 'expiring';
-  const daysLeft = Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
+  const status   = s._status;
+  const expired  = status === 'expired';
+  const revoked  = status === 'revoked';
+  const warn     = status === 'expiring';
+  const isWallet = s.billingType === 'wallet';
+  const daysLeft = isWallet ? null : Math.max(0, Math.ceil((s.expiresAt - now) / 86400000));
   const devUsed  = s.devices ? s.devices.length : 0;
   const maxDev   = s.maxDevices || 3;
   const devPct   = Math.round((devUsed / maxDev) * 100);
@@ -1181,20 +1228,38 @@ function subCardHtml(s, now) {
   const dateOpts = { day: 'numeric', month: 'short' };
 
   const remindMsg = encodeURIComponent(
-    expired
-      ? `Hi ${s.playerName}! 👋 Your Tungbola subscription has expired. Renew whenever you're ready to keep playing — just let us know!`
-      : `Hi ${s.playerName}! 👋 Just a friendly reminder — your Tungbola subscription expires in ${daysLeft} day${daysLeft===1?'':'s'} (${new Date(s.expiresAt).toLocaleDateString('en-IN',dateOpts)}). Renew anytime to keep playing without interruption. Thank you! 🎯`
+    isWallet
+      ? (expired
+          ? `Hi ${s.playerName}! 👋 Your Tungbola wallet balance has run out. Recharge whenever you're ready to keep playing — just let us know!`
+          : `Hi ${s.playerName}! 👋 Just a heads up — your Tungbola wallet balance is down to ₹${s.walletBalance || 0}. Top up anytime to keep playing without interruption. Thank you! 🎯`)
+      : (expired
+          ? `Hi ${s.playerName}! 👋 Your Tungbola subscription has expired. Renew whenever you're ready to keep playing — just let us know!`
+          : `Hi ${s.playerName}! 👋 Just a friendly reminder — your Tungbola subscription expires in ${daysLeft} day${daysLeft===1?'':'s'} (${new Date(s.expiresAt).toLocaleDateString('en-IN',dateOpts)}). Renew anytime to keep playing without interruption. Thank you! 🎯`)
   );
   const remindBtn = s.phone
     ? `<a class="btn-remind" href="https://wa.me/${esc(s.phone)}?text=${remindMsg}" target="_blank" rel="noopener">💬 Remind</a>`
     : '';
 
   const statusChip = revoked ? `<span class="chip revoked">✕ Revoked</span>`
+    : isWallet
+      ? (expired ? `<span class="chip grayed">Out of funds</span>`
+        : warn   ? `<span class="chip expiring">⚠ ₹${s.walletBalance||0}</span>`
+                 : `<span class="chip days">💰 wallet</span>`)
     : expired ? `<span class="chip grayed">Expired</span>`
     : warn    ? `<span class="chip expiring">⚠ ${daysLeft}d</span>`
               : `<span class="chip days">${daysLeft}d</span>`;
 
+  const rightCol = isWallet
+    ? `<span class="sub-row-exp">₹${s.walletBalance||0}</span>`
+    : `<span class="sub-row-exp">${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>`;
+
   const rowCls = dotCls === 'i' ? 'is-inactive' : dotCls === 'w' ? 'is-warn' : 'is-active';
+
+  const timeOrBalanceActions = isWallet
+    ? `<button class="btn-extend" onclick="askCredit(this,1)">+ Balance</button>
+       <button class="btn-shorten" onclick="askCredit(this,-1)">− Balance</button>`
+    : `<button class="btn-extend" onclick="askExtend(this,1)">+ Time</button>
+       <button class="btn-shorten" onclick="askExtend(this,-1)">− Time</button>`;
 
   return `
     <div class="sub-row ${rowCls}${isOpen ? ' open' : ''}">
@@ -1203,7 +1268,7 @@ function subCardHtml(s, now) {
         <span class="sub-row-name">${esc(s.playerName)}</span>
         <span class="sub-row-plan">${esc(planLabelOf(s))}</span>
         <span class="sub-row-status">${statusChip}</span>
-        <span class="sub-row-exp">${new Date(s.expiresAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})}</span>
+        ${rightCol}
         <span class="sub-row-dev ${devUsed >= maxDev ? 'full' : ''}">${devUsed}/${maxDev}</span>
         <span class="sub-chev">›</span>
       </button>
@@ -1225,8 +1290,7 @@ function subCardHtml(s, now) {
         </div>
         <div class="sub-actions" data-key="${esc(s.key)}" data-name="${esc(s.playerName)}">
           ${remindBtn}
-          <button class="btn-extend" onclick="askExtend(this,1)">+ Time</button>
-          <button class="btn-shorten" onclick="askExtend(this,-1)">− Time</button>
+          ${timeOrBalanceActions}
           ${!revoked && !expired ? `<button class="btn-revoke" onclick="askRevoke(this)">Revoke</button>` : ''}
           <button class="btn-reset" onclick="askResetDev(this)">Reset Devices</button>
         </div>
@@ -1306,6 +1370,37 @@ async function doExtend(key, btn, sign) {
     const d = await r.json().catch(() => ({}));
     // shortening can push the end date into the past — say so rather than let it look like nothing happened
     if (d && d.expired) alert('That key is now expired — its end date moved into the past.');
+  } catch(e) {}
+  loadSubscriptions();
+}
+
+/* ── CREDIT WALLET — same inline-confirm shape as askExtend/doExtend, just
+   adding/removing rupees instead of months. The amount is typed in here
+   once a payment's been confirmed over WhatsApp/call — there's no
+   self-serve recharge flow, same manual-approval trust model the rest of
+   this admin panel already uses for everything else. ── */
+function askCredit(btn, dir) {
+  const el = btn.closest('.sub-actions');
+  const key = el.dataset.key;
+  const sign = dir === -1 ? -1 : 1;
+  el.className = 'confirm-row';
+  el.innerHTML = `<span class="confirm-lbl">${sign === 1 ? 'Add ₹' : 'Remove ₹'}</span>
+    <input class="confirm-input" id="creditAmount" type="number" min="1" max="1000000" value="100">
+    <button class="btn-no" onclick="loadSubscriptions()">Cancel</button>
+    <button class="btn-yes ${sign === 1 ? 'ok' : ''}">Confirm</button>`;
+  const go = el.querySelector('.btn-yes');
+  go.onclick = () => doCredit(key, go, sign);
+  el.querySelector('#creditAmount').focus();
+}
+async function doCredit(key, btn, sign) {
+  const n = Math.max(1, Math.min(1000000, parseInt(document.getElementById('creditAmount').value) || 0));
+  const addBalance = n * (sign === -1 ? -1 : 1);
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fetch('/api/subscription', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', password: adminPwd, key, addBalance })
+    });
   } catch(e) {}
   loadSubscriptions();
 }

@@ -1566,7 +1566,12 @@ function init(){
   updateRenewNotice();
   updateWelcomeButtons();
   if(sheets.length>0&&gameSession) $('btnContinue').classList.remove('off');
-  if(gameSession?.type==='subscription') silentVerifySubscription();
+  // Re-verify on every load, not just subscription sessions — a wallet
+  // balance credited from the admin panel otherwise never reaches an
+  // already-activated device, not even on a hard refresh, since nothing
+  // else tells the client the balance changed server-side.
+  if(gameSession) silentVerifySubscription();
+  startWalletBalancePolling();
   // Hide splash after 2s
   setTimeout(()=>{
     const s=$('splash');
@@ -1780,6 +1785,7 @@ async function activateWithKey(key,welcomeMsg){
   updateSubStatusBar();
   updateRenewNotice();
   updateWelcomeButtons();
+  startWalletBalancePolling();
   hideAll();
   $('welcome').classList.remove('off');
   toast(welcomeMsg||`Welcome, ${data.playerName}! Now load your ticket sheets.`);
@@ -2016,6 +2022,28 @@ async function silentVerifySubscription(){
     updateSubStatusBar();
     updateRenewNotice();
   }catch(e){}
+}
+
+/* A wallet balance only ever changes on the SERVER — an admin crediting it
+   from the admin panel, or this same operator's own gameplay on another
+   device. Nothing pushes that change to an already-open tab, so without
+   this it would only ever show up after the player manually reloads (and,
+   before this fix, not even then — see the init() comment above). Mirrors
+   startPresence()'s own polling shape: tab-visibility-gated, same cadence,
+   safely under api/subscription.js's verify rate limit (20/15min) even if
+   left open for hours. Runs regardless of screen — including mid-game, so
+   a top-up requested while already playing shows up without a disruptive
+   reload — silentVerifySubscription() only ever touches gameSession/the
+   status bar, never sheets/called/game state. */
+let _walletPollTimer=null;
+function startWalletBalancePolling(){
+  stopWalletBalancePolling();
+  _walletPollTimer=setInterval(()=>{
+    if(!document.hidden&&gameSession?.type==='wallet') silentVerifySubscription();
+  },60000);
+}
+function stopWalletBalancePolling(){
+  if(_walletPollTimer){clearInterval(_walletPollTimer);_walletPollTimer=null;}
 }
 
 function updateWelcomeButtons(){

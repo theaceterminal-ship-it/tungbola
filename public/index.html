@@ -92,6 +92,24 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 .pp-lbl{font-size:12px;font-weight:700;color:var(--on-surface)}
 .pp.on .pp-lbl{color:var(--primary)}
 
+/* ══ TERMS GATE — shown once per day, before the first game that day ══ */
+.terms-gate{
+  width:100%;max-width:360px;margin:0 0 18px;padding:13px 14px;
+  background:var(--bg);border:1.5px solid var(--outline);border-radius:12px;
+  display:flex;align-items:flex-start;gap:10px;cursor:pointer;user-select:none
+}
+.terms-gate.off{display:none}
+.terms-gate.checked{background:var(--primary-container);border-color:var(--primary)}
+.terms-gate-box{
+  width:20px;height:20px;border-radius:5px;border:2px solid var(--outline);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  color:var(--on-primary);margin-top:1px;transition:all .15s
+}
+.terms-gate.checked .terms-gate-box{background:var(--primary);border-color:var(--primary)}
+.terms-gate-txt{font-size:12px;line-height:1.55;color:var(--on-surface-variant)}
+.terms-gate-txt a{color:var(--primary);font-weight:700;text-decoration:none}
+.terms-gate-txt a:hover{text-decoration:underline}
+
 /* ══ GAME CONTAINER ══ */
 #game{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
@@ -1056,6 +1074,12 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="setup-h">Choose Prizes</div>
   <div class="setup-s">Select which prizes to play for</div>
   <div class="prize-grid" id="prizeGrid"></div>
+  <div class="terms-gate" id="termsGate" onclick="toggleTermsGate()">
+    <span class="terms-gate-box" id="termsGateBox"></span>
+    <span class="terms-gate-txt">I agree to the <a href="/terms.html" target="_blank" onclick="event.stopPropagation()">Terms &amp; Conditions</a>
+      and <a href="/privacy.html" target="_blank" onclick="event.stopPropagation()">Privacy Policy</a> —
+      I understand this is just a tool for playing tambola, and that I play any game at my own risk.</span>
+  </div>
   <button class="btn-fill" onclick="startGame()" style="max-width:240px">
     <span class="mir">play_arrow</span> Start Game
   </button>
@@ -1680,8 +1704,43 @@ function showSetup(){
   hideAll();
   $('setup').classList.remove('off');
   buildPrizeGrid();
+  renderTermsGate();
 }
+
+/* ══ TERMS GATE ══
+   Shown once per calendar day, right before the first game that day —
+   "every game" in spirit (it's the gate between picking prizes and
+   Start Game, so it's genuinely in the way of playing), "every day" in
+   practice (ticking it once covers every game started that same day, so
+   someone running several games back to back isn't re-nagged each time).
+   Mirrors _registeredToday()'s own date-keyed localStorage pattern. */
+function _termsAcceptedToday(){
+  try{ return localStorage.getItem('tb_terms_day')===new Date().toDateString(); }
+  catch(e){ return false; }
+}
+function markTermsAcceptedToday(){
+  try{ localStorage.setItem('tb_terms_day',new Date().toDateString()); }catch(e){}
+}
+let _termsGateChecked=false;
+function renderTermsGate(){
+  const accepted=_termsAcceptedToday();
+  _termsGateChecked=accepted;
+  $('termsGate').classList.toggle('off',accepted);
+  $('termsGate').classList.toggle('checked',accepted);
+  $('termsGateBox').textContent=accepted?'✓':'';
+}
+function toggleTermsGate(){
+  _termsGateChecked=!_termsGateChecked;
+  $('termsGate').classList.toggle('checked',_termsGateChecked);
+  $('termsGateBox').textContent=_termsGateChecked?'✓':'';
+}
+
 function startGame(){
+  if(!_termsGateChecked){
+    toast('Please accept the Terms & Conditions to continue');
+    return;
+  }
+  markTermsAcceptedToday();
   $('setup').classList.add('off');
   curIdx=0;
   $('game').classList.remove('off');

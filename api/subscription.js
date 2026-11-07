@@ -37,7 +37,12 @@ module.exports = async function(req, res) {
     const did = typeof deviceId === 'string' ? deviceId.slice(0, 64) : null;
     const sub = await kv.get(`tb:sub:${clean}`);
 
-    if (!sub) return res.status(404).json({ error: 'Subscription key not found. Check with your host.' });
+    if (!sub) {
+      // a key handed out with a purchase request that the admin hasn't approved yet
+      if (await kv.exists(`tb:pendkey:${clean}`))
+        return res.status(409).json({ pending: true, error: 'Your payment is awaiting approval. This key will start working automatically once it is approved.' });
+      return res.status(404).json({ error: 'Subscription key not found. Check with your host.' });
+    }
     if (sub.status === 'revoked') return res.status(410).json({ error: 'This subscription has been cancelled.' });
     if (Date.now() > sub.expiresAt) return res.status(410).json({ error: 'Subscription expired. Please renew.' });
 

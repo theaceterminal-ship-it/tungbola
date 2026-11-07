@@ -1,68 +1,65 @@
 /* Self-serve purchase / renewal requests.
 
-   Payment verification stays manual on purpose — a UPI deep link has no
-   webhook, so there's no way to trust "paid" automatically. What this
-   removes is the OTHER manual step: the admin hand-typing a player's
-   name/duration/devices and copy-pasting a key back to them every single
-   time someone subscribes or renews.
+   Flow: the player picks a plan (a 'draft' request is created, which also
+   fixes the price), pays by UPI, then sends the payment screenshot. The
+   screenshot goes straight to the admin's Telegram with Approve / Reject
+   buttons and is never stored by us. For a new buyer, their subscription key
+   is generated at that moment and shown to them straight away — it only
+   starts working once the admin approves. The player's app polls `check`
+   and activates by itself when the approval lands.
 
-   A player picks one of the admin's configured price tiers (tb:config.
-   pricingTiers, see api/config.js), pays via UPI, and submits a request.
-   The admin sees it in the Requests tab and approves with one click — the
-   server does all the typing from there: generates/extends the key,
-   applies any referral reward or wallet credit, and the player's own poll
-   picks up the result automatically. No WhatsApp round trip needed.       */
+   Payment verification stays manual on purpose: a UPI deep link has no
+   webhook, so "paid" can't be trusted automatically. The admin can approve
+   from Telegram or from the web panel — both call the same resolveRequest(). */
 const { Redis } = require('@upstash/redis');
+const crypto = require('crypto');
 const { secureHeaders, rateLimit, checkPassword } = require('./_security');
-const { genSubKey, genReferralCode, advanceExpiry, pickUnique } = require('./_subs');
+const { genSubKey, pickUnique } = require('./_subs');
+const tg = require('./_telegram');
+const core = require('./_purchase-core');
 const kv = Redis.fromEnv();
 
-const REQ_KEY = 'tb:purchase_requests';
-const REF_KEY = 'tb:referrals';
-const REFERRAL_REWARD = 100;          // rupees credited to the referrer
-const REQUEST_TTL_MS = 6 * 60 * 60 * 1000;   // an unapproved request goes stale after 6h
+const { REQ_KEY, DRAFT_TTL_MS, PENDING_TTL_MS, PENDKEY_TTL_S, genReqId, loadTiers, resolveRequest } = core;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;   // the app shrinks to ~1MB first; Vercel's body limit is 4.5MB
 
-function genReqId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+/* Don't trust the client's claimed type — check the file's own magic bytes. */
+function sniffImage(buf) {
+  if (buf.length > 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'image/jpeg';
+  if (buf.length > 8 && buf[0] === 0x89 && buf.toString('latin1', 1, 4) === 'PNG') return 'image/png';
+  if (buf.length > 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return 'image/webp';
+  return null;
 }
+const esc = s => String(s == null ? '' : s);
 
-async function loadTiers() {
-  const cfg = await kv.get('tb:config') || {};
-  return Array.isArray(cfg.pricingTiers) ? cfg.pricingTiers : [];
-}
-
-async function saveSub(sub) {
-  await kv.set(`tb:sub:${sub.key}`, sub);
-  const list = await kv.get('tb:subscriptions') || [];
-  const idx = list.findIndex(s => s.key === sub.key);
-  if (idx >= 0) list[idx] = sub; else list.unshift(sub);
-  await kv.set('tb:subscriptions', list.slice(0, 500));
+function findOwned(list, reqId, token) {
+  const r = list.find(x => x.id === reqId);
+  if (!r || !r.token || !checkPassword(token, r.token)) return null;   // wrong/missing token looks like "not found"
+  return r;
 }
 
 module.exports = async function(req, res) {
   secureHeaders(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  /* ── GET: admin lists pending + recent requests, and the referral ledger ── */
+  /* ── GET: admin lists requests that need attention, and the referral ledger ── */
   if (req.method === 'GET') {
     if (await rateLimit(req, 'listreqs2', 60, 60))
       return res.status(429).json({ error: 'Too many requests' });
     const { password } = req.query;
     if (!checkPassword(password, process.env.ADMIN_PASSWORD))
       return res.status(401).json({ error: 'Wrong password' });
-    const [list, ledger] = await Promise.all([kv.get(REQ_KEY), kv.get(REF_KEY)]);
-    return res.json({ requests: (list || []).slice(0, 200), referrals: (ledger || []).slice(0, 200) });
+    const [list, ledger] = await Promise.all([kv.get(REQ_KEY), kv.get(core.REF_KEY)]);
+    // drafts (picked a plan, never sent proof) and cancelled ones are noise for the admin
+    const visible = (list || []).filter(r => r.status !== 'draft' && r.status !== 'cancelled')
+      .map(({ token, tgCaption, ...rest }) => rest);
+    return res.json({ requests: visible.slice(0, 200), referrals: (ledger || []).slice(0, 200) });
   }
 
   if (req.method !== 'POST') return res.status(405).end();
   const { action } = req.body || {};
 
-  /* ── POST action=request: player submits a purchase/renewal request ── */
+  /* ── POST action=request: player picks a plan → draft request + price ── */
   if (action === 'request') {
-    // Generous on purpose: this fires on every "Proceed to Pay" click, and a
-    // player closing the popup to switch plans, or several players on the
-    // same office/hostel wifi, can easily rack up a handful of these each —
-    // this is a public, IP-shared, expected-to-retry action, not a login.
     if (await rateLimit(req, 'purchreq', 40, 3600))
       return res.status(429).json({ error: 'Too many requests. Try again later.' });
 
@@ -84,148 +81,144 @@ module.exports = async function(req, res) {
       if (!existingSub) return res.status(404).json({ error: 'Your subscription key was not found. Please contact admin.' });
     }
 
-    // wallet credit only ever applies to your OWN renewal — a brand new
-    // purchaser has no subscription (and so no credit) yet
+    // wallet credit only ever applies to your OWN renewal
     const credit = type === 'renew' ? Math.min(existingSub.walletCredit || 0, plan.price) : 0;
     const amount = Math.max(0, plan.price - credit);
 
-    // a referral code only means anything for a genuinely new purchaser
     let cleanReferral = null;
-    if (type === 'new' && referralCode) {
-      cleanReferral = String(referralCode).toUpperCase().trim().slice(0, 20);
-    }
+    if (type === 'new' && referralCode) cleanReferral = String(referralCode).toUpperCase().trim().slice(0, 20);
 
     const request = {
-      id: genReqId(), type, planId, planLabel: plan.label, price: plan.price,
-      credit, amount, playerName: name, phone: cleanPhone,
+      id: genReqId(), token: crypto.randomBytes(16).toString('hex'),
+      type, planId, planLabel: plan.label, price: plan.price,
+      credit, amount, playerName: type === 'renew' ? existingSub.playerName : name, phone: cleanPhone,
       referralCode: cleanReferral, existingKey: type === 'renew' ? existingSub.key : null,
-      status: 'pending', createdAt: Date.now()
+      status: 'draft', createdAt: Date.now()
     };
 
-    const list = await kv.get(REQ_KEY) || [];
+    // keep the list lean: stale drafts and cancelled requests are dropped on write
+    const now = Date.now();
+    const list = (await kv.get(REQ_KEY) || []).filter(r =>
+      r.status !== 'cancelled' && !(r.status === 'draft' && now - r.createdAt > DRAFT_TTL_MS));
     list.unshift(request);
     await kv.set(REQ_KEY, list.slice(0, 500));
 
-    return res.json({ ok: true, reqId: request.id, amount, credit });
+    return res.json({ ok: true, reqId: request.id, token: request.token, amount, credit });
+  }
+
+  /* ── POST action=proof: player sends the payment screenshot for approval ── */
+  if (action === 'proof') {
+    if (await rateLimit(req, 'purchproof', 15, 3600))
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    if (!tg.configured())
+      return res.status(503).json({ error: 'Approval service is not set up yet. Please contact admin.' });
+
+    const { reqId, token, image } = req.body;
+    let utr = String(req.body.utr || '').trim().toUpperCase();
+    if (utr && !/^[A-Z0-9]{8,30}$/.test(utr))
+      return res.status(400).json({ error: 'Transaction ID looks wrong — check it, or leave it blank.' });
+
+    const list = await kv.get(REQ_KEY) || [];
+    const r = findOwned(list, reqId, token);
+    if (!r) return res.status(404).json({ error: 'Request not found. Please start again.' });
+
+    // idempotent: a double tap (or a retry after a slow network) gets the same answer
+    if (r.status === 'pending' && r.proofAt) return res.json({ ok: true, key: r.reservedKey || r.existingKey, already: true });
+    if (r.status !== 'draft' && r.status !== 'pending')
+      return res.status(409).json({ error: 'This request is already closed. Please start a new one.' });
+    if (r.status === 'draft' && Date.now() - r.createdAt > DRAFT_TTL_MS)
+      return res.status(410).json({ error: 'This request expired. Please start again.' });
+
+    // screenshot is mandatory unless wallet credit covers the whole price
+    let buffer = null, mime = null;
+    if (r.amount > 0 || image) {
+      const data = image && typeof image.data === 'string' ? image.data : '';
+      buffer = data ? Buffer.from(data, 'base64') : null;
+      if (!buffer || !buffer.length) return res.status(400).json({ error: 'Attach your payment screenshot.' });
+      if (buffer.length > MAX_IMAGE_BYTES) return res.status(413).json({ error: 'Screenshot is too large.' });
+      mime = sniffImage(buffer);
+      if (!mime) return res.status(400).json({ error: 'That file is not a picture. Attach a screenshot (JPG/PNG).' });
+    }
+
+    if (utr) {
+      const used = await kv.get(`tb:utr:${utr}`);
+      if (used && used !== r.id) return res.status(409).json({ error: 'This transaction ID was already used for another request.' });
+    }
+
+    const reservedKey = r.type === 'new'
+      ? await pickUnique(kv, 'tb:sub:', genSubKey, 10, k => kv.exists(`tb:pendkey:${k}`))
+      : null;
+
+    const keyLine = r.type === 'new' ? `🔑 New key: ${reservedKey}` : `🔑 Renewing: ${r.existingKey}`;
+    const caption = [
+      r.type === 'new' ? '🛒 NEW SUBSCRIPTION' : '🔁 RENEWAL',
+      `👤 ${esc(r.playerName)}${r.phone ? ` · 📱 ${r.phone}` : ''}`,
+      `📦 ${esc(r.planLabel)} · ₹${r.amount}${r.credit > 0 ? ` (₹${r.price} − ₹${r.credit} credit)` : ''}`,
+      keyLine,
+      `🧾 UTR: ${utr || 'not given'}`,
+      r.referralCode ? `🎁 Referred by: ${esc(r.referralCode)}` : null,
+      r.amount > 0 ? `\nCheck ₹${r.amount} arrived in your bank app, then tap a button.` : '\nPaid fully with wallet credit.'
+    ].filter(Boolean).join('\n');
+
+    let sent;
+    try { sent = await tg.sendProof({ buffer, mime, caption, reqId: r.id }); }
+    catch (e) {
+      console.error(e.message);
+      return res.status(502).json({ error: 'Could not send your request for approval. Please try again.' });
+    }
+
+    r.status = 'pending'; r.proofAt = Date.now(); r.utr = utr || null;
+    r.tgChat = sent.chat; r.tgMsg = sent.msg; r.tgCaption = caption; r.tgPhoto = !!buffer;
+    if (reservedKey) {
+      r.reservedKey = reservedKey;
+      await kv.set(`tb:pendkey:${reservedKey}`, r.id, { ex: PENDKEY_TTL_S });
+    }
+    if (utr) await kv.set(`tb:utr:${utr}`, r.id, { ex: 90 * 86400 });
+    await kv.set(REQ_KEY, list);
+
+    return res.json({ ok: true, key: reservedKey || r.existingKey });
   }
 
   /* ── POST action=check: player polls for approval ── */
   if (action === 'check') {
-    if (await rateLimit(req, 'purchcheck', 500, 3600))
+    if (await rateLimit(req, 'purchcheck', 600, 3600))
       return res.status(429).json({ error: 'Too many requests' });
-    const { reqId } = req.body;
-    if (!reqId) return res.status(400).json({ error: 'reqId required' });
+    const { reqId, token } = req.body;
+    if (!reqId || !token) return res.status(400).json({ error: 'reqId and token required' });
 
-    const list = await kv.get(REQ_KEY) || [];
-    const r = list.find(x => x.id === reqId);
+    const r = findOwned(await kv.get(REQ_KEY) || [], reqId, token);
     if (!r) return res.status(404).json({ error: 'Request not found' });
 
-    if (r.status === 'pending' && Date.now() - r.createdAt > REQUEST_TTL_MS)
+    const age = Date.now() - r.createdAt;
+    if ((r.status === 'draft' && age > DRAFT_TTL_MS) || (r.status === 'pending' && Date.now() - (r.proofAt || r.createdAt) > PENDING_TTL_MS))
       return res.json({ status: 'expired' });
 
     return res.json({
-      status: r.status,
-      key: r.resultKey || null, expiresAt: r.resultExpiresAt || null,
-      plan: r.planLabel, reason: r.reason || null
+      status: r.status === 'draft' ? 'pending' : r.status,
+      key: r.status === 'approved' ? r.resultKey : null,
+      expiresAt: r.resultExpiresAt || null, plan: r.planLabel, reason: r.reason || null
     });
   }
 
-  /* ── POST action=cancel: player backs out of a pending request ── */
+  /* ── POST action=cancel: player backs out of a request that has no proof yet ── */
   if (action === 'cancel') {
-    const { reqId } = req.body;
-    if (!reqId) return res.status(400).json({ error: 'reqId required' });
+    const { reqId, token } = req.body;
+    if (!reqId || !token) return res.status(400).json({ error: 'reqId and token required' });
     const list = await kv.get(REQ_KEY) || [];
-    const r = list.find(x => x.id === reqId);
-    if (r && r.status === 'pending') { r.status = 'cancelled'; r.resolvedAt = Date.now(); await kv.set(REQ_KEY, list); }
+    const r = findOwned(list, reqId, token);
+    if (r && r.status === 'draft') { r.status = 'cancelled'; r.resolvedAt = Date.now(); await kv.set(REQ_KEY, list); }
     return res.json({ ok: true });
   }
 
-  /* ── admin: approve / reject ── */
+  /* ── admin web panel: approve / reject ── */
   if (action === 'approve' || action === 'reject') {
     if (await rateLimit(req, 'purchresolve', 60, 3600))
       return res.status(429).json({ error: 'Too many requests' });
     const { password, reqId } = req.body;
     if (!checkPassword(password, process.env.ADMIN_PASSWORD))
       return res.status(401).json({ error: 'Wrong password' });
-
-    const list = await kv.get(REQ_KEY) || [];
-    const r = list.find(x => x.id === reqId);
-    if (!r) return res.status(404).json({ error: 'Request not found' });
-    if (r.status !== 'pending')   // idempotent: a double-click is a no-op, not a double-charge
-      return res.json({ ok: true, action: r.status, alreadyResolved: true });
-
-    if (action === 'reject') {
-      r.status = 'rejected';
-      r.reason = String(req.body.reason || 'Payment not confirmed. Please try again or contact us.').slice(0, 200);
-      r.resolvedAt = Date.now();
-      await kv.set(REQ_KEY, list);
-      return res.json({ ok: true, action: 'rejected' });
-    }
-
-    const tiers = await loadTiers();
-    const plan = tiers.find(t => t.id === r.planId);
-    if (!plan) return res.status(400).json({ error: 'That plan no longer exists — cannot approve as-is.' });
-
-    if (r.type === 'new') {
-      const name = r.playerName;
-      const key = await pickUnique(kv, 'tb:sub:', genSubKey);
-      const referralCodeForNewSub = await pickUnique(kv, 'tb:ref:', () => genReferralCode(name));
-      const expiresAt = advanceExpiry(Date.now(), plan);
-
-      const subscription = {
-        key, playerName: name, phone: r.phone,
-        maxDevices: plan.maxDevices, devices: [], status: 'active', createdAt: Date.now(), expiresAt,
-        months: plan.months, referralCode: referralCodeForNewSub, walletCredit: 0,
-        purchasedVia: 'self-serve'
-      };
-      await saveSub(subscription);
-      await kv.set(`tb:ref:${referralCodeForNewSub}`, key);
-
-      // referral reward: only for a genuinely new subscriber, only once,
-      // never for someone referring themselves (cheap phone-match guard)
-      if (r.referralCode) {
-        const referrerKey = await kv.get(`tb:ref:${r.referralCode}`);
-        const referrer = referrerKey ? await kv.get(`tb:sub:${referrerKey}`) : null;
-        if (referrer && !(referrer.phone && referrer.phone === r.phone)) {
-          referrer.walletCredit = (referrer.walletCredit || 0) + REFERRAL_REWARD;
-          await saveSub(referrer);
-          const ledger = await kv.get(REF_KEY) || [];
-          ledger.unshift({
-            id: genReqId(), referrerKey: referrer.key, referrerName: referrer.playerName,
-            referredKey: key, referredName: name, amount: REFERRAL_REWARD, createdAt: Date.now()
-          });
-          await kv.set(REF_KEY, ledger.slice(0, 500));
-        }
-      }
-
-      r.status = 'approved'; r.resultKey = key; r.resultExpiresAt = expiresAt; r.resolvedAt = Date.now();
-      await kv.set(REQ_KEY, list);
-      return res.json({ ok: true, action: 'approved', key, expiresAt });
-    }
-
-    // type === 'renew'
-    const sub = await kv.get(`tb:sub:${r.existingKey}`);
-    if (!sub) return res.status(404).json({ error: 'That subscription no longer exists.' });
-
-    sub.expiresAt = advanceExpiry(sub.expiresAt, plan);
-    sub.months = plan.months; delete sub.days;
-    sub.maxDevices = plan.maxDevices;
-    /* A fresh renewal cycle gets a fresh device count. Without this, a
-       subscriber who lost/changed a device (or whose subscription lapsed
-       and got logged out) renews, then finds their OWN first device
-       rejected as "device limit reached" — the slot is still held by a
-       stale device id from before, invisible to them, since nothing about
-       self-serve renewal ever cleared it. Any device still in regular use
-       just re-registers itself on its next verify — this is a no-op for
-       anyone who didn't need it. */
-    sub.devices = [];
-    if (sub.status === 'revoked') sub.status = 'active';
-    if (r.credit > 0) sub.walletCredit = Math.max(0, (sub.walletCredit || 0) - r.credit);
-    await saveSub(sub);
-
-    r.status = 'approved'; r.resultKey = sub.key; r.resultExpiresAt = sub.expiresAt; r.resolvedAt = Date.now();
-    await kv.set(REQ_KEY, list);
-    return res.json({ ok: true, action: 'approved', key: sub.key, expiresAt: sub.expiresAt });
+    const out = await resolveRequest(reqId, action, req.body.reason, 'admin panel');
+    return res.status(out.http).json(out.body);
   }
 
   return res.status(400).json({ error: 'Unknown action' });

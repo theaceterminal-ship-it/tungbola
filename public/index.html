@@ -737,8 +737,19 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   color:var(--on-surface-variant);cursor:pointer;font-family:inherit}
 .pm-title{font-size:18px;font-weight:900;color:var(--on-bg);margin-bottom:14px;padding-right:36px}
 .pm-hint{font-size:12px;color:var(--on-surface-variant);text-align:center;margin-bottom:10px}
-/* ── REQUEST SUBMITTED (no polling — the code arrives on WhatsApp once the
-   admin approves; this is just a calm confirmation, not a live wait) ── */
+.pm-upi{display:block;text-align:center;text-decoration:none;margin-bottom:14px;
+  background:var(--primary-container);color:var(--primary);box-shadow:none}
+.pm-attach{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;
+  border:2px dashed var(--primary);border-radius:14px;color:var(--primary);font-weight:700;
+  font-size:14px;cursor:pointer;margin-bottom:8px;padding:10px;text-align:center}
+.pm-attach.has{border-style:solid;background:var(--primary-container)}
+.pm-attach img{width:44px;height:44px;object-fit:cover;border-radius:8px}
+#buySubmitted .key-box{margin:10px 0 4px;text-align:center}
+#buySubmitted .key-code{display:inline-block;font-family:monospace;font-size:19px;font-weight:800;
+  letter-spacing:1px;background:#fff;border:2px solid var(--primary-container);color:var(--primary);
+  border-radius:12px;padding:10px 14px}
+#buySubmitted .key-note{font-size:12px;color:var(--on-surface-variant);margin-top:6px;max-width:300px}
+/* ── REQUEST SUBMITTED / WAITING FOR APPROVAL (polls until the admin decides) ── */
 #buySubmitted{height:100vh;height:100dvh;background:linear-gradient(160deg,#fff 0%,#EDE7F6 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:32px 24px;gap:0}
@@ -981,7 +992,7 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 
           <div id="buyNewFields">
             <input type="text" class="act-input" id="buyName" placeholder="Your name" maxlength="50">
-            <input type="tel" class="act-input" id="buyPhone" placeholder="Phone (your code is sent here)" maxlength="15" style="margin-top:8px">
+            <input type="tel" class="act-input" id="buyPhone" placeholder="Phone number (optional, for support)" maxlength="15" style="margin-top:8px">
             <input type="text" class="act-input" id="buyReferral" placeholder="Referral code (optional)" maxlength="20"
               style="margin-top:8px" oninput="this.value=this.value.toUpperCase()">
           </div>
@@ -1006,16 +1017,28 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
   <div class="pm-backdrop" onclick="closePayModal()"></div>
   <div class="pm-card">
     <button class="pm-close" onclick="closePayModal()" aria-label="Close">&times;</button>
-    <div class="pm-title">Scan to Pay</div>
+    <div class="pm-title" id="buyPmTitle">Pay &amp; send screenshot</div>
     <div class="buy-amount" id="buyAmount"></div>
 
-    <div class="buy-qr-wrap">
-      <div id="buyQrContainer"></div>
-      <div class="buy-upi-hint" id="buyUpiHint"></div>
+    <div id="buyPaySection">
+      <div class="buy-qr-wrap">
+        <div id="buyQrContainer"></div>
+        <div class="buy-upi-hint" id="buyUpiHint"></div>
+      </div>
+      <a class="act-btn pm-upi" id="buyUpiLink" href="#">📲 Open UPI app to pay</a>
     </div>
 
-    <div class="pm-hint">Paid? Tap below to send your request.</div>
-    <button class="act-btn" id="buySubmitBtn" onclick="submitPurchase()">I've Paid — Request Approval →</button>
+    <div id="buyProofSection">
+      <label class="pm-attach" id="buyShotLabel" for="buyShot">
+        <img id="buyShotThumb" alt="" style="display:none">
+        <span id="buyShotText">📎 Attach payment screenshot</span>
+      </label>
+      <input type="file" id="buyShot" accept="image/*" hidden onchange="onShotPicked(this)">
+      <input type="text" class="act-input" id="buyUtr" placeholder="UPI transaction ID (optional)" maxlength="30"
+        autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+    </div>
+    <div class="act-error" id="buyProofError"></div>
+    <button class="act-btn" id="buySubmitBtn" onclick="submitPurchase()" disabled>Send for Approval →</button>
     <div class="buy-support" id="buySupport" style="display:none">
       <a id="buySupportLink" href="#" target="_blank" rel="noopener" class="dp-support-link">
         💬 Need help? Contact on WhatsApp
@@ -1026,9 +1049,13 @@ html,body{height:100%;font-family:'Roboto',sans-serif;background:var(--bg);color
 
 <!-- ══ REQUEST SUBMITTED ══ -->
 <div id="buySubmitted" class="off">
-  <div class="wait-logo">✅</div>
-  <div class="wait-title">Request Sent!</div>
+  <div class="wait-logo" id="buyWaitLogo">⏳</div>
+  <div class="wait-title" id="buyWaitTitle">Waiting for approval</div>
   <div class="wait-sub" id="buySubmittedMsg"></div>
+  <div class="key-box" id="buyKeyBox" style="display:none">
+    <div class="key-code" id="buyKeyCode"></div>
+    <div class="key-note">Your key. It starts working the moment your payment is approved — this screen will activate it for you.</div>
+  </div>
   <button class="act-btn" style="max-width:280px;margin-top:20px" onclick="hideAll();$('welcome').classList.remove('off')">Back to Home</button>
   <a id="buyWaitSupportLink" href="#" target="_blank" rel="noopener"
     class="dp-support-link" style="margin-top:14px;display:none">
@@ -1559,7 +1586,7 @@ function stopPresence(){
 function init(){
   loadSaved();
   buildBalls();
-  loadAppConfig();
+  const cfgReady=loadAppConfig();
   try{const s=localStorage.getItem('tb_pay');if(s)gameSession=JSON.parse(s);}catch(e){}
   try{const s=localStorage.getItem('tb_sub');if(s)subscriptionKey=JSON.parse(s).key;}catch(e){}
   updateSubStatusBar();
@@ -1567,6 +1594,8 @@ function init(){
   updateWelcomeButtons();
   if(sheets.length>0&&gameSession) $('btnContinue').classList.remove('off');
   if(gameSession?.type==='subscription') silentVerifySubscription();
+  // a purchase is still awaiting approval — pick up where the player left off
+  if(loadBuy()) cfgReady.then(()=>{ if(loadBuy()){ showBuyWaiting(); startBuyPoll(); } });
   // Hide splash after 2s
   setTimeout(()=>{
     const s=$('splash');
@@ -1751,7 +1780,7 @@ function loadErrorMessage(problems,errs){
 /* ══ SUBSCRIPTION ══ */
 /* Shared by "enter a key" and by a self-serve buy/renew once it's approved —
    both end the same way: verify the key, build gameSession, land on welcome. */
-async function activateWithKey(key,welcomeMsg){
+async function activateWithKey(key,welcomeMsg,navigate=true){
   const r=await fetch('/api/subscription',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'verify',key,deviceId:getDeviceId()})
@@ -1767,8 +1796,7 @@ async function activateWithKey(key,welcomeMsg){
   updateSubStatusBar();
   updateRenewNotice();
   updateWelcomeButtons();
-  hideAll();
-  $('welcome').classList.remove('off');
+  if(navigate){ hideAll(); $('welcome').classList.remove('off'); }
   toast(welcomeMsg||`Welcome, ${data.playerName}! Now load your ticket sheets.`);
   return {ok:true,data};
 }
@@ -1796,18 +1824,19 @@ async function verifySubscription(){
 }
 
 /* ══ BUY / RENEW (self-serve) ══
-   Payment verification stays manual — the admin still confirms the UPI
-   payment landed — but the typing doesn't: a plan is picked, a request is
-   created server-side (which is also what computes the authoritative price,
-   wallet credit included, before the QR is ever drawn), and once the admin
-   approves, this device activates automatically. No key gets hand-typed or
-   copy-pasted by anyone. */
-let buyMode='new', buySelectedPlan=null, buyReqId=null;
+   Pick a plan → pay (QR or "Open UPI app") → attach the payment screenshot →
+   send. The screenshot goes straight to the admin's Telegram and is never
+   stored on our side. A new buyer's key is generated the moment they send it
+   and shown immediately; it starts working when the admin approves, and this
+   app polls and activates it by itself. Payment verification stays manual —
+   the admin confirms the money actually landed. */
+let buyMode='new', buySelectedPlan=null, buyReqId=null, buyReqToken=null;
 let buyReqSig=null, buyLastAmount=null, buyLastCredit=0;
+let buyShot=null;   // {data: base64 jpeg/png, thumb: objectURL}
 
 function resetBuyForm(){
   if(buyReqId) cancelPendingRequest();
-  buySelectedPlan=null;
+  buySelectedPlan=null; buyShot=null;
   const n=$('buyName');if(n) n.value='';
   const p=$('buyPhone');if(p) p.value='';
   const rf=$('buyReferral');if(rf) rf.value='';
@@ -1820,11 +1849,11 @@ function resetBuyForm(){
    switching new/renew, or leaving the screen. Nothing left to poll for or
    resume, so this is fire-and-forget. */
 async function cancelPendingRequest(){
-  const id=buyReqId;
-  buyReqId=null; buyReqSig=null;
+  const id=buyReqId, tok=buyReqToken;
+  buyReqId=null; buyReqToken=null; buyReqSig=null;
   if(id){
     try{ await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'cancel',reqId:id})}); }catch(e){}
+      body:JSON.stringify({action:'cancel',reqId:id,token:tok})}); }catch(e){}
   }
 }
 
@@ -1891,6 +1920,7 @@ async function proceedToPay(){
   const sig=JSON.stringify(payload);
   if(buyReqId&&sig===buyReqSig){
     showBuyAmount(buyLastAmount,buyLastCredit);
+    preparePayModal(buyLastAmount);
     $('payModal').classList.remove('off');
     return;
   }
@@ -1916,9 +1946,10 @@ async function proceedToPay(){
       }
       return;
     }
-    buyReqId=data.reqId; buyReqSig=sig;
+    buyReqId=data.reqId; buyReqToken=data.token; buyReqSig=sig;
     showBuyAmount(data.amount,data.credit);
     drawBuyQR(data.amount);
+    preparePayModal(data.amount);
     $('payModal').classList.remove('off');
   }catch(e){
     errEl.textContent='Network error. Check connection.';errEl.style.display='block';
@@ -1945,6 +1976,7 @@ function drawBuyQR(amount){
   const upiId=appConfig.upiId||'';
   if(!upiId){hint.textContent='UPI not configured – contact admin';return;}
   const upiStr=`upi://pay?pa=${encodeURIComponent(upiId)}&pn=Tungbola&am=${amount}&cu=INR&tn=Tungbola+Subscription`;
+  const ul=$('buyUpiLink'); if(ul) ul.href=upiStr;   // one tap into GPay / PhonePe / Paytm on a phone
   hint.textContent=`Pay ₹${amount} to ${upiId}`;
   try{
     new QRCode(container,{text:upiStr,width:180,height:180,
@@ -1958,25 +1990,138 @@ function drawBuyQR(amount){
   if(sup&&lnk){sup.style.display=wa?'':'none';lnk.href=waUrl;}
 }
 
-/* No polling. The request already exists (created back in proceedToPay,
-   which is also what got the QR its correct amount) — this just tells the
-   player what happens next and gets out of their way. A new subscriber's
-   code arrives on WhatsApp once the admin approves; a renewer's existing
-   session just updates itself next time it's checked, nothing to hand over. */
-function submitPurchase(){
-  if(!buyReqId){$('buyError').textContent='Pick a plan first';$('buyError').style.display='block';return;}
+/* Resets the pay popup for the amount at hand. A ₹0 renewal (wallet credit
+   covers it all) has nothing to pay and no screenshot to send. */
+function preparePayModal(amount){
+  const free=amount<=0;
+  buyShot=null;
+  $('buyShot').value=''; $('buyUtr').value='';
+  $('buyProofError').style.display='none';
+  $('buyPaySection').style.display=free?'none':'';
+  $('buyProofSection').style.display=free?'none':'';
+  $('buyPmTitle').textContent=free?'Use your credit':'Pay & send screenshot';
+  $('buySubmitBtn').textContent=free?'Use Credit — Send for Approval →':'Send for Approval →';
+  refreshShotUi();
+  $('buySubmitBtn').disabled=!free;
+}
+function refreshShotUi(){
+  const has=!!buyShot;
+  $('buyShotLabel').classList.toggle('has',has);
+  const th=$('buyShotThumb');
+  th.style.display=has?'':'none'; if(has) th.src=buyShot.thumb;
+  $('buyShotText').textContent=has?'Screenshot attached ✓ (tap to change)':'📎 Attach payment screenshot';
+  $('buySubmitBtn').disabled=!has&&buyLastAmount>0;
+}
+
+/* Shrinks the screenshot to roughly ≤1MB before upload (phone screenshots can
+   be several MB and the server's request limit is small). */
+async function shrinkImage(file){
+  const toB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();
+    fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
+  let bmp=null; try{bmp=await createImageBitmap(file);}catch(e){}
+  if(!bmp){ // browser couldn't decode it — send as-is if it's small enough
+    if(file.size>2.5*1024*1024) throw new Error('Could not read that image. Try a normal screenshot.');
+    return toB64(file);
+  }
+  let scale=Math.min(1,1600/Math.max(bmp.width,bmp.height)), blob=null;
+  for(const q of [0.8,0.65,0.5,0.4]){
+    const c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(bmp.width*scale)); c.height=Math.max(1,Math.round(bmp.height*scale));
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    blob=await new Promise(r=>c.toBlob(r,'image/jpeg',q));
+    if(blob&&blob.size<=900*1024) break;
+    scale*=0.8;
+  }
+  if(bmp.close) bmp.close();
+  if(!blob) throw new Error('Could not read that image. Try a normal screenshot.');
+  return toB64(blob);
+}
+
+async function onShotPicked(inp){
+  const f=inp.files&&inp.files[0]; if(!f) return;
+  const err=$('buyProofError'); err.style.display='none';
+  if(!/^image\//.test(f.type)){err.textContent='Please pick a picture (screenshot).';err.style.display='block';return;}
+  try{
+    const data=await shrinkImage(f);
+    if(buyShot&&buyShot.thumb) URL.revokeObjectURL(buyShot.thumb);
+    buyShot={data,thumb:URL.createObjectURL(f)};
+    refreshShotUi();
+  }catch(e){err.textContent=e.message||'Could not read that image.';err.style.display='block';}
+}
+
+async function submitPurchase(){
+  const err=$('buyProofError'); err.style.display='none';
+  if(!buyReqId){err.textContent='Pick a plan first';err.style.display='block';return;}
+  if(buyLastAmount>0&&!buyShot){err.textContent='Attach your payment screenshot first';err.style.display='block';return;}
+  const btn=$('buySubmitBtn'); btn.disabled=true; btn.textContent='Sending…';
   const wasRenew=buyMode==='renew';
-  const msg=wasRenew
-    ? `Your renewal is with the admin for approval. Once it's confirmed, it'll apply automatically — nothing else to do.`
-    : `Your subscription code will be sent to your WhatsApp once the admin approves your payment — usually within a few minutes.`;
-  buyReqId=null; buyReqSig=null; buySelectedPlan=null;
-  closePayModal();
+  try{
+    const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      action:'proof',reqId:buyReqId,token:buyReqToken,utr:($('buyUtr').value||'').trim(),
+      image:buyShot?{data:buyShot.data}:undefined})});
+    const data=await r.json();
+    if(!r.ok){
+      err.textContent=data.error||'Could not send. Please try again.'; err.style.display='block';
+      btn.disabled=false; btn.textContent='Send for Approval →'; return;
+    }
+    saveBuy({reqId:buyReqId,token:buyReqToken,key:data.key,type:wasRenew?'renew':'new',at:Date.now()});
+    buyReqId=null; buyReqToken=null; buyReqSig=null; buySelectedPlan=null; buyShot=null;
+    closePayModal();
+    showBuyWaiting();
+    startBuyPoll();
+  }catch(e){
+    err.textContent='Network error. Check connection and try again.'; err.style.display='block';
+    btn.disabled=false; btn.textContent='Send for Approval →';
+  }
+}
+
+/* ── waiting for approval: remembered on the device, polled until decided ── */
+let _buyPoll=null;
+function loadBuy(){ try{return JSON.parse(localStorage.getItem('tb_buy')||'null');}catch(e){return null;} }
+function saveBuy(b){ try{localStorage.setItem('tb_buy',JSON.stringify(b));}catch(e){} }
+function clearBuy(){ try{localStorage.removeItem('tb_buy');}catch(e){} stopBuyPoll(); }
+function stopBuyPoll(){ if(_buyPoll){clearInterval(_buyPoll);_buyPoll=null;} }
+function startBuyPoll(){ stopBuyPoll(); pollBuy(); _buyPoll=setInterval(pollBuy,8000); }
+
+function showBuyWaiting(state,reason){
+  const b=loadBuy();
   hideAll();
-  $('buySubmittedMsg').textContent=msg;
-  $('buySubmitted').classList.remove('off');
   const wa=appConfig.whatsappNumber||'';
   const wSup=$('buyWaitSupportLink');
   if(wSup){wSup.style.display=wa?'':'none';wSup.href=wa?`https://wa.me/${wa}`:'#';}
+  const set=(logo,title,msg)=>{$('buyWaitLogo').textContent=logo;$('buyWaitTitle').textContent=title;$('buySubmittedMsg').textContent=msg;};
+  const showKey=b&&b.type==='new'&&!state;
+  $('buyKeyBox').style.display=showKey?'':'none';
+  if(showKey) $('buyKeyCode').textContent=b.key;
+  if(state==='rejected') set('❌','Not approved',reason||'Your payment could not be confirmed. Please try again or contact us.');
+  else if(state==='expired') set('⌛','Request expired','If you did pay, please contact us on WhatsApp with your screenshot.');
+  else if(state==='error') set('⚠️','Approved, but not activated yet',reason||'Open "Activate Subscription" and enter your key.');
+  else set('⏳','Waiting for approval',b&&b.type==='renew'
+    ? `Your renewal is with the admin. It applies automatically once it's approved — you can keep this screen or go home.`
+    : `Your payment is with the admin. You'll be logged in automatically once it's approved — usually within a few minutes.`);
+  $('buySubmitted').classList.remove('off');
+}
+
+async function pollBuy(){
+  const b=loadBuy(); if(!b){stopBuyPoll();return;}
+  try{
+    const r=await fetch('/api/purchase',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'check',reqId:b.reqId,token:b.token})});
+    if(r.status===404){clearBuy();return;}
+    if(!r.ok) return;                       // transient (rate limit etc.) — try again next tick
+    const d=await r.json();
+    const onWaitScreen=!$('buySubmitted').classList.contains('off');
+    if(d.status==='approved'){
+      stopBuyPoll();
+      const res=await activateWithKey(b.key,'✅ Approved! You\'re all set.',onWaitScreen);
+      if(res.ok) clearBuy();
+      else if(onWaitScreen) showBuyWaiting('error',`Your key ${b.key} is approved. ${res.error}`);
+    }else if(d.status==='rejected'){
+      clearBuy(); if(onWaitScreen) showBuyWaiting('rejected',d.reason); else toast('Your payment was not approved: '+(d.reason||''));
+    }else if(d.status==='expired'){
+      clearBuy(); if(onWaitScreen) showBuyWaiting('expired');
+    }
+  }catch(e){}
 }
 
 async function silentVerifySubscription(){

@@ -57,11 +57,11 @@ function advanceExpiry(fromMs, plan) {
 
 /* genSubKey / genReferralCode / purchase request ids all need "try a random
    value, retry on collision" against Redis — one place for that shape. */
-async function pickUnique(kv, keyPrefix, genFn, tries = 10) {
+async function pickUnique(kv, keyPrefix, genFn, tries = 10, alsoTaken) {
   let value;
   for (let i = 0; i < tries; i++) {
     value = genFn();
-    if (!(await kv.exists(`${keyPrefix}${value}`))) return value;
+    if (!(await kv.exists(`${keyPrefix}${value}`)) && !(alsoTaken && await alsoTaken(value))) return value;
   }
   return value;   // exhausted retries: astronomically unlikely, take the last one
 }

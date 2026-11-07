@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.Tungbola" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:navigationBarColor">@color/colorPrimary</item>
+    </style>
+</resources>

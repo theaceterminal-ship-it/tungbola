@@ -2,5 +2,11 @@
   "version": 2,
   "functions": {
     "api/*.js": { "maxDuration": 10 }
-  }
+  },
+  "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    }
+  ]
 }

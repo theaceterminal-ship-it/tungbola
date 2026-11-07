@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Tungbola",
   "short_name": "Tungbola",
   "description": "Tambola / Housie game companion",
@@ -8,12 +9,11 @@
   "orientation": "portrait-primary",
   "background_color": "#6750A4",
   "theme_color": "#6750A4",
+  "categories": ["games", "entertainment"],
   "icons": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

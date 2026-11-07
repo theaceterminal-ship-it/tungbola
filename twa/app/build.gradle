@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+}
+
+def prop = { String k -> project.findProperty(k) as String }
+
+android {
+    namespace 'app.tungbola.twa'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId prop('twaApplicationId')
+        minSdk 23
+        targetSdk 36
+        versionCode (prop('twaVersionCode') as int)
+        versionName prop('twaVersionName')
+
+        manifestPlaceholders = [
+            hostName: prop('twaHost'),
+            launchUrl: '/'
+        ]
+        resValue 'string', 'asset_statements',
+            '[{\\"relation\\": [\\"delegate_permission/common.handle_all_urls\\"], \\"target\\": {\\"namespace\\": \\"web\\", \\"site\\": \\"https://' + prop('twaHost') + '\\"}}]'
+    }
+
+    signingConfigs {
+        release {
+            // Provided by CI / local env. If absent, release is left unsigned.
+            def ks = System.getenv('TWA_KEYSTORE_FILE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('TWA_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('TWA_KEY_ALIAS')
+                keyPassword System.getenv('TWA_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv('TWA_KEYSTORE_FILE')) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

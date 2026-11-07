@@ -930,10 +930,7 @@ function renderRequests() {
         <div class="req-code-row">
           <span class="req-code" id="reqcode-${esc(r.id)}">${esc(r.resultKey)}</span>
           <button class="req-copy" onclick="copyReqCode('${esc(r.id)}')" title="Copy">📋</button>
-          ${r.phone ? `<a class="req-wa-send" target="_blank" rel="noopener"
-              href="https://wa.me/${esc(r.phone)}?text=${encodeURIComponent(
-                `Hi ${r.playerName}! 🎉 Your Tungbola subscription is ready.\n\nYour code: ${r.resultKey}\n\nOpen the app, tap "Activate Subscription", and enter this code to start playing!`
-              )}">💬 Send via WhatsApp</a>` : `<span class="req-no-phone">no phone on file</span>`}
+          <span class="req-no-phone">already shown to the player in their app</span>
         </div>` : '';
       actions = `<div class="req-resolved">✓ Approved${r.resolvedAt ? ' · ' + reqAgo(r.resolvedAt) : ''}</div>${codeBlock}`;
     } else {
@@ -950,8 +947,10 @@ function renderRequests() {
           <b>${esc(r.planLabel)}</b> · ${priceLine}
           ${r.phone ? ` · 📱 ${esc(r.phone)}` : ''}
           ${r.referralCode ? ` · referred by <b>${esc(r.referralCode)}</b>` : ''}
-          ${isRenew ? ` · key <code>${esc(r.existingKey || '')}</code>` : ''}
+          ${isRenew ? ` · key <code>${esc(r.existingKey || '')}</code>` : (r.reservedKey && r.status === 'pending' ? ` · new key <code>${esc(r.reservedKey)}</code>` : '')}
+          ${r.utr ? ` · UTR <code>${esc(r.utr)}</code>` : ''}
         </div>
+        ${r.status === 'pending' ? '<div class="req-wait" style="margin-left:0;margin-top:4px">📷 Screenshot was sent to your Telegram — you can approve there, or here.</div>' : ''}
         ${actions}
       </div>`;
   };

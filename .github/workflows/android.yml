@@ -1,0 +1,44 @@
+name: Build Android app
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['android-v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore upload keystore (if configured)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "TWA_KEYSTORE_FILE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+            echo "TWA_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "TWA_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "TWA_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+          else
+            echo "No keystore secrets set: release artifacts will be unsigned."
+          fi
+
+      - name: Build release AAB + APK
+        working-directory: twa
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon bundleRelease assembleRelease \
+            ${{ vars.TWA_HOST && format('-PtwaHost={0}', vars.TWA_HOST) || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tungbola-android
+          path: |
+            twa/app/build/outputs/bundle/release/*.aab
+            twa/app/build/outputs/apk/release/*.apk
